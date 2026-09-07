@@ -1,7 +1,9 @@
 .*_cache/
 .playwright*/
 .claude/
-.agents/
+.agents/*
+!.agents/plugins/
+!.agents/plugins/marketplace.json
 .codex/
 tmp/
 .gcloud/

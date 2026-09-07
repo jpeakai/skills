@@ -1,7 +1,7 @@
 {
   "name": "jpeak-skills",
   "version": "1.0.0",
-  "description": "Agent skills published by jpeak.ai: repo documentation organisation, docs quality auditing, gap-analysis planning, decision consolidation, Mermaid diagram QA, and rich HTML companions to markdown.",
+  "description": "Agent skills published by jpeak.ai: repo documentation organisation, docs quality auditing, gap-analysis planning, decision consolidation, Mermaid diagram QA, rich HTML companions to markdown, and a PreToolUse working-agreements hook.",
   "author": {
     "name": "jpeak.ai",
     "url": "https://github.com/jpeakai"
@@ -15,7 +15,9 @@
     "planning",
     "mermaid",
     "decisions",
-    "adr"
+    "adr",
+    "hooks"
   ],
-  "skills": "./skills/"
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json"
 }

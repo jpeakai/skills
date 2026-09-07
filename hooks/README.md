@@ -100,36 +100,54 @@ Code's `PreToolUse` contract closely enough to be wire-compatible:
   code comment *"For OOTB compat with existing plugins that use this env
   var"* (`codex-rs/hooks/src/engine/*`). That is a deliberate
   interoperability decision on Codex's side, not an assumption made here.
-- The plugin manifest loader (`codex-rs/plugin/src/manifest.rs`) accepts a
-  `hooks` path in `.codex-plugin/plugin.json` pointing at a `hooks/hooks.json`
-  file — the exact same path this repo already uses for Claude Code.
+- The plugin manifest loader (`codex-rs/core-plugins/src/manifest.rs`,
+  `RawPluginManifestHooks`) accepts a `hooks` field in
+  `.codex-plugin/plugin.json` as a bare path string, an array of path
+  strings, or an inline hooks object — mirroring exactly how `skills`,
+  `apps` and `mcpServers` already accept a bare string in this same file.
+  Its own unit test parses `"hooks": "./hooks.json"` (a bare string) into a
+  resolved hook file path, and a second fixture
+  (`core-plugins/src/marketplace_tests.rs`) uses the array form,
+  `"hooks": ["./hooks/session.json"]` — both resolve to the same
+  `PluginManifestHooks::Paths` the loader then reads with
+  `serde_json::from_str::<HooksFile>` (`core-plugins/src/loader.rs`), i.e.
+  as plain JSON, the same encoding Claude Code's plugin `hooks/hooks.json`
+  uses.
 
 `.codex-plugin/plugin.json` in this repo declares
-`"hooks": "./hooks/hooks.json"` on that basis, so the one file above wires
-the one script into both agents.
+`"hooks": "./hooks/hooks.json"` — the bare-string form exercised by that
+first unit test — so the one file above wires the one script into both
+agents.
 
-**Caveat — read before relying on this in a pinned CLI version.** This was
-established by reading Codex's own source in the `openai/codex` repository
-(commit `1e66885a`, September 2026), not from stable public documentation —
-`developers.openai.com/codex` is where OpenAI's own docs point for the
-authoritative schema and it was not reachable from this environment while
-researching. The bundled `plugin-creator` skill shipped inside that same
-Codex checkout (`codex-rs/skills/src/assets/samples/plugin-creator/scripts/validate_plugin.py`)
-has a `--with-hooks` scaffold flag but its `allowed_keys` set for
-`plugin.json` does not yet list `hooks` — a sign this surface is still
-actively moving. If your installed Codex CLI doesn't pick up
-`.codex-plugin/plugin.json`'s `hooks` field, this hook will simply not be
-wired for Codex until that catches up; nothing else in this repo depends on
-it.
+**Provenance note.** All of the above was established by reading Codex's
+own source in the `openai/codex` repository (`codex-rs/hooks`,
+`codex-rs/plugin`, `codex-rs/core-plugins`, `codex-rs/config::hook_config`,
+commit `c9c7b73c`, September 2026), including its own unit tests exercising
+the exact manifest shape used here — not from stable public documentation,
+since `developers.openai.com/codex` (where OpenAI's own docs point for the
+authoritative schema) was not reachable from the environment used for this
+research. Treat the citations above as "confirmed by reading the shipped
+source and its tests," not "guaranteed stable across future Codex
+releases" — this is a fast-moving part of the codebase (for instance, the
+`plugin-creator` sample skill bundled in that same checkout,
+`codex-rs/skills/src/assets/samples/plugin-creator/scripts/validate_plugin.py`,
+has its own separate, stricter scaffold-only validator whose `allowed_keys`
+for `plugin.json` doesn't yet list `hooks` — that script is not the actual
+plugin loader and doesn't gate what Codex will run, but it's a sign this
+surface was added recently). If a future Codex CLI build stops reading
+`.codex-plugin/plugin.json`'s `hooks` field, this hook simply won't be wired
+for Codex until that's fixed; nothing else in this repo depends on it, and
+the standalone install path below never depends on plugin-manifest support
+either way.
 
 ### What is Claude-only
 
 Nothing in the *hook itself* is Claude-only — that was the point of vendoring
-stdlib-only scripts with no framework calls. The Claude-only piece, if
-anything ends up being one, is exactly the wiring surface above: whether a
-given Codex CLI build actually reads `.codex-plugin/plugin.json`'s `hooks`
-field yet. If it doesn't, install the same two files directly instead (see
-below) — that path never depends on plugin-manifest support.
+stdlib-only scripts with no framework calls. Today, the wiring isn't
+Claude-only either: both the Claude Code plugin convention and Codex's
+manifest loader pick up `hooks/hooks.json` the same way, per the source
+citations above. The only real risk is drift over time in a part of Codex's
+codebase that is still actively changing — see the provenance note.
 
 ## Install
 

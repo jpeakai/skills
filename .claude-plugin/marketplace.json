@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "jpeakai",
+  "owner": {
+    "name": "jpeak.ai",
+    "url": "https://github.com/jpeakai"
+  },
+  "description": "Agent skills published by jpeak.ai.",
+  "plugins": [
+    {
+      "name": "jpeak-skills",
+      "displayName": "jpeak.ai Skills",
+      "description": "Repo documentation organisation, docs quality, gap-analysis planning, decision consolidation, Mermaid diagram QA, and rich HTML companions to markdown.",
+      "source": "./",
+      "license": "MIT",
+      "keywords": [
+        "skills",
+        "documentation",
+        "planning",
+        "mermaid",
+        "decisions",
+        "adr"
+      ]
+    }
+  ]
+}

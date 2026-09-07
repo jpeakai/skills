@@ -6,6 +6,26 @@ scripts and templates it needs.
 
 ## Installing
 
+### As a Claude Code plugin marketplace
+
+This repo is a [Claude Code plugin marketplace](https://code.claude.com/docs/en/plugin-marketplaces): `.claude-plugin/marketplace.json` registers the whole skill set as one plugin, `jpeak-skills`, defined in `.claude-plugin/plugin.json`.
+
+```
+/plugin marketplace add jpeakai/skills
+/plugin install jpeak-skills@jpeakai
+```
+
+### As a Codex skills/plugin source
+
+This repo also works as a [Codex plugin](https://developers.openai.com/codex/skills) source: `.agents/plugins/marketplace.json` (the repo-scoped marketplace Codex looks for) registers one local plugin defined by `.codex-plugin/plugin.json`, whose `skills` field points at the existing `skills/` directory.
+
+```sh
+codex plugin marketplace add jpeakai/skills
+codex plugin add jpeak-skills@jpeakai
+```
+
+### Manually
+
 Copy or symlink a skill into your agent's skills directory:
 
 ```sh

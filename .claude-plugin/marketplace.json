@@ -10,7 +10,7 @@
     {
       "name": "jpeak-skills",
       "displayName": "jpeak.ai Skills",
-      "description": "Repo documentation organisation, docs quality, gap-analysis planning, decision consolidation, Mermaid diagram QA, and rich HTML companions to markdown.",
+      "description": "Repo documentation organisation, docs quality, gap-analysis planning, decision consolidation, Mermaid diagram QA, rich HTML companions to markdown, and a PreToolUse working-agreements hook.",
       "source": "./",
       "license": "MIT",
       "keywords": [
@@ -19,7 +19,8 @@
         "planning",
         "mermaid",
         "decisions",
-        "adr"
+        "adr",
+        "hooks"
       ]
     }
   ]

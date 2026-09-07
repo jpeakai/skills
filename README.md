@@ -46,6 +46,28 @@ ln -s "$PWD/skills/librarian" ~/.claude/skills/librarian
 | [`plan-gap`](skills/plan-gap) | Gap analysis planning: iteratively refines a tiered spec covering execution plan, gaps, decisions, and success and negative measures |
 | [`richdocs`](skills/richdocs) | Rich HTML companions to markdown discovery documents, with a vendored draw.io stencil library and an injectable design-tokens brandpack |
 
+## Hooks
+
+### tool_coach
+
+A `PreToolUse` hook that turns a dead-end "permission denied" into a redirect:
+every blocked call comes back with the thing to do instead, so the model
+stops retrying near-miss variants. Structural checks (no deletions, no
+scratch space outside the project) parse the command's argv; tool-choice
+coaching lives in an editable rules file. Stdlib only — no install, no
+virtualenv.
+
+It ships once, in [`hooks/`](hooks), and is wired into **both** plugins
+above via the same [`hooks/hooks.json`](hooks/hooks.json): installing either
+`jpeak-skills` plugin brings it along automatically. See
+[hooks/README.md](hooks/README.md) for what it checks, exactly how the one
+wiring file works for both Claude Code and Codex CLI, and what (if anything)
+turns out to be Claude-only as Codex's own hooks support matures.
+
+```sh
+pytest hooks/test_tool_coach.py
+```
+
 ## Licence
 
 MIT — see [LICENSE](LICENSE).

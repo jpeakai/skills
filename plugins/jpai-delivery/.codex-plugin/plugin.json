@@ -1,0 +1,23 @@
+{
+  "name": "jpai-delivery",
+  "version": "0.1.0",
+  "description": "Delivery planning from jpeak.ai: gap-analysis planning that iteratively refines a tiered spec covering execution plan, gaps, decisions, and success and negative measures (plan-gap), paired with single-question decision consolidation that self-answers from existing decision records before asking (concise-decisions). Ships the PreToolUse working-agreements coaching hook. Skills are symlinked from the canonical skills/ tree, so this pack composes them rather than duplicating any SKILL.md.",
+  "author": {
+    "name": "jpeak.ai",
+    "url": "https://github.com/jpeakai"
+  },
+  "homepage": "https://github.com/jpeakai/skills",
+  "repository": "https://github.com/jpeakai/skills",
+  "license": "MIT",
+  "keywords": ["planning", "gap-analysis", "decisions", "adr", "delivery", "hooks"],
+  "skills": "./skills",
+  "hooks": "./hooks/hooks.json",
+  "interface": {
+    "displayName": "jpeak.ai Delivery",
+    "shortDescription": "Gap-analysis planning paired with single-question decision consolidation",
+    "longDescription": "The delivery-planning half of the jpeak.ai skill set. plan-gap runs a gap analysis as a tiered spec — an index plus per-gap, per-ticket and discovery files, or a GitHub issue with per-gap sub-issues — covering Execution Plan, Overview, Gap Analysis, Decisions, Success Measures and Negative Measures, validating Mermaid diagrams and enforcing requirement integrity through structured questioning. concise-decisions is its decision surface: it self-answers from existing decision records, then puts the single highest-leverage remaining question with a full briefing and captures the user's reasoning as a reusable lens. A PreToolUse hook turns blocked tool calls into coaching redirects. Both skills are symlinked from the canonical skills/ tree, so this pack composes them rather than duplicating any SKILL.md.",
+    "developerName": "jpeak.ai",
+    "category": "Developer Tools",
+    "capabilities": ["planning", "gap-analysis", "decisions", "adr", "delivery", "hooks"]
+  }
+}

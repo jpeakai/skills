@@ -170,10 +170,10 @@ The reasoning is in [plugins/README.md](plugins/README.md#why-copies-and-not-sym
 To change a skill, edit it under `skills/` and re-sync:
 
 ```sh
-uv run scripts/sync_plugins.py           # mirror the canonical trees into the packs
-uv run scripts/sync_plugins.py --check   # CI: fail if a pack has drifted
-uv run scripts/validate_plugins.py       # every layout invariant
-./scripts/test_harness_install.sh        # install into throwaway Claude + Codex sandboxes
+make fix          # mirror the canonical trees into the packs
+make ci           # assert the mirror is committed, then run every layout invariant and the hook suite
+make docs-ci      # prose, diagram-complexity and colour-contrast gates over the authored markdown
+make harness-ci   # install both packs into throwaway Claude and Codex sandboxes
 ```
 
 ## Hooks

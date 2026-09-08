@@ -128,10 +128,10 @@ The cost is working-tree disk, not history.
 
 | To do this | Change this | Then run |
 |---|---|---|
-| Change a skill | `../skills/<name>/` | `uv run scripts/sync_plugins.py` |
-| Change the hook | `../hooks/` | `uv run scripts/sync_plugins.py` |
-| Add or remove a skill from a pack | [`composition.yaml`](composition.yaml) | `uv run scripts/sync_plugins.py` |
-| Change a pack's name, version or blurb | that pack's two `plugin.json` files | `uv run scripts/validate_plugins.py` |
+| Change a skill | `../skills/<name>/` | `make fix` |
+| Change the hook | `../hooks/` | `make fix` |
+| Add or remove a skill from a pack | [`composition.yaml`](composition.yaml) | `make fix` |
+| Change a pack's name, version or blurb | that pack's two `plugin.json` files | `make ci` |
 
 Each pack carries two manifests, one per ecosystem:
 
@@ -145,11 +145,11 @@ Each pack carries two manifests, one per ecosystem:
 ## Checks
 
 ```sh
-uv run scripts/sync_plugins.py --check   # mirror matches the canonical trees
-uv run scripts/validate_plugins.py       # every layout invariant
-./scripts/test_harness_install.sh        # real install into both harnesses
+make ci           # mirror is committed, every layout invariant, the hook suite
+make harness-ci   # real install into both harnesses
 ```
 
-The last one clones HEAD into a temp directory, then installs both packs into a throwaway `CLAUDE_CONFIG_DIR` and a throwaway `CODEX_HOME`.
-`HOME` is replaced as well, because Codex reads personal skills from `~/.agents/skills`, which `CODEX_HOME` does not cover.
+`make ci` runs `make fix` first, so a canonical skill edited without re-syncing fails the build rather than shipping a stale pack.
+
+The last one clones HEAD into a temp directory, then installs both packs into a throwaway `CLAUDE_CONFIG_DIR` and a throwaway `CODEX_HOME`. `HOME` is replaced as well, because Codex reads personal skills from `~/.agents/skills`, which `CODEX_HOME` does not cover.
 It then asserts each skill reaches the model-visible prompt and that no external skill root leaked into the sandbox.

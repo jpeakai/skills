@@ -17,6 +17,82 @@ redirect ends the loop in one turn.
 | No out-of-project scratch space | structural | Bash, Write, Edit, NotebookEdit, Read |
 | Tool-choice coaching (inline `-c` snippets, bare interpreters, manual `PYTHONPATH`, the `timeout` binary) | pattern rules in `tool_coach_rules.json` | Bash |
 
+```mermaid
+flowchart LR
+    T["Tool call<br/>Bash / Write / Edit / Read"]:::input
+    H["tool_coach.py<br/>PreToolUse"]:::proc
+    S["Structural checks<br/>argv-parsed"]:::check
+    P["Pattern rules<br/>editable JSON"]:::check
+    A["allow<br/>call proceeds"]:::ok
+    D["deny + coaching<br/>do this instead"]:::deny
+
+    T --> H
+    H --> S
+    H --> P
+    S --> D
+    P --> D
+    S --> A
+    P --> A
+
+    classDef input fill:#2563eb,stroke:#bfdbfe,color:#ffffff,stroke-width:2px
+    classDef proc  fill:#7c3aed,stroke:#ddd6fe,color:#ffffff,stroke-width:2px
+    classDef check fill:#92400e,stroke:#fde68a,color:#ffffff,stroke-width:2px
+    classDef ok    fill:#065f46,stroke:#a7f3d0,color:#ffffff,stroke-width:2px
+    classDef deny  fill:#be123c,stroke:#fecdd3,color:#ffffff,stroke-width:2px
+```
+
+*A denial carries a redirect, not a dead end.* Same shape in both agents.
+
+<details>
+<summary>📋 Complete diagram — the checks, the wire format, and both harnesses</summary>
+
+```mermaid
+flowchart TB
+    subgraph agents["Either agent"]
+        CC["Claude Code<br/>plugin hooks.json"]:::host
+        CX["Codex<br/>manifest hooks path"]:::host
+    end
+
+    EV["PreToolUse event JSON<br/>tool_name, tool_input, cwd"]:::input
+    HD["Heredoc bodies stripped<br/>docs about a command are safe"]:::proc
+    H["tool_coach.py"]:::proc
+
+    subgraph checks["Checks"]
+        ND["No deletions<br/>rm, git rm, find -delete"]:::check
+        NS["No scratch outside project"]:::check
+        TR["tool_coach_rules.json<br/>inline -c, bare interpreters"]:::check
+    end
+
+    OUT["hookSpecificOutput<br/>permissionDecision + reason"]:::proc
+    A["allow"]:::ok
+    D["deny with the fix"]:::deny
+    ERR["Malformed rules<br/>exit 1, fail loud"]:::deny
+
+    CC --> EV
+    CX --> EV
+    EV --> HD --> H
+    H --> ND
+    H --> NS
+    H --> TR
+    ND & NS & TR --> OUT
+    OUT --> A
+    OUT --> D
+    H -.-> ERR
+
+    classDef host  fill:#334155,stroke:#cbd5e1,color:#ffffff,stroke-width:2px
+    classDef input fill:#2563eb,stroke:#bfdbfe,color:#ffffff,stroke-width:2px
+    classDef proc  fill:#7c3aed,stroke:#ddd6fe,color:#ffffff,stroke-width:2px
+    classDef check fill:#92400e,stroke:#fde68a,color:#ffffff,stroke-width:2px
+    classDef ok    fill:#065f46,stroke:#a7f3d0,color:#ffffff,stroke-width:2px
+    classDef deny  fill:#be123c,stroke:#fecdd3,color:#ffffff,stroke-width:2px
+```
+
+Both agents send the same event shape and read the same decision back, which is
+why one script serves both. Failure is loud: a broken rules file exits 1 rather
+than silently allowing the call.
+
+</details>
+
 Structural checks parse the command into argv with `shlex`, so they catch
 wrapped and indirect forms a regex misses: `sudo`, `xargs`, an absolute
 `/bin/` path, an env-var prefix, a pipeline, `git rm`, `find -delete`. Pattern

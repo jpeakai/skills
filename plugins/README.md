@@ -23,11 +23,80 @@ naming it in [`composition.yaml`](composition.yaml).
 declares which skills each pack composes, and
 [`../scripts/sync_plugins.py`](../scripts/sync_plugins.py) copies them in.
 
+```mermaid
+flowchart LR
+    CF["composition.yaml<br/>declares the grouping"]:::cfg
+    SK["../skills/"]:::src
+    HK["../hooks/"]:::src
+    SY["sync_plugins.py"]:::proc
+    PK["plugins/&lt;pack&gt;/<br/>real files, generated"]:::pack
+    VL["validate_plugins.py<br/>--check"]:::gate
+
+    CF --> SY
+    SK -->|copy| SY
+    HK -->|copy| SY
+    SY --> PK
+    PK -.->|drift?| VL
+    VL -.->|fails the build| PK
+
+    classDef cfg  fill:#92400e,stroke:#fde68a,color:#ffffff,stroke-width:2px
+    classDef src  fill:#2563eb,stroke:#bfdbfe,color:#ffffff,stroke-width:2px
+    classDef proc fill:#7c3aed,stroke:#ddd6fe,color:#ffffff,stroke-width:2px
+    classDef pack fill:#065f46,stroke:#a7f3d0,color:#ffffff,stroke-width:2px
+    classDef gate fill:#be123c,stroke:#fecdd3,color:#ffffff,stroke-width:2px
 ```
-skills/librarian/         ──copy──▶  plugins/jpai-essentials/skills/librarian/
-hooks/tool_coach.py       ──copy──▶  plugins/*/hooks/tool_coach.py
-composition.yaml          ──drives──▶ what lands where
+
+*One direction only.* Content flows canonical → pack; the gate only ever reports.
+
+<details>
+<summary>📋 Complete diagram — what a pack contains and who reads which part</summary>
+
+```mermaid
+flowchart TB
+    CF["composition.yaml"]:::cfg
+    SY["scripts/sync_plugins.py"]:::proc
+
+    subgraph src["Canonical — hand-edited"]
+        SKD["../skills/&lt;name&gt;/<br/>SKILL.md + resources"]:::src
+        HKJ["../hooks/hooks.json"]:::src
+        HKP["../hooks/tool_coach.py"]:::src
+        HKR["../hooks/tool_coach_rules.json"]:::src
+        HKT["../hooks/test_tool_coach.py<br/>not published"]:::orphan
+    end
+
+    subgraph pack["plugins/&lt;pack&gt;/ — generated"]
+        CPJ[".claude-plugin/plugin.json"]:::manif
+        XPJ[".codex-plugin/plugin.json"]:::manif
+        PSK["skills/&lt;name&gt;/"]:::pack
+        PHK["hooks/"]:::pack
+    end
+
+    CC["Claude Code<br/>auto-discovers"]:::host
+    CX["Codex<br/>reads declared paths"]:::host
+
+    CF --> SY
+    SKD --> SY
+    HKJ & HKP & HKR --> SY
+    SY --> PSK
+    SY --> PHK
+    CPJ --> CC
+    XPJ --> CX
+    PSK & PHK --> CC
+    PSK & PHK --> CX
+
+    classDef cfg    fill:#92400e,stroke:#fde68a,color:#ffffff,stroke-width:2px
+    classDef src    fill:#2563eb,stroke:#bfdbfe,color:#ffffff,stroke-width:2px
+    classDef orphan fill:#475569,stroke:#cbd5e1,color:#ffffff,stroke-width:2px,stroke-dasharray:4 3
+    classDef proc   fill:#7c3aed,stroke:#ddd6fe,color:#ffffff,stroke-width:2px
+    classDef pack   fill:#065f46,stroke:#a7f3d0,color:#ffffff,stroke-width:2px
+    classDef manif  fill:#0f766e,stroke:#99f6e4,color:#ffffff,stroke-width:2px
+    classDef host   fill:#334155,stroke:#cbd5e1,color:#ffffff,stroke-width:2px
 ```
+
+The two manifests are hand-written per pack; only `skills/` and `hooks/` are
+generated. The hook test suite stays canonical and is deliberately not shipped.
+
+</details>
 
 ### Why copies and not symlinks
 

@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -77,21 +77,55 @@ def frontmatter_name(skill_md: Path) -> str | None:
     return None
 
 
-def check_symlinks(rep: Report) -> None:
-    print("\nSymlinks resolve")
+def check_no_symlinks(rep: Report) -> None:
+    """No entry under plugins/ may be a symlink.
+
+    Codex copies a plugin into its cache and skips symlink entries, so a
+    symlinked skill installs as an empty directory with no error anywhere. The
+    plugin reports "installed, enabled" and carries nothing. Claude Code does
+    follow links, which is exactly why this has to be asserted rather than
+    noticed: the layout looks healthy in one harness while being inert in the
+    other.
+    """
+    print("\nNo symlinks under plugins/ (Codex silently drops them)")
     links = sorted(p for p in (REPO / "plugins").rglob("*") if p.is_symlink())
-    rep.check(bool(links), "plugins/ contains symlinks", "found none — is the layout built?")
-    for link in links:
-        rel = link.relative_to(REPO)
-        target = os.readlink(link)
-        rep.check(link.exists(), f"{rel} -> {target}", "dangling")
-        # A link that escapes the repo would break any consumer that clones it.
-        resolved = link.resolve()
-        rep.check(
-            REPO in resolved.parents or resolved == REPO,
-            f"{rel} stays inside the repo",
-            f"resolves to {resolved}",
-        )
+    rep.check(
+        not links,
+        "plugins/ is free of symlinks",
+        ", ".join(str(p.relative_to(REPO)) for p in links[:5]),
+    )
+
+
+def check_mirror_in_sync(rep: Report) -> None:
+    """Delegate the content comparison to the sync script's own --check mode."""
+    print("\nMirror matches the canonical skills/ and hooks/ trees")
+    result = subprocess.run(
+        [sys.executable, str(REPO / "scripts" / "sync_plugins.py"), "--check"],
+        capture_output=True,
+        text=True,
+    )
+    rep.check(
+        result.returncode == 0,
+        "plugins/ mirror is in sync",
+        "run: uv run scripts/sync_plugins.py",
+    )
+    if result.returncode != 0:
+        for line in result.stdout.splitlines()[1:6]:
+            print(f"       {line.strip()}")
+
+
+def check_composition(rep: Report) -> None:
+    """plugins/composition.json is the declaration; the tree must match it."""
+    print("\nEach plugin tree matches plugins/composition.json")
+    composition = load_json(REPO / "plugins" / "composition.json")["plugins"]
+    dirs = {p.name for p in (REPO / "plugins").iterdir() if p.is_dir()}
+    rep.check(set(composition) == dirs, "composition.json covers every plugin dir", f"{set(composition)} vs {dirs}")
+    for plugin, spec in sorted(composition.items()):
+        declared = set(spec["skills"])
+        present = {p.name for p in (REPO / "plugins" / plugin / "skills").iterdir() if not p.name.startswith(".")}
+        rep.check(declared == present, f"{plugin}: composed skills match declaration", f"{declared} vs {present}")
+        for name in sorted(declared):
+            rep.check((REPO / "skills" / name).is_dir(), f"{plugin}: canonical skills/{name} exists")
 
 
 def check_hook_wiring(rep: Report) -> None:
@@ -197,7 +231,9 @@ def main() -> None:
 
     print(f"Validating plugin layout in {REPO}")
     rep = Report()
-    check_symlinks(rep)
+    check_no_symlinks(rep)
+    check_mirror_in_sync(rep)
+    check_composition(rep)
     check_hook_wiring(rep)
     check_manifests(rep)
     check_skills(rep)

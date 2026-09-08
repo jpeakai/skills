@@ -1,0 +1,23 @@
+{
+  "$comment": "The single declaration of which canonical skills each plugin composes. scripts/sync_plugins.py mirrors skills/ and hooks/ into each plugin from this file; scripts/validate_plugins.py fails if a plugin tree and this file disagree. Add a skill to a pack by naming it here and re-running the sync, never by copying files into plugins/.",
+  "plugins": {
+    "jpai-essentials": {
+      "skills": [
+        "agnostic",
+        "concise-decisions",
+        "gooddocs",
+        "librarian",
+        "mermaidjs-diagrams",
+        "richdocs"
+      ],
+      "hooks": true
+    },
+    "jpai-delivery": {
+      "skills": [
+        "concise-decisions",
+        "plan-gap"
+      ],
+      "hooks": true
+    }
+  }
+}

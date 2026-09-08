@@ -45,13 +45,16 @@ echo "Cloning HEAD into the sandbox (proves a consumer's checkout works)"
 git clone --quiet --no-hardlinks "$REPO" "$CLONE" 2>/dev/null
 check $? "git clone"
 
-# A clone is where a symlink-composed layout would break if links were absolute
-# or pointed outside the repo, so re-assert resolution on the clone itself.
-dangling=0
-while IFS= read -r link; do
-    [ -e "$link" ] || { dangling=$((dangling + 1)); echo "        dangling: ${link#"$CLONE"/}"; }
-done < <(find "$CLONE/plugins" -type l)
-check "$([ "$dangling" -eq 0 ] && echo 0 || echo 1)" "every symlink resolves in the clone" "$dangling dangling"
+# Codex copies a plugin into its cache and drops symlink entries, so a
+# symlinked skill would install as an empty directory with no error. Assert the
+# clone carries real files before either harness sees it.
+symlinks="$(find "$CLONE/plugins" -type l | wc -l | tr -d ' ')"
+check "$([ "$symlinks" -eq 0 ] && echo 0 || echo 1)" "clone has no symlinks under plugins/" "$symlinks found"
+
+for p in "${PLUGINS[@]}"; do
+    n="$(find "$CLONE/plugins/$p/skills" -name SKILL.md | wc -l | tr -d ' ')"
+    check "$([ "$n" -gt 0 ] && echo 0 || echo 1)" "$p carries $n real SKILL.md files in the clone"
+done
 
 # ------------------------------------------------------------------- Claude
 echo
@@ -121,8 +124,11 @@ for s in "${ESSENTIALS_SKILLS[@]}" "${DELIVERY_SKILLS[@]}"; do
     check $? "skill $s is in the model-visible prompt"
 done
 
-# Isolation: no skill root may point outside the sandbox.
-leaked="$(echo "$prompt" | grep -oE '`r[0-9]+` = `[^`]*`' | grep -v "$SANDBOX" || true)"
+# Isolation: no skill root may point outside the sandbox. Compare against the
+# fully resolved path — on macOS $TMPDIR is /var/... while Codex reports the
+# /private/var/... realpath, which would otherwise read as a false leak.
+SANDBOX_REAL="$(cd "$SANDBOX" && pwd -P)"
+leaked="$(echo "$prompt" | grep -oE '`r[0-9]+` = `[^`]*`' | grep -v "$SANDBOX_REAL" || true)"
 if [ -n "$leaked" ]; then
     bad "Codex sandbox is isolated" "external skill roots: $leaked"
 else

@@ -15,18 +15,18 @@ work. Installing both packs is fine — each harness namespaces skills by plugin
 
 The `cli` skill is not in either pack. It stays canonical in
 [`../skills/cli`](../skills/cli) and is installed manually; add it to a pack by
-naming it in [`composition.json`](composition.json).
+naming it in [`composition.yaml`](composition.yaml).
 
 ## How a pack is built
 
-`../skills/` and `../hooks/` are the source of truth. `composition.json`
+`../skills/` and `../hooks/` are the source of truth. `composition.yaml`
 declares which skills each pack composes, and
 [`../scripts/sync_plugins.py`](../scripts/sync_plugins.py) copies them in.
 
 ```
 skills/librarian/         ──copy──▶  plugins/jpai-essentials/skills/librarian/
 hooks/tool_coach.py       ──copy──▶  plugins/*/hooks/tool_coach.py
-composition.json          ──drives──▶ what lands where
+composition.yaml          ──drives──▶ what lands where
 ```
 
 ### Why copies and not symlinks
@@ -63,7 +63,7 @@ generated output, and the next sync overwrites it.
 |---|---|---|
 | Change a skill | `../skills/<name>/` | `uv run scripts/sync_plugins.py` |
 | Change the hook | `../hooks/` | `uv run scripts/sync_plugins.py` |
-| Add or remove a skill from a pack | [`composition.json`](composition.json) | `uv run scripts/sync_plugins.py` |
+| Add or remove a skill from a pack | [`composition.yaml`](composition.yaml) | `uv run scripts/sync_plugins.py` |
 | Change a pack's name, version or blurb | that pack's two `plugin.json` files | `uv run scripts/validate_plugins.py` |
 
 Each pack carries two manifests, one per ecosystem:

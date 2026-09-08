@@ -64,14 +64,14 @@ This is also how to get [`cli`](skills/cli), which is not in either pack.
 ## Layout
 
 `skills/` and `hooks/` are canonical. The packs under `plugins/` are **generated**
-from them — [`plugins/composition.json`](plugins/composition.json) declares what
+from them — [`plugins/composition.yaml`](plugins/composition.yaml) declares what
 each pack composes, and `scripts/sync_plugins.py` copies it in.
 
 ```
 skills/          canonical skills, one directory each   ← edit here
 hooks/           canonical hook, its rules and tests    ← edit here
 plugins/         generated packs, two manifests each    ← never edit
-  composition.json   which skills go in which pack
+  composition.yaml   which skills go in which pack
 scripts/         sync, validate, and harness install test
 ```
 

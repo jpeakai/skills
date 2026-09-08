@@ -1,4 +1,10 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#   "ruamel.yaml>=0.18",
+# ]
+# ///
 """Structural gate for the multi-plugin layout.
 
 The repo keeps one canonical copy of every skill (``skills/``) and of the hook
@@ -9,13 +15,14 @@ manifests disagree about its own name, a marketplace pointing at a directory
 that was renamed, a per-plugin ``hooks.json`` that drifted from the canonical
 wiring.
 
-This script asserts the invariants that hold the layout together. It is
-deliberately dependency-free (stdlib only) so it runs in any environment that
-has ``python3``, with no virtualenv to resolve.
+This script asserts the invariants that hold the layout together.
 
 Run it with no arguments from anywhere:
 
     uv run scripts/validate_plugins.py
+
+Dependencies are declared in the PEP-723 header above, so ``uv run`` resolves
+them per invocation and there is no environment to prepare.
 
 Exit codes: 0 all invariants hold, 1 at least one failed.
 """
@@ -25,8 +32,9 @@ from __future__ import annotations
 import argparse
 import json
 import subprocess
-import sys
 from pathlib import Path
+
+from ruamel.yaml import YAML
 
 REPO = Path(__file__).resolve().parent.parent
 
@@ -59,22 +67,25 @@ def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def load_yaml(path: Path) -> dict:
+    return YAML(typ="safe").load(path.read_text(encoding="utf-8"))
+
+
 def frontmatter_name(skill_md: Path) -> str | None:
     """Return the ``name:`` field from a SKILL.md YAML frontmatter block.
 
-    Parsed by hand rather than with PyYAML to keep this script stdlib-only;
-    the frontmatter shape here is fixed and simple enough to justify it.
+    The block is real YAML, so it is parsed as YAML rather than scanned line by
+    line. Several descriptions here are quoted strings running to well over a
+    thousand characters and containing colons, which a naive split on ``:``
+    mis-reads.
     """
     text = skill_md.read_text(encoding="utf-8")
     if not text.startswith("---"):
         return None
     _, _, rest = text.partition("---")
     block, _, _ = rest.partition("\n---")
-    for line in block.splitlines():
-        key, sep, value = line.partition(":")
-        if sep and key.strip() == "name":
-            return value.strip().strip("\"'")
-    return None
+    front = YAML(typ="safe").load(block)
+    return front.get("name") if isinstance(front, dict) else None
 
 
 def check_no_symlinks(rep: Report) -> None:
@@ -99,8 +110,10 @@ def check_no_symlinks(rep: Report) -> None:
 def check_mirror_in_sync(rep: Report) -> None:
     """Delegate the content comparison to the sync script's own --check mode."""
     print("\nMirror matches the canonical skills/ and hooks/ trees")
+    # Invoked through `uv run` rather than this interpreter, so the sibling
+    # script's own PEP-723 header resolves its dependencies independently.
     result = subprocess.run(
-        [sys.executable, str(REPO / "scripts" / "sync_plugins.py"), "--check"],
+        ["uv", "run", str(REPO / "scripts" / "sync_plugins.py"), "--check"],
         capture_output=True,
         text=True,
     )
@@ -115,11 +128,11 @@ def check_mirror_in_sync(rep: Report) -> None:
 
 
 def check_composition(rep: Report) -> None:
-    """plugins/composition.json is the declaration; the tree must match it."""
-    print("\nEach plugin tree matches plugins/composition.json")
-    composition = load_json(REPO / "plugins" / "composition.json")["plugins"]
+    """plugins/composition.yaml is the declaration; the tree must match it."""
+    print("\nEach plugin tree matches plugins/composition.yaml")
+    composition = load_yaml(REPO / "plugins" / "composition.yaml")["plugins"]
     dirs = {p.name for p in (REPO / "plugins").iterdir() if p.is_dir()}
-    rep.check(set(composition) == dirs, "composition.json covers every plugin dir", f"{set(composition)} vs {dirs}")
+    rep.check(set(composition) == dirs, "composition.yaml covers every plugin dir", f"{set(composition)} vs {dirs}")
     for plugin, spec in sorted(composition.items()):
         declared = set(spec["skills"])
         present = {p.name for p in (REPO / "plugins" / plugin / "skills").iterdir() if not p.name.startswith(".")}

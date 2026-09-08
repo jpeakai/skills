@@ -2,7 +2,7 @@
   "name": "jpai-delivery",
   "displayName": "jpeak.ai Delivery",
   "version": "0.1.0",
-  "description": "Delivery planning from jpeak.ai: gap-analysis planning that iteratively refines a tiered spec covering execution plan, gaps, decisions, and success and negative measures (plan-gap), paired with single-question decision consolidation that self-answers from existing decision records before asking (concise-decisions). Ships the PreToolUse working-agreements coaching hook. Skills are symlinked from the canonical skills/ tree, so this pack composes them rather than duplicating any SKILL.md.",
+  "description": "Delivery planning from jpeak.ai: gap-analysis planning that iteratively refines a tiered spec covering execution plan, gaps, decisions, and success and negative measures (plan-gap), paired with single-question decision consolidation that self-answers from existing decision records before asking (concise-decisions). Ships the PreToolUse working-agreements coaching hook. Skills are mirrored from the canonical skills/ tree by scripts/sync_plugins.py, so a pack can never drift from the copy it was built from.",
   "author": {
     "name": "jpeak.ai",
     "url": "https://github.com/jpeakai"

@@ -1,8 +1,14 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#   "ruamel.yaml>=0.18",
+# ]
+# ///
 """Mirror the canonical skills and hooks into each plugin tree.
 
 ``skills/`` and ``hooks/`` at the repo root are the source of truth. Each pack
-under ``plugins/`` gets a *copy* of what ``plugins/composition.json`` says it
+under ``plugins/`` gets a *copy* of what ``plugins/composition.yaml`` says it
 composes.
 
 Why a copy and not a symlink
@@ -27,6 +33,11 @@ Edit the canonical copy under ``skills/`` or ``hooks/`` and re-run this script;
     uv run scripts/sync_plugins.py           # write the mirror
     uv run scripts/sync_plugins.py --check   # report drift, change nothing
 
+Dependencies are declared in the PEP-723 header above, so ``uv run`` resolves
+them per invocation and there is no environment to prepare. ``ruamel.yaml``
+reads the composition file: the grouping is documented in comments that sit
+next to the entries they explain, which the previous JSON could not carry.
+
 Exit codes: 0 in sync (or written), 1 drift found under ``--check``.
 """
 
@@ -34,13 +45,14 @@ from __future__ import annotations
 
 import argparse
 import filecmp
-import json
 import shutil
 import sys
 from pathlib import Path
 
+from ruamel.yaml import YAML
+
 REPO = Path(__file__).resolve().parent.parent
-COMPOSITION = REPO / "plugins" / "composition.json"
+COMPOSITION = REPO / "plugins" / "composition.yaml"
 
 # Copied per plugin so Codex sees a self-contained tree. hooks.json must also
 # be a regular file for `claude plugin validate --strict`, which reads hook
@@ -49,7 +61,13 @@ HOOK_FILES = ["hooks.json", "tool_coach.py", "tool_coach_rules.json", "README.md
 
 
 def load_composition() -> dict[str, dict]:
-    return json.loads(COMPOSITION.read_text(encoding="utf-8"))["plugins"]
+    """Read plugins/composition.yaml.
+
+    Uses the round-trip loader so a future writer keeps the comments, which are
+    the reason the file is YAML rather than JSON.
+    """
+    yaml = YAML(typ="rt")
+    return yaml.load(COMPOSITION.read_text(encoding="utf-8"))["plugins"]
 
 
 def tree_differs(src: Path, dst: Path) -> list[str]:
@@ -104,7 +122,7 @@ def sync(check_only: bool) -> int:
         for name in sorted(wanted):
             src, dst = REPO / "skills" / name, skills_dir / name
             if not src.is_dir():
-                drift.append(f"skills/{name} named in composition.json but missing")
+                drift.append(f"skills/{name} named in composition.yaml but missing")
                 continue
             diffs = tree_differs(src, dst)
             if diffs:
@@ -113,12 +131,12 @@ def sync(check_only: bool) -> int:
                     mirror_dir(src, dst)
                     actions.append(f"mirrored skills/{name} -> plugins/{plugin}/skills/{name}")
 
-        # Anything in the plugin's skills/ that composition.json does not name
+        # Anything in the plugin's skills/ that composition.yaml does not name
         # is stale output from an earlier grouping.
         if skills_dir.is_dir():
             for present in sorted(p for p in skills_dir.iterdir() if not p.name.startswith(".")):
                 if present.name not in wanted:
-                    drift.append(f"plugins/{plugin}/skills/{present.name} is not in composition.json")
+                    drift.append(f"plugins/{plugin}/skills/{present.name} is not in composition.yaml")
                     if not check_only:
                         if present.is_symlink():
                             present.unlink()

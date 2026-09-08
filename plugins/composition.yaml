@@ -1,0 +1,40 @@
+# Which canonical skills each plugin composes.
+#
+# This file is the single declaration of the grouping. Everything under
+# plugins/*/skills/ and plugins/*/hooks/ is generated from it:
+#
+#   uv run scripts/sync_plugins.py           write the mirror
+#   uv run scripts/sync_plugins.py --check   report drift, change nothing
+#
+# Add a skill to a pack by naming it here and re-running the sync. Never by
+# copying files into plugins/ — scripts/validate_plugins.py fails the build
+# when a plugin tree and this file disagree.
+#
+# Skill names must match a directory under ../skills/ exactly, which is also
+# the `name` in that skill's SKILL.md frontmatter.
+
+plugins:
+
+  # Documentation and diagramming. The pack most repos want.
+  jpai-essentials:
+    skills:
+      - agnostic             # de-brand docs to generic placeholders
+      - concise-decisions    # consolidate ambiguities into one briefed question
+      - gooddocs             # audit, write and restructure documentation
+      - librarian            # shelve docs into the canonical document set
+      - mermaidjs-diagrams   # render + WCAG-contrast-check Mermaid diagrams
+      - richdocs             # interactive HTML companions to markdown
+    hooks: true
+
+  # Delivery planning. Smaller and more specialised.
+  jpai-delivery:
+    skills:
+      # Deliberately also in jpai-essentials: it is the surface plan-gap asks
+      # its decision questions through, and it stands alone for docs work.
+      # Installing both packs is fine — each harness namespaces by plugin.
+      - concise-decisions
+      - plan-gap             # gap analysis as a tiered, measurable spec
+    hooks: true
+
+# Not in any pack: `cli`. It stays canonical in ../skills/cli and is installed
+# manually. Add it to a pack by naming it above.

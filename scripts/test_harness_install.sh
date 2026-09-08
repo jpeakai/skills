@@ -2,10 +2,10 @@
 # End-to-end install test for both harnesses, in throwaway sandboxes.
 #
 # Structural validation (scripts/validate_plugins.py) proves the files are
-# shaped right. This proves the two agents actually accept them: it clones the
-# repo at HEAD into a temp directory — so the test runs against a fresh
-# checkout, and symlinks are exercised as a consumer would get them — then
-# installs both plugins into a config directory that has nothing else in it.
+# shaped right. This proves the two agents actually accept them. It clones the
+# repo at HEAD into a temp directory, so the test runs against a fresh checkout
+# carrying exactly what a consumer would get, then installs both plugins into a
+# config directory that has nothing else in it.
 #
 # Isolation is the point. Neither harness may see this project or the
 # developer's globally installed plugins and skills:
@@ -25,7 +25,7 @@ SANDBOX="${1:-${TMPDIR:-/tmp}/jpai-skills-harness-test-$(date +%Y%m%d-%H%M%S)}"
 CLONE="$SANDBOX/checkout"
 PLUGINS=(jpai-essentials jpai-delivery)
 
-# Skills that must appear in each plugin, to prove symlinks resolved after clone.
+# Skills that must appear in each plugin, to prove the mirror survived the clone.
 ESSENTIALS_SKILLS=(librarian gooddocs mermaidjs-diagrams richdocs concise-decisions agnostic)
 DELIVERY_SKILLS=(plan-gap concise-decisions)
 

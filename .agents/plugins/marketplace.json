@@ -5,14 +5,24 @@
   },
   "plugins": [
     {
-      "name": "jpeak-skills",
+      "name": "jpai-essentials",
       "source": {
         "source": "local",
-        "path": "./"
+        "path": "./plugins/jpai-essentials"
       },
       "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "NONE"
+        "installation": "AVAILABLE"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "jpai-delivery",
+      "source": {
+        "source": "local",
+        "path": "./plugins/jpai-delivery"
+      },
+      "policy": {
+        "installation": "AVAILABLE"
       },
       "category": "Developer Tools"
     }

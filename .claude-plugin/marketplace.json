@@ -5,23 +5,15 @@
     "name": "jpeak.ai",
     "url": "https://github.com/jpeakai"
   },
-  "description": "Agent skills published by jpeak.ai.",
+  "description": "Agent skills published by jpeak.ai, grouped into installable plugins.",
   "plugins": [
     {
-      "name": "jpeak-skills",
-      "displayName": "jpeak.ai Skills",
-      "description": "Repo documentation organisation, docs quality, gap-analysis planning, decision consolidation, Mermaid diagram QA, rich HTML companions to markdown, and a PreToolUse working-agreements hook.",
-      "source": "./",
-      "license": "MIT",
-      "keywords": [
-        "skills",
-        "documentation",
-        "planning",
-        "mermaid",
-        "decisions",
-        "adr",
-        "hooks"
-      ]
+      "name": "jpai-essentials",
+      "source": "./plugins/jpai-essentials"
+    },
+    {
+      "name": "jpai-delivery",
+      "source": "./plugins/jpai-delivery"
     }
   ]
 }

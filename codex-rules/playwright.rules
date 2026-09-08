@@ -1,0 +1,49 @@
+# Allow Playwright browser automation without approval prompts.
+# This includes opening, controlling, and closing headless browser sessions.
+prefix_rule(
+    pattern = ["playwright-cli"],
+    decision = "allow",
+    justification = "Allow Playwright CLI browser automation",
+    match = [
+        "playwright-cli open",
+        "playwright-cli goto https://example.com",
+        "playwright-cli close",
+    ],
+)
+
+# Allow the Playwright test runner through common package managers.
+prefix_rule(
+    pattern = ["playwright"],
+    decision = "allow",
+    justification = "Allow the Playwright command-line runner",
+)
+
+prefix_rule(
+    pattern = ["npx", "playwright"],
+    decision = "allow",
+    justification = "Allow Playwright through npx",
+)
+
+prefix_rule(
+    pattern = ["npm", "exec", "playwright"],
+    decision = "allow",
+    justification = "Allow Playwright through npm exec",
+)
+
+prefix_rule(
+    pattern = ["pnpm", "exec", "playwright"],
+    decision = "allow",
+    justification = "Allow Playwright through pnpm exec",
+)
+
+prefix_rule(
+    pattern = ["yarn", "playwright"],
+    decision = "allow",
+    justification = "Allow Playwright through yarn",
+)
+
+prefix_rule(
+    pattern = ["bun", "x", "playwright"],
+    decision = "allow",
+    justification = "Allow Playwright through bunx",
+)

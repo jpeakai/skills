@@ -59,6 +59,19 @@ COMPOSITION = REPO / "plugins" / "composition.yaml"
 # config without following symlinks.
 HOOK_FILES = ["hooks.json", "tool_coach.py", "tool_coach_rules.json", "README.md"]
 
+# Build artefacts that appear inside a canonical skill tree but must never be
+# mirrored into a pack. Several skills ship their own script directories with a
+# package.json or a PEP-723 environment, so running their gates materialises
+# node_modules and friends next to the source. Copying those would bloat the
+# published plugin and make the mirror non-idempotent: the tree would differ
+# again the moment anyone ran a gate.
+IGNORED = {"node_modules", "__pycache__", ".venv", ".mmdc_cache", ".pytest_cache", ".ruff_cache"}
+
+
+def is_ignored(rel: Path) -> bool:
+    """True when any path component is a build artefact rather than source."""
+    return any(part in IGNORED for part in rel.parts)
+
 
 def load_composition() -> dict[str, dict]:
     """Read plugins/composition.yaml.
@@ -79,8 +92,8 @@ def tree_differs(src: Path, dst: Path) -> list[str]:
     if not dst.exists():
         return [f"{dst.relative_to(REPO)} missing"]
     diffs: list[str] = []
-    src_files = {p.relative_to(src) for p in src.rglob("*") if p.is_file()}
-    dst_files = {p.relative_to(dst) for p in dst.rglob("*") if p.is_file()}
+    src_files = {r for p in src.rglob("*") if p.is_file() and not is_ignored(r := p.relative_to(src))}
+    dst_files = {r for p in dst.rglob("*") if p.is_file() and not is_ignored(r := p.relative_to(dst))}
     for missing in sorted(src_files - dst_files):
         diffs.append(f"{(dst / missing).relative_to(REPO)} missing")
     for stale in sorted(dst_files - src_files):
@@ -102,7 +115,7 @@ def mirror_dir(src: Path, dst: Path) -> None:
         dst.unlink()
     elif dst.exists():
         shutil.rmtree(dst)
-    shutil.copytree(src, dst, symlinks=False)
+    shutil.copytree(src, dst, symlinks=False, ignore=shutil.ignore_patterns(*IGNORED))
 
 
 def sync(check_only: bool) -> int:

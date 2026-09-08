@@ -1,0 +1,12 @@
+# Allow FFmpeg media processing tools without approval prompts.
+prefix_rule(
+    pattern = ["ffmpeg"],
+    decision = "allow",
+    justification = "Allow FFmpeg media processing",
+)
+
+prefix_rule(
+    pattern = ["ffprobe"],
+    decision = "allow",
+    justification = "Allow FFprobe media inspection",
+)

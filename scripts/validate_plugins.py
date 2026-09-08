@@ -182,6 +182,16 @@ def check_manifests(rep: Report) -> None:
             f"{plugin.name}: versions agree",
             f"claude={cj.get('version')} codex={xj.get('version')}",
         )
+        # A manifest describing itself as symlink-composed is published metadata
+        # contradicting the layout. It survived the switch to copies unnoticed
+        # because nothing read it, so it is asserted here rather than reviewed.
+        for label, path in (("Claude", claude), ("Codex", codex)):
+            rep.check(
+                "symlink" not in path.read_text(encoding="utf-8").lower(),
+                f"{plugin.name}: {label} manifest makes no symlink claim",
+                "the packs hold mirrored copies, not symlinks",
+            )
+
         # Codex needs explicit paths; Claude auto-discovers, so only Codex is asserted here.
         rep.check(xj.get("skills") == "./skills", f"{plugin.name}: Codex skills path", xj.get("skills"))
         rep.check(

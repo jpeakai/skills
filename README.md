@@ -1,11 +1,9 @@
 # skills
 
-Agent skills published by [jpeak.ai](https://github.com/jpeakai). Each directory under
-`skills/` is one skill: a `SKILL.md` carrying YAML frontmatter, plus whatever resources,
-scripts and templates it needs.
+Agent skills published by [jpeak.ai](https://github.com/jpeakai).
+Each directory under `skills/` is one skill: a `SKILL.md` carrying YAML frontmatter, plus whatever resources, scripts and templates it needs.
 
-The skills are published as two installable plugins, so you take the pack you
-want rather than all of them:
+The skills are published as two installable plugins, so you take the pack you want rather than all of them:
 
 | Plugin | For | Contains |
 |---|---|---|
@@ -18,8 +16,7 @@ Both packs ship the `tool_coach` PreToolUse hook.
 
 ### Claude Code
 
-`.claude-plugin/marketplace.json` registers this repo as a
-[plugin marketplace](https://code.claude.com/docs/en/plugin-marketplaces).
+`.claude-plugin/marketplace.json` registers this repo as a [plugin marketplace](https://code.claude.com/docs/en/plugin-marketplaces).
 
 ```
 /plugin marketplace add jpeakai/skills
@@ -53,7 +50,7 @@ This is also how to get [`cli`](skills/cli), which is not in either pack.
 | Skill | Pack | What it does |
 |---|---|---|
 | [`agnostic`](skills/agnostic) | essentials | Keeps documentation generic by renaming project-, client- or company-specific names to open-source-style placeholders |
-| [`cli`](skills/cli) | — | Playbook for building project-local developer CLIs and the assets they generate — static HTML viewers, workflow templates, stencil diagrams, sticky PR comments |
+| [`cli`](skills/cli) | none | Playbook for building project-local developer CLIs and the assets they generate: static HTML viewers, workflow templates, stencil diagrams, sticky PR comments |
 | [`concise-decisions`](skills/concise-decisions) | both | Consolidates accumulated ambiguities into a single highest-leverage decision question, answering first from existing decision records |
 | [`gooddocs`](skills/gooddocs) | essentials | Documentation quality in three modes: audit docs against the reality of the code, write or improve them, or restructure one for readability |
 | [`librarian`](skills/librarian) | essentials | Repo documentation organisation: ensures the canonical document set exists and every doc lives where its content says it belongs |
@@ -63,9 +60,9 @@ This is also how to get [`cli`](skills/cli), which is not in either pack.
 
 ## Layout
 
-`skills/` and `hooks/` are canonical. The packs under `plugins/` are **generated**
-from them — [`plugins/composition.yaml`](plugins/composition.yaml) declares what
-each pack composes, and `scripts/sync_plugins.py` copies it in.
+`skills/` and `hooks/` are canonical.
+The packs under `plugins/` are **generated** from them.
+[`plugins/composition.yaml`](plugins/composition.yaml) declares what each pack composes, and `scripts/sync_plugins.py` copies it in.
 
 ```mermaid
 flowchart LR
@@ -154,8 +151,7 @@ flowchart TB
     classDef host   fill:#334155,stroke:#cbd5e1,color:#ffffff,stroke-width:2px
 ```
 
-`cli` sits in the canonical tree with no edge out: it is installed manually.
-`concise-decisions` is the one skill that flows into both packs.
+`cli` sits in the canonical tree with no edge out: it is installed manually. `concise-decisions` is the one skill that flows into both packs.
 
 </details>
 
@@ -167,10 +163,9 @@ plugins/         generated packs, two manifests each    ← never edit
 scripts/         sync, validate, and harness install test
 ```
 
-Copies rather than symlinks, because Codex drops symlinked plugin components
-and installs an empty pack without erroring. Git deduplicates the copies by
-content hash, so the repository barely notices. The reasoning is in
-[plugins/README.md](plugins/README.md#why-copies-and-not-symlinks).
+Copies rather than symlinks, because Codex drops symlinked plugin components and installs an empty pack without erroring.
+Git deduplicates the copies by content hash, so the repository barely notices.
+The reasoning is in [plugins/README.md](plugins/README.md#why-copies-and-not-symlinks).
 
 To change a skill, edit it under `skills/` and re-sync:
 
@@ -185,17 +180,13 @@ uv run scripts/validate_plugins.py       # every layout invariant
 
 ### tool_coach
 
-A `PreToolUse` hook that turns a dead-end "permission denied" into a redirect:
-every blocked call comes back with the thing to do instead, so the model
-stops retrying near-miss variants. Structural checks (no deletions, no
-scratch space outside the project) parse the command's argv; tool-choice
-coaching lives in an editable rules file. Stdlib only — no install, no
-virtualenv.
+A `PreToolUse` hook that turns a dead-end "permission denied" into a redirect.
+Every blocked call comes back with the thing to do instead, so the model stops retrying near-miss variants.
+Structural checks (no deletions, no scratch space outside the project) parse the command's argv; tool-choice coaching lives in an editable rules file.
+Stdlib only: no install, no virtualenv.
 
-It is written once, in [`hooks/`](hooks), and mirrored into both packs by the
-same [`hooks/hooks.json`](hooks/hooks.json): installing either plugin brings it
-along. See [hooks/README.md](hooks/README.md) for what it checks and how the one
-wiring file works for both Claude Code and Codex.
+It is written once, in [`hooks/`](hooks), and mirrored into both packs by the same [`hooks/hooks.json`](hooks/hooks.json): installing either plugin brings it along.
+See [hooks/README.md](hooks/README.md) for what it checks and how the one wiring file works for both Claude Code and Codex.
 
 ```sh
 uv run --no-project --with pytest pytest hooks/test_tool_coach.py
@@ -203,4 +194,4 @@ uv run --no-project --with pytest pytest hooks/test_tool_coach.py
 
 ## Licence
 
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).

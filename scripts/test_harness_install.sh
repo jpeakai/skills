@@ -135,6 +135,38 @@ else
     ok "Codex sandbox is isolated from global skills"
 fi
 
+# -------------------------------------------------- installed hook contract
+# Both harnesses invoke the hook the same way: PreToolUse event JSON on stdin,
+# a decision on stdout. Run the copy that was actually installed, from each
+# sandbox's own cache, so this tests the shipped artifact rather than the
+# working tree. (This proves the installed hook honours the contract; it does
+# not drive a live session, which would need a model call.)
+echo
+echo "Installed hook honours the PreToolUse contract"
+payload='{"tool_name":"Bash","tool_input":{"command":"rm -rf build"},"cwd":"'"$SANDBOX"'"}'
+
+claude_hook="$(find "$CLAUDE_CONFIG_DIR" -path '*jpai-essentials*/hooks/tool_coach.py' 2>/dev/null | head -1)"
+if [ -n "$claude_hook" ]; then
+    decision="$(echo "$payload" | python3 "$claude_hook" 2>&1)"
+    echo "$decision" | grep -q '"permissionDecision"'
+    check $? "Claude-installed hook returns a permissionDecision" "$decision"
+    echo "$decision" | grep -q '"deny"'
+    check $? "Claude-installed hook denies a deletion"
+else
+    bad "Claude-installed hook found" "no tool_coach.py under $CLAUDE_CONFIG_DIR"
+fi
+
+codex_hook="$(find "$CODEX_SANDBOX_HOME" -path '*jpai-essentials*/hooks/tool_coach.py' 2>/dev/null | head -1)"
+if [ -n "$codex_hook" ]; then
+    decision="$(echo "$payload" | python3 "$codex_hook" 2>&1)"
+    echo "$decision" | grep -q '"permissionDecision"'
+    check $? "Codex-installed hook returns a permissionDecision" "$decision"
+    echo "$decision" | grep -q '"deny"'
+    check $? "Codex-installed hook denies a deletion"
+else
+    bad "Codex-installed hook found" "no tool_coach.py under $CODEX_SANDBOX_HOME"
+fi
+
 # ------------------------------------------------------------------- summary
 echo
 echo "$((pass + fail)) checks run — $pass passed, $fail failed."

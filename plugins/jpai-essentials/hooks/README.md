@@ -154,8 +154,13 @@ codebase that is still actively changing — see the provenance note.
 ### As part of this repo's plugins (recommended)
 
 Already wired — see the root [README](../README.md#installing). Installing
-`jpeak-skills` as a Claude Code plugin, or `jpeak-skills` as a Codex plugin,
-brings this hook with it.
+either `jpai-essentials` or `jpai-delivery`, in Claude Code or Codex, brings
+this hook with it.
+
+This directory is canonical. `scripts/sync_plugins.py` mirrors `hooks.json`,
+`tool_coach.py`, `tool_coach_rules.json` and this README into each pack under
+`plugins/`; the tests stay here and are not published. Edit the files here, then
+re-run the sync — never edit the copy inside a pack.
 
 ### Standalone, in any other project
 

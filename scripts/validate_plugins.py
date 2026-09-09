@@ -39,6 +39,14 @@ from ruamel.yaml import YAML
 
 REPO = Path(__file__).resolve().parent.parent
 
+# Caps the claude.ai marketplace validator enforces on sync. Neither is checked
+# by `claude plugin validate --strict` or by installing the pack, so a breach is
+# invisible until the sync reports it as a warning and drops the item. A
+# description is also the model's trigger surface, so the fix is always to cut
+# implementation detail, never a "use when" clause.
+SKILL_DESCRIPTION_CAP = 1024
+PLUGIN_DESCRIPTION_CAP = 500
+
 # hooks.json must be a REGULAR FILE inside each plugin, not a symlink:
 # `claude plugin validate --strict` reads hook config without following
 # symlinks and fails the plugin if it cannot read it. The scripts it points at
@@ -72,21 +80,24 @@ def load_yaml(path: Path) -> dict:
     return YAML(typ="safe").load(path.read_text(encoding="utf-8"))
 
 
-def frontmatter_name(skill_md: Path) -> str | None:
-    """Return the ``name:`` field from a SKILL.md YAML frontmatter block.
+def frontmatter(skill_md: Path) -> dict:
+    """Return a SKILL.md's YAML frontmatter block as a dict.
 
     The block is real YAML, so it is parsed as YAML rather than scanned line by
-    line. Several descriptions here are quoted strings running to well over a
-    thousand characters and containing colons, which a naive split on ``:``
-    mis-reads.
+    line. Several descriptions here are quoted strings running to many hundreds
+    of characters and containing colons, which a naive split on ``:`` mis-reads.
     """
     text = skill_md.read_text(encoding="utf-8")
     if not text.startswith("---"):
-        return None
+        return {}
     _, _, rest = text.partition("---")
     block, _, _ = rest.partition("\n---")
     front = YAML(typ="safe").load(block)
-    return front.get("name") if isinstance(front, dict) else None
+    return front if isinstance(front, dict) else {}
+
+
+def frontmatter_name(skill_md: Path) -> str | None:
+    return frontmatter(skill_md).get("name")
 
 
 def check_no_symlinks(rep: Report) -> None:
@@ -250,6 +261,31 @@ def check_one_skill_md_per_skill(rep: Report) -> None:
         )
 
 
+def check_description_caps(rep: Report) -> None:
+    """Descriptions fit the caps the marketplace validator enforces on sync.
+
+    The canonical ``skills/`` tree is checked rather than the packs, because that
+    is where a description is authored and the packs mirror it. ``cli`` is
+    included even though no pack ships it: it is published the same way and would
+    hit the same cap.
+    """
+    print(f"\nDescriptions fit the marketplace caps (skill {SKILL_DESCRIPTION_CAP}, plugin {PLUGIN_DESCRIPTION_CAP})")
+    for skill_md in sorted((REPO / "skills").glob("*/SKILL.md")):
+        n = len(frontmatter(skill_md).get("description", ""))
+        rep.check(
+            n <= SKILL_DESCRIPTION_CAP,
+            f"skills/{skill_md.parent.name}: description is {n} chars",
+            f"over by {n - SKILL_DESCRIPTION_CAP}; cut implementation detail, keep every 'use when' clause",
+        )
+    for manifest in sorted((REPO / "plugins").glob("*/.*-plugin/plugin.json")):
+        n = len(load_json(manifest).get("description", ""))
+        rep.check(
+            n <= PLUGIN_DESCRIPTION_CAP,
+            f"{manifest.relative_to(REPO)}: description is {n} chars",
+            f"over by {n - PLUGIN_DESCRIPTION_CAP}",
+        )
+
+
 def check_marketplaces(rep: Report) -> None:
     print("\nBoth marketplaces list the same plugins, and each source path exists")
     on_disk = {p.name for p in (REPO / "plugins").iterdir() if p.is_dir()}
@@ -293,6 +329,7 @@ def main() -> None:
     check_manifests(rep)
     check_skills(rep)
     check_one_skill_md_per_skill(rep)
+    check_description_caps(rep)
     check_marketplaces(rep)
 
     print(f"\n{rep.checks} checks run.")

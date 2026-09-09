@@ -1,10 +1,4 @@
-#!/usr/bin/env -S uv run --script
-# /// script
-# requires-python = ">=3.12"
-# dependencies = [
-#   "ruamel.yaml>=0.18",
-# ]
-# ///
+#!/usr/bin/env -S uv run
 """Mirror the canonical skills and hooks into each plugin tree.
 
 ``skills/`` and ``hooks/`` at the repo root are the source of truth. Each pack
@@ -33,10 +27,10 @@ Edit the canonical copy under ``skills/`` or ``hooks/`` and re-run this script;
     uv run scripts/sync_plugins.py           # write the mirror
     uv run scripts/sync_plugins.py --check   # report drift, change nothing
 
-Dependencies are declared in the PEP-723 header above, so ``uv run`` resolves
-them per invocation and there is no environment to prepare. ``ruamel.yaml``
-reads the composition file: the grouping is documented in comments that sit
-next to the entries they explain, which the previous JSON could not carry.
+Dependencies are the project's ``dev`` group in ``pyproject.toml``, so ``uv
+run`` syncs them and there is no environment to prepare. ``ruamel.yaml`` reads
+the composition file: the grouping is documented in comments that sit next to
+the entries they explain, which the previous JSON could not carry.
 
 Exit codes: 0 in sync (or written), 1 drift found under ``--check``.
 """

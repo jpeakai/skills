@@ -243,7 +243,7 @@ The model sees the message, the call proceeds, and the breakage stays visible un
 The test file's PEP-723 header declares pytest itself, so nothing needs installing first.
 
 ```sh
-uv run --no-project hooks/test_tool_coach.py --cov=tool_coach --cov-report=term-missing
+uv run pytest hooks/test_tool_coach.py --cov=tool_coach --cov-report=term-missing
 ```
 
 That reports 52 passing cases and 96% line coverage of `tool_coach.py`.

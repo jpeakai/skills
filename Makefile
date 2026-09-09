@@ -20,8 +20,7 @@ ci: fix
 		echo "ERROR: regenerate left the tree dirty - commit the generated files"; \
 		exit 1; }
 	uv run scripts/validate_plugins.py
-	uv run --no-project tests/test_publication_contract.py
-	uv run --no-project hooks/test_tool_coach.py
+	uv run pytest
 
 # The authored markdown. Everything under skills/ is a skill's own
 # documentation, vendored or upstream-owned, and plugins/*/hooks/README.md is a
@@ -36,7 +35,9 @@ DOCS := README.md plugins/README.md hooks/README.md
 # Each script directory carries its own package.json and lockfile (the
 # complexity gate parses with mermaid's canonical parser, which needs a DOM),
 # so its dependencies are installed in place rather than hoisted to a root
-# manifest this repo deliberately does not have.
+# package.json this repo deliberately does not have. A gate ships inside a
+# pack and must resolve on a machine that has never seen this repo, which is
+# also why pyproject.toml covers only the repo's own tooling and no skill.
 GATES := skills/gooddocs/scripts skills/mermaidjs-diagrams/scripts
 
 docs-ci:

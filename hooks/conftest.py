@@ -1,4 +1,4 @@
-"""Standalone test config for the PEP-723 hook scripts.
+"""Test config for the hook suite.
 
 Vendored from neozenith/agentic-dotfiles (MIT licensed; see hooks/README.md).
 

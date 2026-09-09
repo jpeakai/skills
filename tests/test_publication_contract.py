@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-# /// script
-# requires-python = ">=3.12"
-# dependencies = ["pytest>=8.0", "ruamel.yaml>=0.18"]
-# ///
 """What a marketplace enforces when this repo is published, asserted locally.
 
 Every rule here was learned from a real failed or warned sync of
@@ -27,16 +22,16 @@ contract: the internal layout that holds the generated mirror together
 (symlinks, composition, hook wiring, manifest agreement). A rule belongs
 there if this repo invented it, and here if a marketplace will judge it.
 
-Run standalone, or through ``make ci``:
+Dependencies are the project's ``dev`` group, so ``make ci`` and a bare run
+resolve identically:
 
-    uv run --no-project tests/test_publication_contract.py
+    uv run pytest tests/test_publication_contract.py
 """
 
 from __future__ import annotations
 
 import json
 import re
-import sys
 from pathlib import Path
 
 import pytest
@@ -279,5 +274,3 @@ def test_frontmatter_keys_are_known(skill: Path) -> None:
     )
 
 
-if __name__ == "__main__":  # pragma: no cover
-    sys.exit(pytest.main([__file__, "-v", "--rootdir", str(REPO), "-o", "addopts="] + sys.argv[1:]))

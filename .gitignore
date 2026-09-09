@@ -16,3 +16,6 @@ tmp/
 # Each node in the heirarchy is a git repo to implement change management processes.
 /jpai-*/
 .coverage
+
+# uv project environment
+.venv/

@@ -195,6 +195,7 @@ plugins/         generated packs, two manifests each    ← never edit
   composition.yaml   which skills go in which pack
 scripts/         sync, validate, and harness install test
 tests/           what a marketplace enforces on publication
+pyproject.toml   the repo's own tooling deps, uv-managed   ← never a skill's
 ```
 
 Copies rather than symlinks, because Codex drops symlinked plugin components and installs an empty pack without erroring.
@@ -210,6 +211,12 @@ make docs-ci      # prose, diagram-complexity and colour-contrast gates over the
 make harness-ci   # install both packs into throwaway Claude and Codex sandboxes
 ```
 
+Dependencies split by what ships.
+[`pyproject.toml`](pyproject.toml) holds the repo's own tooling in a uv `dev` group, so `pytest` is pinned in one place and `uv run` syncs it.
+Anything published inside a pack stays self-contained instead.
+Every `skills/*/scripts/*.py`, its `test_*.py` sibling, and `tool_coach.py` carry their own dependencies and run under `uv run --no-project`.
+Those execute on a machine that has never seen this repo, so a shared manifest would be a dependency they could not resolve.
+
 ## The publication contract
 
 [`tests/test_publication_contract.py`](tests/test_publication_contract.py) asserts what a marketplace enforces when this repo is published, parametrised over every skill so a new one is covered without touching the file.
@@ -221,7 +228,7 @@ It exists because nothing else available locally catches these.
 So the description caps it checks are observed rather than documented, and the sync's own wording is quoted beside each one.
 
 ```sh
-uv run --no-project tests/test_publication_contract.py
+uv run pytest tests/test_publication_contract.py
 ```
 
 ## Hooks
@@ -237,7 +244,7 @@ It is written once, in [`hooks/`](hooks), and mirrored into both packs by the sa
 See [hooks/README.md](hooks/README.md) for what it checks and how the one wiring file works for both Claude Code and Codex.
 
 ```sh
-uv run --no-project --with pytest pytest hooks/test_tool_coach.py
+uv run pytest hooks/test_tool_coach.py
 ```
 
 ## Licence

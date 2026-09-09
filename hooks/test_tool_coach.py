@@ -1,11 +1,12 @@
-#!/usr/bin/env python3
-# /// script
-# requires-python = ">=3.12"
-# dependencies = ["pytest>=8.0", "pytest-cov>=4.0"]
-# ///
 """Tests for the tool_coach PreToolUse hook.
 
 Vendored from neozenith/agentic-dotfiles (MIT licensed; see hooks/README.md).
+
+This file is repo tooling, so its dependencies are the project's ``dev`` group
+rather than a PEP-723 header. ``tool_coach.py`` beside it is the opposite case:
+it ships inside both packs and runs on an end user's machine, so it stays
+stdlib-only with nothing to install. ``sync_plugins.py`` mirrors that file into
+each pack and this one nowhere.
 
 Every case is a real payload through the real decision path: no mocks, no
 patched internals. The only indirection is a temporary rules file, so the
@@ -320,7 +321,3 @@ def test_project_root_falls_back_to_the_payload_cwd(
     assert tool_coach.project_root({"cwd": str(root)}) == root
 
 
-if __name__ == "__main__":  # pragma: no cover
-    script_dir = str(Path(__file__).parent.resolve())
-    base_args = [__file__, "-v", "--rootdir", script_dir, "-o", "addopts="]
-    sys.exit(pytest.main(base_args + sys.argv[1:]))

@@ -1,0 +1,36 @@
+[project]
+name = "jpai-skills"
+version = "0.0.0"
+description = "Agent skills published by jpeak.ai, grouped into installable plugins"
+requires-python = ">=3.12"
+dependencies = []
+
+# The repo's own tooling only: the two gates, the mirror script and the test
+# suites. Nothing published depends on this file — a pack carries skills, hooks
+# and manifests, and is installed by a harness that has never seen it.
+#
+# That is the line to keep. Anything that ships inside a pack stays
+# self-contained with a PEP-723 header and is run with `uv run --no-project`:
+# every `skills/*/scripts/*.py`, their `test_*.py` siblings, and `tool_coach.py`
+# itself. Those execute on an end user's machine, where this project does not
+# exist. Repo tooling is the opposite case and belongs here, so there is one
+# place to bump pytest.
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=4.0",
+    "ruamel.yaml>=0.18",
+]
+
+[tool.pytest.ini_options]
+# `tests` holds the publication contract; `hooks` holds the hook suite, which
+# imports tool_coach as a sibling module, hence the pythonpath entry.
+testpaths = ["tests", "hooks"]
+pythonpath = ["hooks"]
+
+# Structural, not advisory. `skills/` and `plugins/` carry eight shipped
+# `test_*.py` files with their own PEP-723 dependency sets, and collecting them
+# here would import them against this project's env and fail on deps this
+# project has no business declaring. testpaths already scopes a bare `pytest`;
+# this also holds when someone passes an explicit path.
+norecursedirs = ["skills", "plugins", "tmp", ".venv", "node_modules"]

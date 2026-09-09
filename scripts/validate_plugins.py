@@ -1,10 +1,4 @@
-#!/usr/bin/env -S uv run --script
-# /// script
-# requires-python = ">=3.12"
-# dependencies = [
-#   "ruamel.yaml>=0.18",
-# ]
-# ///
+#!/usr/bin/env -S uv run
 """Structural gate for the multi-plugin layout.
 
 The repo keeps one canonical copy of every skill (``skills/``) and of the hook
@@ -21,8 +15,8 @@ Run it with no arguments from anywhere:
 
     uv run scripts/validate_plugins.py
 
-Dependencies are declared in the PEP-723 header above, so ``uv run`` resolves
-them per invocation and there is no environment to prepare.
+Dependencies are the project's ``dev`` group in ``pyproject.toml``, so ``uv
+run`` syncs them and there is no environment to prepare.
 
 Exit codes: 0 all invariants hold, 1 at least one failed.
 """
@@ -122,7 +116,7 @@ def check_mirror_in_sync(rep: Report) -> None:
     """Delegate the content comparison to the sync script's own --check mode."""
     print("\nMirror matches the canonical skills/ and hooks/ trees")
     # Invoked through `uv run` rather than this interpreter, so the sibling
-    # script's own PEP-723 header resolves its dependencies independently.
+    # script gets the project environment whatever this one was started with.
     result = subprocess.run(
         ["uv", "run", str(REPO / "scripts" / "sync_plugins.py"), "--check"],
         capture_output=True,

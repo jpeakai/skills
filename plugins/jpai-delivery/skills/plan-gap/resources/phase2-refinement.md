@@ -14,10 +14,10 @@ file set**.
 
 | Owner | Owns |
 |-------|------|
-| `vendor/concise-decisions/SKILL.md` + its `resources/**` | the question contract: self-answering from decision records, ranking by cross-cutting impact, the pragmatic-default test, the nine-section briefing, the five-question check, the answer surface, the lens grammar, the TBD route family |
+| `vendor/concise-decisions/concise-decisions.md` + its `resources/**` | the question contract: self-answering from decision records, ranking by cross-cutting impact, the pragmatic-default test, the nine-section briefing, the five-question check, the answer surface, the lens grammar, the TBD route family |
 | This playbook | the ambiguity inventory (`<!-- UNRESOLVED -->` ADRs + the non-ADR sweep), the decision-record backends of a spec, how a settled decision is written into gap files and the index, how a TBD route lands in the documents, the exit gate |
 
-Read `vendor/concise-decisions/SKILL.md` once before the first iteration — it is a runtime surface, load
+Read `vendor/concise-decisions/concise-decisions.md` once before the first iteration — it is a runtime surface, load
 it like any other resource. So are the files it names on demand: one shape file and one harness adapter
 per question, plus its question template and TBD routes. Everything else in that tree — `README.md`,
 `CLAUDE.md`, `docs/adrs/` — is the upstream maintainer's **development-time** material. It exists to

@@ -28,7 +28,7 @@ vendored skill leaves to its caller.
 
 ## Step 1b: Discovery research (vendored skill)
 
-**Read `vendor/discovery/SKILL.md` now** and run its full workflow — dual parallel research tracks
+**Read `vendor/discovery/discovery.md` now** and run its full workflow — dual parallel research tracks
 (Track A: codebase → Current State; Track B: web/SOTA → Desired State), link verification at the
 highest available tier, synthesis into paired lens diagrams, and its validation gate. The vendored
 copy is the authority on that discipline (its `resources/**` load per its own instructions); this

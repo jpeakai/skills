@@ -6,7 +6,7 @@ than re-deriving it. The second half of this file is the usage-audit procedure.
 
 **This file is not loaded when the skill runs.** It is development-time guidance for whoever edits the
 skill. Runtime authority is `SKILL.md` plus `resources/**` (and, inside `vendor/`, the vendored
-`SKILL.md` plus the resources it names). So an ADR here only takes effect once the surface it governs
+`<name>.md` plus the resources it names). So an ADR here only takes effect once the surface it governs
 changes: every entry below names that surface, and a decision that names none has not been implemented.
 
 ## File map (non-obvious entries only)
@@ -41,12 +41,12 @@ changes: every entry below names that surface, and a decision that names none ha
 - **Enforced in:** `resources/phase2-refinement.md` (the whole file, it is the overlay); `SKILL.md`
   § Phase 2, § Questioning Principles, § Resources; `vendor/README.md`.
 - **Consequences:** ~2,850 lines duplicated, and drift from upstream is accepted between refreshes.
-  Phase 2 costs more context per question (the loop's `SKILL.md` plus one shape file and one harness
+  Phase 2 costs more context per question (the loop's `concise-decisions.md` plus one shape file and one harness
   adapter) and buys reasoning capture the spec previously lost. The overlay cites the vendored copy by
   step number and section number, so a refresh must reconcile those citations in the same commit.
-- **Refresh procedure:** `rsync -a --delete --exclude node_modules --exclude '.*cache*' --exclude
-  .DS_Store --exclude evals <upstream>/ skills/plan-gap/vendor/concise-decisions/`, then re-read
-  `resources/phase2-refinement.md` and fix any citation upstream moved. Never cherry-pick.
+- **Refresh procedure:** the `vendor/README.md` rsync-and-rename with `<name>` =
+  `concise-decisions`, then re-read `resources/phase2-refinement.md` and fix any citation upstream
+  moved. Never cherry-pick.
 - **Lens:** when a phase's procedure is a *summary* of a discipline another skill owns properly, vendor
   that skill and demote the phase file to an overlay that binds the discipline's roles to this skill's
   documents. Do not paraphrase the discipline into a phase playbook, and never link sideways to the
@@ -64,7 +64,7 @@ changes: every entry below names that surface, and a decision that names none ha
   belongs in this log, and is not).
 - **Decision:** plan-gap keeps **no** runtime learning store. `SKILL.md` + `resources/**` are the only
   runtime authority; `CLAUDE.md`, `README.md`, and anything under `vendor/` that is not the vendored
-  `SKILL.md` or the resources it names is development-time only. When the user overrules the skill, the
+  `<name>.md` or the resources it names is development-time only. When the user overrules the skill, the
   response is an ADR here **plus** the edit to the loaded surface that enforces it — never a file the
   run reads back. Phase 2's decision-record backends were re-resolved to the five things a session can
   actually consult: the spec's ADRs, its in-flight markers, the target project's decision surface, the
@@ -104,8 +104,8 @@ changes: every entry below names that surface, and a decision that names none ha
   section-ownership contract (it writes only `## Current State` / `## Desired State`, preserves
   everything else) is what protects `## Gap Increments` — weakening that upstream contract breaks
   this skill's Discovery file.
-- **Refresh procedure:** the `vendor/README.md` rsync with `<upstream>` = `skills/discovery/`,
-  then reconcile the Step 1b overlay citations in the same commit.
+- **Refresh procedure:** the `vendor/README.md` rsync-and-rename with `<upstream>` =
+  `skills/discovery/`, then reconcile the Step 1b overlay citations in the same commit.
 - **Lens:** an extraction out of this skill is two moves in one commit — the new skill becomes the
   caller-agnostic upstream owner, and the phase file becomes an overlay over a vendored copy that
   binds only the caller ends. Never leave a thinned summary of the discipline behind, and never a

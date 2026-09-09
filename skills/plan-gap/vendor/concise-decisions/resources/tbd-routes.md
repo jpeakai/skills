@@ -1,6 +1,6 @@
 # TBD routes — answers that are not decisions
 
-Part of the `concise-decisions` skill (see [../SKILL.md](../SKILL.md)). Load
+Part of the `concise-decisions` skill (see [../concise-decisions.md](../concise-decisions.md)). Load
 when composing section 8 of the template or when the user's answer is a TBD
 route.
 

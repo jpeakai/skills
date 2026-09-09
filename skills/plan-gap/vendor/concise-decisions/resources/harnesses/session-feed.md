@@ -1,6 +1,6 @@
 # Harness adapter: session feed (text-only)
 
-Part of `concise-decisions` ([../../SKILL.md](../../SKILL.md) step 4). Load
+Part of `concise-decisions` ([../../concise-decisions.md](../../concise-decisions.md) step 4). Load
 when no structured single-select question tool with per-option free text is
 available: chat surfaces, cloud runners, Codex Default mode (see
 [codex.md](codex.md)), unknown harnesses.
@@ -24,7 +24,7 @@ Alternatively choose from <explain|show|spike|defer|handoff|other|task> and your
 The user's single reply carries the option letter (or a route name) and the
 reasoning. A binary folds its sub-choice into line 1 ("picking B, also name
 <x|y|z>"). A letter with no why is the missing-why case: infer the lens from
-the briefing, state it in passing, mark it unconfirmed (SKILL.md *After the
+the briefing, state it in passing, mark it unconfirmed (concise-decisions.md *After the
 answer*).
 
 ## Rules specific to this adapter

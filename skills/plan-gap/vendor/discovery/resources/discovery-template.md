@@ -1,6 +1,6 @@
 # Discovery Document Template & Style
 
-The shape and voice of a discovery document. `SKILL.md` → Workflow says *when* each section is
+The shape and voice of a discovery document. `discovery.md` → Workflow says *when* each section is
 populated; this file says *what the finished document looks like*.
 
 ## Style rules

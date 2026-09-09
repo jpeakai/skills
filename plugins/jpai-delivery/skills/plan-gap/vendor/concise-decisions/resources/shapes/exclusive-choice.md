@@ -1,6 +1,6 @@
 # Shape: exclusive choice
 
-Part of `concise-decisions` ([../../SKILL.md](../../SKILL.md) step 4). Load
+Part of `concise-decisions` ([../../concise-decisions.md](../../concise-decisions.md) step 4). Load
 for a decision with 2–3 mutually exclusive options. This is the baseline
 shape; the other shape files describe deltas from it.
 

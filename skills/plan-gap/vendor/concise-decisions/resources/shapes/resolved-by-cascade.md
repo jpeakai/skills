@@ -1,6 +1,6 @@
 # Shape: resolved by cascade
 
-Part of `concise-decisions` ([../../SKILL.md](../../SKILL.md) step 4). Load
+Part of `concise-decisions` ([../../concise-decisions.md](../../concise-decisions.md) step 4). Load
 when a **prior decision narrowed this one** — so far that it is nearly
 "confirm the implication" — but the ripple left constraints that now
 **compete**, some of which were only visible after the prior decision landed.

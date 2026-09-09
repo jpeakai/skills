@@ -1,6 +1,6 @@
 # Shape: subset as permutations
 
-Part of `concise-decisions` ([../../SKILL.md](../../SKILL.md) step 4). Load
+Part of `concise-decisions` ([../../concise-decisions.md](../../concise-decisions.md) step 4). Load
 when the options **compose** — several can be chosen together — and a naive
 question would be a multi-select.
 

@@ -1,6 +1,6 @@
 # Shape: low stakes
 
-Part of `concise-decisions` ([../../SKILL.md](../../SKILL.md) step 4). Load
+Part of `concise-decisions` ([../../concise-decisions.md](../../concise-decisions.md) step 4). Load
 when the decision is highly reversible and nothing downstream depends on it,
 **but** the user's lens is still worth recording — a convention they will
 want reused (paths, naming, defaults).

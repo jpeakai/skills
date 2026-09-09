@@ -1,6 +1,6 @@
 # Harness adapter: Claude Code (`AskUserQuestion`)
 
-Part of `concise-decisions` ([../../SKILL.md](../../SKILL.md) step 4). Load
+Part of `concise-decisions` ([../../concise-decisions.md](../../concise-decisions.md) step 4). Load
 when `CLAUDECODE` is set, or when the harness exposes a structured
 single-select question tool whose options carry a preview and accept
 free-text annotation on the selected option.
@@ -53,7 +53,7 @@ AskUserQuestion({ questions: [{              // exactly ONE question — never 2
   annotation on the selected option verbatim into the decision record's Why.
   An option selected **without** an annotation is the missing-why case:
   infer the lens from the briefing, state it in passing, mark it
-  unconfirmed (SKILL.md *After the answer*). A selected TBD option's
+  unconfirmed (concise-decisions.md *After the answer*). A selected TBD option's
   annotation names the route; act per [../tbd-routes.md](../tbd-routes.md).
 - **Free text is the contract, not a courtesy.** A picker whose selected
   option cannot carry free text is not this adapter — route to

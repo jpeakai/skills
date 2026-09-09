@@ -90,7 +90,7 @@ Alternatively choose from <explain|show|spike|defer|handoff|other|task> and your
   paths, data set. Collect it before composing; a placeholder preview fails
   the first check.
 - **`Checked:` is not optional.** `Already settled` opens with the decision
-  records that were actually searched (SKILL.md *Decision records*). It is
+  records that were actually searched (concise-decisions.md *Decision records*). It is
   how the user verifies check 3 without redoing the search; a line that
   names no records fails that check.
 - **`Why this one first` names the queue.** The user should see the other

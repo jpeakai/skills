@@ -1,6 +1,6 @@
 # Shape: binary
 
-Part of `concise-decisions` ([../../SKILL.md](../../SKILL.md) step 4). Load
+Part of `concise-decisions` ([../../concise-decisions.md](../../concise-decisions.md) step 4). Load
 when exactly two options are real — typically *in scope / out of scope*,
 *now / later*, *strict / lenient*.
 

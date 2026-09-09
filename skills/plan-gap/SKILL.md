@@ -120,7 +120,7 @@ step-by-step playbook**; the steps are:
 - **1a — Target setup.** Create the index + Discovery skeleton, or read an existing set and assess
   completeness (local file or GitHub issue).
 - **1b — Discovery research (vendored skill).** Run the vendored discovery skill
-  (`vendor/discovery/SKILL.md`) against `<plan>/DISCOVERY.md`: dual parallel research tracks
+  (`vendor/discovery/discovery.md`) against `<plan>/DISCOVERY.md`: dual parallel research tracks
   (Track A codebase → Current State, Track B web/SOTA → Desired State), verification of every
   external URL at the highest available tier, and synthesis into **2–3 paired lens diagrams** per
   state. Hallucination is a critical failure: every claim traces to a `file:line` or a verified URL.
@@ -143,7 +143,7 @@ the question contract (self-answering from decision records, ranking, the pragma
 nine-section briefing, the five-question check, the lens grammar, the TBD routes). This skill owns what
 counts as an ambiguity in a spec and what an answer does to the file set.
 **Read `resources/phase2-refinement.md` for the full step-by-step playbook, and
-`vendor/concise-decisions/SKILL.md` once before the first iteration**; the cycle is:
+`vendor/concise-decisions/concise-decisions.md` once before the first iteration**; the cycle is:
 
 - **2a — Assemble the ambiguity inventory.** Collect every `<!-- UNRESOLVED -->` entry across all
   `G<n>.md` files, and create placeholders for any non-ADR ambiguity (missing details, implicit
@@ -211,7 +211,7 @@ Phase 2 to rescope. See `resources/phase4-decomposition.md` and the loop-runner 
 ## Questioning Principles
 
 Every question this skill asks — in any phase, not only Phase 2 — is composed with the vendored loop at
-`vendor/concise-decisions/SKILL.md`. These are its principles as they bind here; the vendored surface
+`vendor/concise-decisions/concise-decisions.md`. These are its principles as they bind here; the vendored surface
 is the authority on the mechanics, and no phase substitutes a cheaper form of question.
 
 - **One question at a time.** Never dump a list of questions, and never a multi-question wizard: answer
@@ -280,8 +280,8 @@ not author. They are operated in place and never edited; `vendor/README.md` hold
 
 | Vendored | Load when |
 |----------|-----------|
-| `vendor/discovery/SKILL.md` | at Step 1b — it owns the Current/Desired State research (dual tracks, link verification, lens synthesis); its `resources/**` (template, link verification, lens menu) load per its own instructions |
-| `vendor/concise-decisions/SKILL.md` | once before the first Phase 2 iteration — it is the question loop; its `resources/**` (one shape file, one harness adapter, the template, the TBD routes) load on demand per question |
+| `vendor/discovery/discovery.md` | at Step 1b — it owns the Current/Desired State research (dual tracks, link verification, lens synthesis); its `resources/**` (template, link verification, lens menu) load per its own instructions |
+| `vendor/concise-decisions/concise-decisions.md` | once before the first Phase 2 iteration — it is the question loop; its `resources/**` (one shape file, one harness adapter, the template, the TBD routes) load on demand per question |
 
 Only `SKILL.md` and `resources/**` are runtime authority — in this skill and in anything vendored.
 `README.md`, `CLAUDE.md`, and `docs/adrs/` are development-time documents for whoever *edits* the skill;

@@ -1,6 +1,6 @@
 # Harness adapter: Codex CLI
 
-Part of `concise-decisions` ([../../SKILL.md](../../SKILL.md) step 4). Load
+Part of `concise-decisions` ([../../concise-decisions.md](../../concise-decisions.md) step 4). Load
 when `CODEX_SANDBOX`, `CODEX_PROXY_CERT`, or any `CODEX_ENV_*` variable is
 set.
 

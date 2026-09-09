@@ -83,7 +83,7 @@ Key properties:
 
 ## Reference
 
-- Operating detail (workflow, evidence contract, markers): [`SKILL.md`](SKILL.md)
+- Operating detail (workflow, evidence contract, markers): [`discovery.md`](discovery.md)
 - Document template and style rules: [`resources/discovery-template.md`](resources/discovery-template.md)
 - Link verification tiers and commands: [`resources/playwright-cli.md`](resources/playwright-cli.md)
 - Lens menu, rendering, color theming: [`resources/mermaidjs-diagrams.md`](resources/mermaidjs-diagrams.md)

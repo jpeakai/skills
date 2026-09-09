@@ -1,4 +1,4 @@
-.PHONY: fix ci docs-ci harness-ci
+.PHONY: fix ci skills-ci docs-ci harness-ci
 
 # Regenerate everything that is generated. Safe to run at any time.
 fix:
@@ -21,6 +21,35 @@ ci: fix
 		exit 1; }
 	uv run scripts/validate_plugins.py
 	uv run pytest
+	$(MAKE) skills-ci
+	@test -z "$$(git status --porcelain)" || { \
+		git status --short; \
+		echo "ERROR: a skill gate regenerated something - commit it"; \
+		exit 1; }
+
+# A skill opts into its own script gate by shipping scripts/Makefile with a `ci`
+# target. Discovered, never listed here: adding the file is the opt-in, and the
+# four skills with no scripts/ at all need no entry anywhere to be exempt.
+#
+# The glob is one level deep on purpose, which puts
+# skills/*/vendor/*/scripts/Makefile out of scope. A vendored copy is read-only
+# and upstream-owned, its gate re-asserts what the upstream skill's own gate
+# already covers, and ADR-007's refresh procedure is where it belongs.
+#
+# An empty discovery is a failure, not a pass: every one of these Makefiles
+# disappearing should be loud rather than quietly green.
+SKILL_GATES := $(patsubst %/Makefile,%,$(shell grep -lE '^ci:' skills/*/scripts/Makefile 2>/dev/null))
+
+skills-ci:
+	@test -n "$(SKILL_GATES)" || { \
+		echo "ERROR: no skills/*/scripts/Makefile declares a ci target - discovery found nothing"; \
+		exit 1; }
+	@echo "Skill script gates ($(words $(SKILL_GATES)) opted in): $(notdir $(patsubst %/scripts,%,$(SKILL_GATES)))"
+	@for d in $(SKILL_GATES); do \
+		printf '\n── %s\n' "$$d"; \
+		if [ -f "$$d/package.json" ]; then bun install --cwd "$$d" --silent || exit 1; fi; \
+		$(MAKE) -C "$$d" ci || exit 1; \
+	done
 
 # The authored markdown. Everything under skills/ is a skill's own
 # documentation, vendored or upstream-owned, and plugins/*/hooks/README.md is a

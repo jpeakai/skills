@@ -206,10 +206,15 @@ To change a skill, edit it under `skills/` and re-sync:
 
 ```sh
 make fix          # mirror the canonical trees into the packs
-make ci           # assert the mirror is committed, then the layout invariants, the publication contract and the hook suite
+make ci           # assert the mirror is committed, then the layout invariants, the publication contract, the hook suite and every skill gate
+make skills-ci    # just the per-skill script gates, discovered from skills/*/scripts/Makefile
 make docs-ci      # prose, diagram-complexity and colour-contrast gates over the authored markdown
 make harness-ci   # install both packs into throwaway Claude and Codex sandboxes
 ```
+
+A skill opts into its own script gate by shipping `scripts/Makefile` with a `ci` target, and `make skills-ci` discovers it.
+Four of the eight do; the other four have no `scripts/` at all, so there is nothing to opt in and no exemption to record.
+The discovery glob is one level deep, which keeps a vendored copy's gate out: that copy is read-only and its upstream is already gated here.
 
 Dependencies split by what ships.
 [`pyproject.toml`](pyproject.toml) holds the repo's own tooling in a uv `dev` group, so `pytest` is pinned in one place and `uv run` syncs it.

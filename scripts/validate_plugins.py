@@ -39,13 +39,12 @@ from ruamel.yaml import YAML
 
 REPO = Path(__file__).resolve().parent.parent
 
-# Caps the claude.ai marketplace validator enforces on sync. Neither is checked
-# by `claude plugin validate --strict` or by installing the pack, so a breach is
-# invisible until the sync reports it as a warning and drops the item. A
-# description is also the model's trigger surface, so the fix is always to cut
-# implementation detail, never a "use when" clause.
-SKILL_DESCRIPTION_CAP = 1024
-PLUGIN_DESCRIPTION_CAP = 500
+# What a *marketplace* enforces on publication — description caps, unique skill
+# names, no second SKILL.md inside a vendored copy — is asserted in
+# tests/test_publication_contract.py, not here, and the caps are declared there
+# once. This script owns the other half: the internal layout that holds the
+# generated mirror together. A rule belongs there if a marketplace judges it,
+# and here if this repo invented it.
 
 # hooks.json must be a REGULAR FILE inside each plugin, not a symlink:
 # `claude plugin validate --strict` reads hook config without following
@@ -230,62 +229,6 @@ def check_skills(rep: Report) -> None:
             rep.check(name == entry.name, f"{rel}: frontmatter name matches directory", f"got {name!r}")
 
 
-def check_one_skill_md_per_skill(rep: Report) -> None:
-    """A skill directory holds exactly one SKILL.md, at its root.
-
-    A harness registers every ``SKILL.md`` under a plugin as a skill, so a
-    vendored copy that keeps upstream's filename declares that skill a second
-    time and the whole plugin is rejected for a duplicate name. That is why
-    ``skills/richdocs/vendor/mermaidjs-diagrams/`` and the two copies under
-    ``skills/plan-gap/vendor/`` carry ``<name>.md`` instead: same wholesale
-    copy, demoted entrypoint. The rename is mechanical and easy to lose on the
-    next re-vendor, so it is asserted rather than remembered.
-
-    Both trees are checked. The packs are what a marketplace validates, and
-    ``skills/`` is where the mistake would actually be made.
-    """
-    print("\nExactly one SKILL.md per skill, at its root (a vendored copy carries none)")
-    roots = [REPO / "skills"] + sorted(p / "skills" for p in (REPO / "plugins").iterdir() if p.is_dir())
-    for root in roots:
-        rel_root = root.relative_to(REPO)
-        # node_modules ships fixtures with their own SKILL.md; they are not skills.
-        nested = sorted(
-            p.relative_to(REPO)
-            for p in root.rglob("SKILL.md")
-            if p.parent.parent != root and "node_modules" not in p.parts
-        )
-        rep.check(
-            not nested,
-            f"{rel_root}: no SKILL.md below a skill's root",
-            "; ".join(f"{p} — rename to {p.parent.name}.md" for p in nested[:5]),
-        )
-
-
-def check_description_caps(rep: Report) -> None:
-    """Descriptions fit the caps the marketplace validator enforces on sync.
-
-    The canonical ``skills/`` tree is checked rather than the packs, because that
-    is where a description is authored and the packs mirror it. ``cli`` is
-    included even though no pack ships it: it is published the same way and would
-    hit the same cap.
-    """
-    print(f"\nDescriptions fit the marketplace caps (skill {SKILL_DESCRIPTION_CAP}, plugin {PLUGIN_DESCRIPTION_CAP})")
-    for skill_md in sorted((REPO / "skills").glob("*/SKILL.md")):
-        n = len(frontmatter(skill_md).get("description", ""))
-        rep.check(
-            n <= SKILL_DESCRIPTION_CAP,
-            f"skills/{skill_md.parent.name}: description is {n} chars",
-            f"over by {n - SKILL_DESCRIPTION_CAP}; cut implementation detail, keep every 'use when' clause",
-        )
-    for manifest in sorted((REPO / "plugins").glob("*/.*-plugin/plugin.json")):
-        n = len(load_json(manifest).get("description", ""))
-        rep.check(
-            n <= PLUGIN_DESCRIPTION_CAP,
-            f"{manifest.relative_to(REPO)}: description is {n} chars",
-            f"over by {n - PLUGIN_DESCRIPTION_CAP}",
-        )
-
-
 def check_marketplaces(rep: Report) -> None:
     print("\nBoth marketplaces list the same plugins, and each source path exists")
     on_disk = {p.name for p in (REPO / "plugins").iterdir() if p.is_dir()}
@@ -328,8 +271,6 @@ def main() -> None:
     check_hook_wiring(rep)
     check_manifests(rep)
     check_skills(rep)
-    check_one_skill_md_per_skill(rep)
-    check_description_caps(rep)
     check_marketplaces(rep)
 
     print(f"\n{rep.checks} checks run.")

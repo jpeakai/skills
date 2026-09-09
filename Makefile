@@ -6,13 +6,21 @@ fix:
 
 # Assert the tree is clean after a regenerate: a generated file that differs
 # means someone hand-edited a pack, or edited a canonical skill without
-# re-syncing. Then run the invariants and the hook suite.
+# re-syncing. Then the layout invariants, the publication contract, and the
+# hook suite.
+#
+# The two gates split by who owns the rule. validate_plugins.py asserts the
+# layout this repo invented (the mirror, the composition, the hook wiring);
+# tests/ asserts what a marketplace enforces on sync, which nothing else
+# available locally checks - not `claude plugin validate --strict`, not
+# harness-ci, not the published marketplace schema.
 ci: fix
 	@test -z "$$(git status --porcelain)" || { \
 		git status --short; \
 		echo "ERROR: regenerate left the tree dirty - commit the generated files"; \
 		exit 1; }
 	uv run scripts/validate_plugins.py
+	uv run --no-project tests/test_publication_contract.py
 	uv run --no-project hooks/test_tool_coach.py
 
 # The authored markdown. Everything under skills/ is a skill's own

@@ -194,6 +194,7 @@ hooks/           canonical hook, its rules and tests    ← edit here
 plugins/         generated packs, two manifests each    ← never edit
   composition.yaml   which skills go in which pack
 scripts/         sync, validate, and harness install test
+tests/           what a marketplace enforces on publication
 ```
 
 Copies rather than symlinks, because Codex drops symlinked plugin components and installs an empty pack without erroring.
@@ -204,9 +205,23 @@ To change a skill, edit it under `skills/` and re-sync:
 
 ```sh
 make fix          # mirror the canonical trees into the packs
-make ci           # assert the mirror is committed, then run every layout invariant and the hook suite
+make ci           # assert the mirror is committed, then the layout invariants, the publication contract and the hook suite
 make docs-ci      # prose, diagram-complexity and colour-contrast gates over the authored markdown
 make harness-ci   # install both packs into throwaway Claude and Codex sandboxes
+```
+
+## The publication contract
+
+[`tests/test_publication_contract.py`](tests/test_publication_contract.py) asserts what a marketplace enforces when this repo is published, parametrised over every skill so a new one is covered without touching the file.
+
+Every rule in it came from a real failed or warned sync, and each names the incident.
+It exists because nothing else available locally catches these.
+`claude plugin validate --strict` passes on a tree that fails the sync.
+`make harness-ci` installs both packs happily while the tree is in breach, and the published marketplace schema declares no length limit at all.
+So the description caps it checks are observed rather than documented, and the sync's own wording is quoted beside each one.
+
+```sh
+uv run --no-project tests/test_publication_contract.py
 ```
 
 ## Hooks

@@ -14,6 +14,9 @@ Both packs ship the `tool_coach` PreToolUse hook.
 
 ## Installing
 
+The two plugin marketplaces install a whole pack and its hook.
+The other three routes give you finer control, down to a single skill.
+
 ### Claude Code
 
 `.claude-plugin/marketplace.json` registers this repo as a [plugin marketplace](https://code.claude.com/docs/en/plugin-marketplaces).
@@ -34,6 +37,36 @@ codex plugin add jpai-essentials@jpeakai
 codex plugin add jpai-delivery@jpeakai
 ```
 
+### npx skills
+
+[`npx skills`](https://github.com/vercel-labs/skills) treats any GitHub repo as the registry, and installs skills into whichever agents it finds.
+
+```sh
+npx skills add jpeakai/skills --list              # the eight skills, nothing installed
+npx skills add jpeakai/skills --skill librarian
+npx skills add jpeakai/skills --skill '*' --global
+```
+
+It resolves the canonical `skills/` tree rather than the packs, so it reaches `cli` but brings no hook.
+Skills land in the current project unless `--global` sends them to your user directory.
+Afterwards `npx skills list`, `update` and `remove` manage what it installed.
+
+### apm
+
+[`apm`](https://github.com/microsoft/apm) is a dependency manager for agents, and takes either a pack or a single skill.
+
+```sh
+brew install apm    # or: curl -sSL https://aka.ms/apm-unix | sh
+
+apm install jpeakai/skills/plugins/jpai-essentials --target claude,codex
+apm install jpeakai/skills --skill librarian
+```
+
+The pack form deploys the hook too, once per target.
+The `--skill` form takes one skill by name out of the canonical tree.
+Either way the dependency lands in your `apm.yml` and what resolved is recorded in `apm.lock.yaml`, so a bare `apm install` reproduces it.
+Suffix the source with `#<sha>` to pin the ref, otherwise apm warns that it is tracking the default branch.
+
 ### Manually
 
 Copy or symlink a skill into your agent's skills directory:
@@ -43,7 +76,7 @@ git clone https://github.com/jpeakai/skills.git
 ln -s "$PWD/skills/librarian" ~/.claude/skills/librarian
 ```
 
-This is also how to get [`cli`](skills/cli), which is not in either pack.
+[`cli`](skills/cli) is in neither pack, so this and the two skill-level routes above are the only ways to get it.
 
 ## The skills
 

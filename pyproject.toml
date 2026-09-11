@@ -19,6 +19,7 @@ dependencies = []
 dev = [
     "pytest>=8.0",
     "pytest-cov>=4.0",
+    "pytest-xharness-eval>=0.5.0",
     "ruamel.yaml>=0.18",
 ]
 
@@ -28,9 +29,18 @@ dev = [
 testpaths = ["tests", "hooks"]
 pythonpath = ["hooks"]
 
-# Structural, not advisory. `skills/` and `plugins/` carry eight shipped
-# `test_*.py` files with their own PEP-723 dependency sets, and collecting them
-# here would import them against this project's env and fail on deps this
-# project has no business declaring. testpaths already scopes a bare `pytest`;
-# this also holds when someone passes an explicit path.
-norecursedirs = ["skills", "plugins", "tmp", ".venv", "node_modules"]
+# Structural, not advisory. The shipped `test_*.py` files carry their own PEP-723
+# dependency sets, and collecting them here would import them against this
+# project's env and fail on deps this project has no business declaring. Every one
+# of them lives under a `scripts/` directory, so excluding that name is enough —
+# and it is narrower than excluding `skills/` wholesale, which also hid the
+# `skills/*/evals/` suites that pytest-xharness-eval exists to run.
+#
+# `plugins/` and `vendor/` stay excluded because they are mirrors of `skills/`:
+# collecting them would run every eval a second time, and an eval cell is a live
+# billed agent session, not a replayable fixture.
+#
+# testpaths still scopes a bare `pytest` to the repo's own suites, so evals never
+# run — and never spend — unless a path asks for them:
+#   uv run --directory jpai-ai/jpai-skills pytest skills/mermaidjs-diagrams/evals
+norecursedirs = ["scripts", "vendor", "plugins", "tmp", ".venv", "node_modules"]

@@ -28,6 +28,7 @@ import re
 import subprocess
 from pathlib import Path
 
+from _render import RENDER_SCRATCH, render_both_variants
 from pytest_xharness_eval import CaseOutput, evalcase
 from pytest_xharness_eval.verify import (
     check_files_written,
@@ -43,11 +44,10 @@ FIXTURE = "complex_diagram"  # evals/fixtures/complex_diagram/
 TARGET = "ARCHITECTURE.md"
 SCRIPTS = SKILL_DIR / "scripts"
 
-# What a user types after naming the skill. 
+# What a user types after naming the skill.
 TASK = (
     "ARCHITECTURE.md -- its flowchart is over the complexity budget. Restructure it into "
-    "the dual-density pattern, editing the file in place. Do not add new files and do not "
-    "render images."
+    "the dual-density pattern, editing the file in place."
 )
 
 
@@ -60,9 +60,7 @@ def gate(script: str, *args: str) -> subprocess.CompletedProcess[str]:
     A local verifier, which is exactly what ADR 0013 keeps room for: it is specific to
     this skill's toolchain and belongs beside the case, not in the plugin.
     """
-    return subprocess.run(
-        ["bun", "run", str(SCRIPTS / script), *args], capture_output=True, text=True, check=False
-    )
+    return subprocess.run(["bun", "run", str(SCRIPTS / script), *args], capture_output=True, text=True, check=False)
 
 
 def check_dual_density_structure(output: CaseOutput) -> None:
@@ -91,7 +89,9 @@ def check_the_skills_gates_pass(output: CaseOutput) -> None:
         single = scratch / f"overview_{i}.mmd"
         single.write_text(fence, encoding="utf-8")
         low = gate("mermaid_complexity.ts", str(single), "--preset", "low")
-        assert low.returncode == 0, f"visible fence {i} is over the overview budget (<=12 nodes, VCS <=25):\n{low.stdout}"
+        assert low.returncode == 0, (
+            f"visible fence {i} is over the overview budget (<=12 nodes, VCS <=25):\n{low.stdout}"
+        )
 
     detailed = gate("mermaid_complexity.ts", str(output.path(TARGET)))
     assert detailed.returncode == 0, f"a fence is over the detailed budget (<=35 nodes, VCS <=60):\n{detailed.stdout}"
@@ -108,7 +108,8 @@ def eval_dual_density(output: CaseOutput) -> None:
     check_rollout(output)
     check_files_written(output, TARGET)
     # The scratch directory this grader writes is its own, and is created after the run.
-    check_no_files_added(output)
+    check_no_files_added(output, allow=RENDER_SCRATCH)
     check_dual_density_structure(output)
     check_the_skills_gates_pass(output)
+    render_both_variants(output, TARGET)
     check_skill_scripts_ran(output, "scripts/mermaid_complexity.ts", "scripts/mermaid_contrast.ts")

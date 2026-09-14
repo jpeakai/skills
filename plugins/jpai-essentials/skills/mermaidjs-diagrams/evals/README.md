@@ -10,6 +10,7 @@ The plugin is a dev dependency of this repository, so `uv run pytest` picks it u
 | Path | What it checks |
 |------|----------------|
 | `eval_palette_mandate.py` | Theming a four-node flowchart, compared facet by facet against a golden |
+| `eval_erd_theming.py` | Theming an `erDiagram`, where the flowchart recipe fails, graded against a golden and the contrast gate |
 | `eval_dual_density.py` | Splitting a 46-node diagram into overview and detail, graded by the skill's own gates |
 | `fixtures/<name>/` | The seed workspace each cell starts from |
 | `goldens/<name>/` | Known-good output. See [`goldens/README.md`](goldens/README.md) |

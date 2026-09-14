@@ -46,6 +46,23 @@ Its palette is deliberately *not* copied from the examples in
 (stroke against fill, ≥3.0). The fills here are the darker end of each ramp with the
 lighter tint as the stroke, which passes at 4.4–5.0.
 
+### `unstyled_erd/DATA_MODEL.md`
+
+The five-entity data model of `fixtures/unstyled_erd/`, themed with the translucent
+recipe that an `erDiagram` needs. Mermaid paints `fill:` on even attribute rows only,
+so the golden declares no `color:`. It uses translucent fills and carries each hue in
+an opaque stroke. It passes both gates:
+
+```sh
+cd ../../scripts
+bun run mermaid_contrast.ts   ../evals/goldens/unstyled_erd/DATA_MODEL.md   # 14 pass, 0 fail
+bun run mermaid_complexity.ts ../evals/goldens/unstyled_erd/DATA_MODEL.md   # exit 0
+```
+
+`eval_erd_theming.py` compares only its structure facet by facet: entities,
+relationships, attributes, and the classDef groups. The colour verdict comes from the
+contrast gate, because many palettes are correct.
+
 ## Changing a golden
 
 Re-run the gates above, and commit the change on its own so a reviewer sees it. A golden

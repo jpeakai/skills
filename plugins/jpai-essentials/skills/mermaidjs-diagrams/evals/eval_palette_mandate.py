@@ -29,6 +29,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from _render import RENDER_SCRATCH, render_both_variants
 from pytest_xharness_eval import CaseOutput, evalcase
 from pytest_xharness_eval.verify import (
     Count,
@@ -50,7 +51,7 @@ FIXTURE = "unstyled_diagram"  # evals/fixtures/unstyled_diagram/
 TARGET = "ARCHITECTURE.md"
 
 # The task is what a user types *after* naming the skill, and nothing more (ADR 0044).
-TASK = "ARCHITECTURE.md -- apply the mandatory colour theming to its diagram, editing the file in place. Do not add new files and do not render images."
+TASK = "ARCHITECTURE.md -- apply the mandatory colour theming to its diagram, editing the file in place."
 
 
 # -- The golden, and what each part of it is allowed to vary --------------------------
@@ -139,7 +140,7 @@ def eval_palette_mandate(output: CaseOutput) -> None:
     """
     check_rollout(output)
     check_files_written(output, TARGET)
-    check_no_files_added(output)
+    check_no_files_added(output, allow=RENDER_SCRATCH)
     # Producing the right answer without reaching the skill's own material is a real
     # outcome, and a different one from the outcome this case exists to measure.
     # Not SKILL.md: a native invocation injects it, so it never shows up as a read
@@ -147,3 +148,4 @@ def eval_palette_mandate(output: CaseOutput) -> None:
     # is the evidence that the mandate was followed rather than guessed at.
     check_skill_was_loaded(output, "resources/color_theming.md")
     GOLDEN.assert_matches(output)
+    render_both_variants(output, TARGET)

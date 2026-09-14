@@ -57,21 +57,22 @@ skills-ci:
 # finding twice, or report one this repo cannot fix.
 DOCS := README.md plugins/README.md hooks/README.md
 
-# Prose and diagram gates, run with this repo's own skills rather than an
-# external package: gooddocs and mermaidjs-diagrams both ship these scripts, so
-# the checks travel with the repo and stay runnable by anyone who clones it.
+# The prose gate is the published @jpeakai/prose-gates package, pinned to the
+# same version gooddocs step 1b runs, so a clone and an installed skill agree.
+# The diagram gates still run with this repo's own mermaidjs-diagrams skill.
 #
-# Each script directory carries its own package.json and lockfile (the
+# That script directory carries its own package.json and lockfile (the
 # complexity gate parses with mermaid's canonical parser, which needs a DOM),
 # so its dependencies are installed in place rather than hoisted to a root
 # package.json this repo deliberately does not have. A gate ships inside a
 # pack and must resolve on a machine that has never seen this repo, which is
 # also why pyproject.toml covers only the repo's own tooling and no skill.
-GATES := skills/gooddocs/scripts skills/mermaidjs-diagrams/scripts
+PROSE_GATES := @jpeakai/prose-gates@0.1.1
+GATES := skills/mermaidjs-diagrams/scripts
 
 docs-ci:
 	@for d in $(GATES); do bun install --cwd $$d --silent || exit 1; done
-	bun run skills/gooddocs/scripts/prose_gates.ts $(DOCS)
+	bunx $(PROSE_GATES) $(DOCS)
 	bun run skills/mermaidjs-diagrams/scripts/mermaid_complexity.ts $(DOCS)
 	bun run skills/mermaidjs-diagrams/scripts/mermaid_contrast.ts $(DOCS)
 

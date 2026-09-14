@@ -42,6 +42,33 @@ classDef danger  fill:#dc262636,stroke:#ef4444,stroke-width:2px
 classDef neutral fill:#52525b36,stroke:#71717a,stroke-width:1px
 ```
 
+## A second case: `erDiagram` rows
+
+The same recipe fixes a failure with a similar cause and no host involved. In an
+`erDiagram`, the renderer owns half the **backgrounds** rather than the text:
+the `fill:` lands on even attribute rows only, and the odd rows keep the Mermaid
+theme's own surface. A declared `color:` has to read on both, and in both
+themes, which no opaque pairing achieves (see the
+[§3 `erDiagram` exception](color_theming.md#3-light-mode--dark-mode-safety)).
+Drop `color:` so the theme label (`#333` on `default`, `#ccc` on `dark`) tracks
+the odd rows. Then make the fill translucent so the even rows tint toward the
+same side:
+
+```
+classDef output fill:#b4530966,stroke:#d97706,stroke-width:2px
+```
+
+Mermaid's measured row anchors (mermaid-cli 11.x):
+
+| Theme | Odd row | Even row | Label |
+|-------|---------|----------|-------|
+| `default` | `#ffffff` | `#f1f1ff` | `#333333` |
+| `dark` | `#2c2d2d` | `#060606` | `#cccccc` |
+
+`mermaid_contrast.ts` applies these automatically to `erDiagram` fences under the
+`github` profile. It gates text on both rows in both themes, and reports strokes
+as advisory.
+
 ## The compositing math
 
 Browsers composite opacity in gamma-encoded sRGB ("simple alpha over"). For a fill `F` at

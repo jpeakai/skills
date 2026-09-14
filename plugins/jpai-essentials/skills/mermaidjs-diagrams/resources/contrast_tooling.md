@@ -12,6 +12,13 @@ isn't enough. The conceptual palette rules live in `color_theming.md`.
 | `scripts/mermaid_contrast.ts` | Audits every `classDef`/`style` directive inside `.mmd`/`.md` files — scores `fill × color` (text on fill) at AA ≥ 4.5:1 and `fill × stroke` (border on fill) at AA ≥ 3:1 | Catching low-contrast custom color palettes before they land in docs |
 | `scripts/color_contrast.ts` | Generic WCAG + APCA calculator for any two CSS colors (hex, rgb, oklch, named, etc.) | Ad-hoc pair checks — e.g. sampling colors from a screenshot or comparing theme tokens |
 
+Under the `github` profile an `erDiagram` fence is scored differently. Mermaid
+paints its `fill` on even attribute rows only, so each label is scored against
+the theme's odd row and against the fill composited over the theme's even row,
+in both the `default` and `dark` Mermaid themes. Those pairs carry `theme` and
+`row` (`odd`/`even`) in `--json` output. A missing `color:` is not a blocking
+gap there, because the theme label is scored in its place.
+
 ## Invocations
 
 ```bash
@@ -40,7 +47,8 @@ echo '[["#fff","#777"],["red","blue"]]' | bun run .claude/skills/mermaidjs-diagr
 ## Exit semantics
 
 Both scripts: `0` if every pair passes its threshold (4.5:1 text, 3:1 border;
-advisory border pairs under the `mkdocs-material` profile never fail), `1` if
+advisory border pairs under the `mkdocs-material` profile and in `erDiagram`
+fences never fail), `1` if
 any pair fails, `2` on usage error. The non-zero exit makes both tools drop-in
 suitable for `make ci`-style gates.
 

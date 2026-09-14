@@ -124,6 +124,23 @@ classDef good fill:#1e40af,color:#fff,stroke:#1e3a8a
 > translucent** so the page background tints it. See
 > [host-themed renderers](color_host_themed_renderers.md).
 
+> **Exception — `erDiagram`.** Mermaid applies a `classDef`/`style` `fill:` to an
+> entity's **even attribute rows only**; the odd rows keep the theme's own
+> background, which flips with the reader's theme. Your `color:` lands on **every**
+> row, so it has to read on your fill *and* on that theme surface — and no opaque
+> pairing does both. Light fill + dark text vanishes on the dark theme's odd rows
+> (`#1e293b` on `#2c2d2d` = 1.1:1). Dark fill + white text vanishes on the light
+> theme's odd rows (`#fff` on `#fff` = 1.0:1). Use the same translucent recipe
+> instead: **no `color:`**, a translucent fill, and the hue in an opaque stroke:
+>
+> ```
+> classDef output fill:#b4530966,stroke:#d97706,stroke-width:2px
+> ```
+>
+> `mermaid_contrast.ts` detects `erDiagram` fences and scores them against both
+> rows in Mermaid's `default` and `dark` themes, so it catches the opaque pairing.
+> See [host-themed renderers](color_host_themed_renderers.md#a-second-case-erdiagram-rows).
+
 ### Safe Background + Text Pairings
 
 **Dark backgrounds with white text** (works in both themes):

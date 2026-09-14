@@ -72,6 +72,12 @@ styling.
 
 - **github** (plain markdown / `mmdc`): you control the text — the `fill × color`
   rule above applies. Pair every `fill:` with a `color:` (see `color_theming.md` §3).
+  **Except in an `erDiagram`**, where Mermaid paints the fill on even attribute rows
+  only and the odd rows keep a theme surface that flips with the reader. The gate
+  detects `erDiagram` fences and scores the label on both rows in Mermaid's
+  `default` and `dark` themes, strokes advisory. An opaque `fill` + `color:` pairing
+  fails there by design; use the translucent recipe (no `color:`, see
+  `resources/color_host_themed_renderers.md`).
 - **mkdocs-material**: the host theme **forces** the label text and ignores your
   `color:`. Here the correct pattern is the **opposite** — *no* `color:`, a
   **translucent** fill, and the diagram must read in both light and dark. The gate

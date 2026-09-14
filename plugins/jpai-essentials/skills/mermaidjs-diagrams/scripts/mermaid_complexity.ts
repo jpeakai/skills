@@ -359,7 +359,7 @@ const LANGIUM_TYPES: Record<
   wardley: "wardley",
 };
 
-function detectKeyword(content: string): string | null {
+export function detectKeyword(content: string): string | null {
   // A leading "---" opens a YAML frontmatter block that runs to the next "---".
   // Everything between is config, not diagram source: returning its first key
   // (typically "config:") would miss the Langium dispatch table and mis-report a

@@ -19,6 +19,7 @@ import {
   detectProfile,
   main,
   scoreDirectives,
+  scoreDirectivesEr,
   scoreDirectivesMkdocs,
   scoreForProfile,
 } from "./mermaid_contrast.ts";
@@ -297,6 +298,101 @@ describe("scoreForProfile + auditContent profile", () => {
     const r = auditContent(src, "<inline>", "mkdocs-material");
     expect(r.profile).toBe("mkdocs-material");
     expect(r.fail_count).toBe(0); // text AAA both themes; border advisory excluded
+  });
+});
+
+// ─── erDiagram (fill lands on even rows only; odd rows keep the theme surface) ─
+
+describe("scoreDirectivesEr", () => {
+  const ERD = (classDef: string): string => `erDiagram
+    A ||--o{ B : "has"
+    A { string one "first"
+        string two "second" }
+    B { string x "ex" }
+    ${classDef}
+    class A,B styled
+`;
+
+  test("opaque light fill + dark color: FAILS on the dark theme's odd rows (jpeakai/skills#6)", () => {
+    const r = auditContent(ERD("classDef styled fill:#fef3c7,stroke:#b45309,color:#1e293b"));
+    const darkOdd = r.pairs.find((p) => p.kind === "text" && p.theme === "dark" && p.row === "odd");
+    expect(darkOdd?.passes).toBe(false);
+    expect(darkOdd?.assessment.ratio).toBeLessThan(1.2);
+    expect(r.fail_count).toBeGreaterThan(0);
+  });
+
+  test("opaque dark fill + white color: FAILS on the light theme's odd rows", () => {
+    const r = auditContent(ERD("classDef styled fill:#1e40af,stroke:#1e3a8a,color:#ffffff"));
+    const lightOdd = r.pairs.find((p) => p.kind === "text" && p.theme === "light" && p.row === "odd");
+    expect(lightOdd?.passes).toBe(false);
+    expect(lightOdd?.assessment.ratio).toBe(1);
+  });
+
+  test("translucent fill, no color:, opaque stroke: passes in both themes", () => {
+    const r = auditContent(ERD("classDef styled fill:#b4530966,stroke:#d97706,stroke-width:2px"));
+    expect(r.fail_count).toBe(0);
+    // No blocking "no color:" gap — dropping color: is the recipe here.
+    expect(r.skipped).toHaveLength(0);
+    // Theme label is scored only on the author's fill (even rows), never on the
+    // renderer's own odd-row pair.
+    const text = r.pairs.filter((p) => p.kind === "text");
+    expect(text.map((p) => `${p.theme}/${p.row}`).sort()).toEqual(["dark/even", "light/even"]);
+    expect(text.find((p) => p.theme === "dark")?.foreground).toBe("#cccccc");
+    // 8-digit alpha is composited over the theme's even row, not truncated.
+    expect(text.find((p) => p.theme === "light")?.background).not.toBe("#b45309");
+  });
+
+  test("strokes are scored on both rows and are advisory", () => {
+    const { pairs } = scoreDirectivesEr([
+      { kind: "classDef", selector: "s", properties: { fill: "#b4530966", stroke: "#d97706" }, line: 1 },
+    ]);
+    const borders = pairs.filter((p) => p.kind === "border");
+    expect(borders).toHaveLength(4);
+    expect(borders.every((p) => p.advisory)).toBe(true);
+    expect(borders.some((p) => !p.passes)).toBe(true);
+  });
+
+  test("color: without fill is scored against both theme rows", () => {
+    const { pairs } = scoreDirectivesEr([{ kind: "style", selector: "A", properties: { color: "#1e293b" }, line: 1 }]);
+    expect(pairs).toHaveLength(4);
+    expect(pairs.find((p) => p.theme === "dark" && p.row === "even")?.background).toBe("#060606");
+  });
+
+  test("a directive with no colour properties, and non-style kinds, are not scored", () => {
+    const { pairs, skipped } = scoreDirectivesEr([
+      { kind: "classDef", selector: "w", properties: { "stroke-width": "2px" }, line: 1 },
+      { kind: "linkStyle", selector: "0", properties: { stroke: "#777" }, line: 2 },
+    ]);
+    expect(pairs).toHaveLength(0);
+    expect(skipped).toHaveLength(1);
+    expect(skipped[0]?.reason).toMatch(/no color properties/);
+  });
+
+  test("an unparseable colour blocks and keeps none of the directive's pairs", () => {
+    const { pairs, skipped } = scoreDirectivesEr([
+      { kind: "classDef", selector: "x", properties: { fill: "#fef3c7", stroke: "not-a-color" }, line: 1 },
+    ]);
+    expect(pairs).toHaveLength(0);
+    expect(skipped[0]?.blocking).toBe(true);
+    expect(skipped[0]?.reason).toMatch(/erDiagram pair unparseable/);
+  });
+
+  test("dispatch: erDiagram only switches model under github, and frontmatter is skipped", () => {
+    const dirs: StyleDirective[] = [
+      { kind: "classDef", selector: "e", properties: { fill: "#fef3c7", color: "#1e293b" }, line: 1 },
+    ];
+    expect(scoreForProfile(dirs, "github", "erDiagram").pairs.every((p) => p.row)).toBe(true);
+    expect(scoreForProfile(dirs, "github", "flowchart").pairs[0]?.row).toBeUndefined();
+    expect(scoreForProfile(dirs, "mkdocs-material", "erDiagram").pairs[0]?.row).toBeUndefined();
+    const withFrontmatter = `---\ntitle: x\n---\n${ERD("classDef styled fill:#fef3c7,color:#1e293b")}`;
+    expect(auditContent(withFrontmatter).pairs.some((p) => p.row)).toBe(true);
+  });
+
+  test("CLI default output renders the theme/row tag and exits 1", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "mermaid-contrast-er-"));
+    const path = join(tmp, "erd.md");
+    writeFileSync(path, `# ERD\n\n\`\`\`mermaid\n${ERD("classDef styled fill:#fef3c7,color:#1e293b")}\`\`\`\n`);
+    expect(await main([path])).toBe(1);
   });
 });
 

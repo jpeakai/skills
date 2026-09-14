@@ -419,6 +419,33 @@ user's input, an undifferentiated error teaches the agent to blame the input —
 it can edit. Name the classes, prove which one fired, and make the remedy for each one
 explicit. "It failed" is an invitation to damage working work.*
 
+### ADR-003 — `erDiagram` fences are scored against Mermaid's row surfaces
+
+**Status:** accepted (2026-09). Refines ADR-001; see jpeakai/skills#6.
+
+**Context.** The `github` profile assumes the declared `fill` backs every label.
+`erDiagram` breaks that: Mermaid applies a `classDef`/`style` fill to even attribute
+rows only, and odd rows keep the theme's `attributeBackgroundColorOdd`, while the
+declared `color:` lands on every row. An opaque `fill` + `color:` pairing therefore
+loses half of every entity in one theme, and the gate passed it because it only scored
+`fill × color`. The translucent recipe that does read in both themes failed, because no
+stroke can clear 3:1 against a declared fill and a page at once.
+
+**Decision.** `auditFile`/`auditContent` detect the fence keyword (`detectKeyword`,
+shared with the complexity gate). Under `github`, an `erDiagram` goes to
+`scoreDirectivesEr`, which scores against Mermaid's measured `default` and `dark` row
+anchors: text (declared `color:`, else the theme label) against the odd row and against
+the fill composited over the even row, both gating; stroke against both rows, advisory.
+The theme label on the theme's own odd row is not scored, and a missing `color:` is not
+blocking. `mkdocs-material` is unchanged.
+
+**Consequences.** Pairs carry an optional `row`. The row anchors are baked-in
+constants measured from mermaid-cli 11.x; a Mermaid theme change would drift them.
+
+**Lens.** *ADR-001 again, one level down: the unit a gate scores must be the surface the
+renderer actually paints behind the text, and a diagram type is allowed to paint it
+differently.*
+
 ## Related
 
 - `../mermaidjs-diagrams.md` — public-facing skill surface (what this skill does).

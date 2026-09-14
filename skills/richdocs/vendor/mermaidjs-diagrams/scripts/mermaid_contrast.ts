@@ -26,7 +26,7 @@ import { parseArgs } from "node:util";
 import { existsSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 
-import { collectFiles as collectDiagramFiles, extractMarkdownFences } from "./mermaid_complexity.ts";
+import { collectFiles as collectDiagramFiles, detectKeyword, extractMarkdownFences } from "./mermaid_complexity.ts";
 import {
   alphaOf,
   compositeOver,
@@ -68,10 +68,23 @@ const GITHUB = {
 
 const THEMES: Theme[] = ["light", "dark"];
 
+// Mermaid's own erDiagram row surfaces, measured from SVGs rendered by
+// mermaid-cli 11.x under `-t default` (light) and `-t dark`. An entity's
+// attribute rows alternate backgrounds, and a classDef/style `fill:` lands on
+// the EVEN rows only: the odd rows keep the theme's attributeBackgroundColorOdd.
+// A declared `color:` lands on every row, so it has to read on the author's
+// fill AND on a theme surface that flips with the reader. `label` is the theme
+// text used when no `color:` is declared. See jpeakai/skills#6.
+const MERMAID_ER = {
+  light: { odd: "#ffffff", even: "#f1f1ff", label: "#333333" },
+  dark: { odd: "#2c2d2d", even: "#060606", label: "#cccccc" },
+} as const;
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export type PairKind = "text" | "border";
 export type Theme = "light" | "dark";
+export type ErRow = "odd" | "even";
 
 export interface ContrastPair {
   kind: PairKind; // text = fill×color, border = fill×stroke
@@ -82,7 +95,8 @@ export interface ContrastPair {
   line: number; // where the directive appears
   assessment: ContrastAssessment;
   passes: boolean; // text: ratio >= 4.5; border: ratio >= 3
-  theme?: Theme; // set only under the mkdocs-material profile (light/dark pass)
+  theme?: Theme; // set when the pair is scored per theme (mkdocs, translucent github, erDiagram)
+  row?: ErRow; // set only for erDiagram fences: which alternating attribute row
   advisory?: boolean; // reported but NOT gating (mkdocs border: stroke on a faint
   // fill can't clear 3:1 in both themes for a saturated hue; the category is also
   // carried by the AAA label + tint, so the border is reinforcement, not gating).
@@ -329,12 +343,90 @@ export function scoreDirectivesMkdocs(directives: StyleDirective[]): {
   return { pairs, skipped };
 }
 
-/** Dispatch scoring by profile. */
+// ─── erDiagram scoring (renderer owns half the row backgrounds) ──────────────
+
+/**
+ * Score directives for an `erDiagram` fence under the github profile.
+ *
+ * The flowchart model — "the declared fill backs every label" — does not hold
+ * here: Mermaid paints the fill on even attribute rows only, and the odd rows
+ * keep a theme surface that flips with the reader. So every label is scored
+ * against both rows in both Mermaid themes:
+ *
+ *   text vs odd row                    gating (the invisible-half-an-entity bug)
+ *   text vs fill composited over even  gating
+ *   stroke vs both rows                advisory, as under mkdocs-material
+ *
+ * The text is the declared `color:`, or the theme label when none is declared,
+ * which is why a missing `color:` is not a blocking gap here: dropping it for a
+ * translucent fill is the recipe that reads in both themes. The theme label on
+ * the theme's own odd row is the renderer's pair, not the author's, so it is
+ * not scored.
+ */
+export function scoreDirectivesEr(directives: StyleDirective[]): {
+  pairs: ContrastPair[];
+  skipped: SkippedDirective[];
+} {
+  const pairs: ContrastPair[] = [];
+  const skipped: SkippedDirective[] = [];
+
+  for (const d of directives) {
+    if (d.kind !== "classDef" && d.kind !== "style") continue;
+    const { fill, color, stroke } = d.properties;
+    const note = (reason: string, blocking?: boolean): void => {
+      skipped.push({
+        selector: d.selector,
+        directive_kind: d.kind,
+        line: d.line,
+        reason,
+        ...(blocking && { blocking }),
+      });
+    };
+
+    if (!fill && !color && !stroke) {
+      note("no color properties declared");
+      continue;
+    }
+
+    // Buffered per directive: if any colour fails to parse, none of its pairs are
+    // kept, so a half-scored directive cannot report a pass.
+    const scored: ContrastPair[] = [];
+    const score = (kind: PairKind, theme: Theme, row: ErRow, fg: string, bg: string): void => {
+      scored.push({ ...scoreMkdocsPair(kind, d, theme, fg, bg), row, advisory: kind === "border" });
+    };
+
+    try {
+      for (const theme of THEMES) {
+        const anchor = MERMAID_ER[theme];
+        const rows: Array<[ErRow, string]> = [
+          ["odd", anchor.odd],
+          ["even", fill ? compositeOver(fill, anchor.even) : anchor.even],
+        ];
+        for (const [row, bg] of rows) {
+          if (color || (row === "even" && fill)) score("text", theme, row, color ?? anchor.label, bg);
+          if (stroke) score("border", theme, row, stroke, bg);
+        }
+      }
+      pairs.push(...scored);
+    } catch (err) {
+      note(`erDiagram pair unparseable: ${(err as Error).message}`, true);
+    }
+  }
+  return { pairs, skipped };
+}
+
+/**
+ * Dispatch scoring by profile. `keyword` is the fence's diagram keyword: an
+ * `erDiagram` under the github profile gets the row-aware model, because its
+ * renderer does not paint the declared fill behind every label.
+ */
 export function scoreForProfile(
   directives: StyleDirective[],
   profile: Profile,
+  keyword: string | null = null,
 ): { pairs: ContrastPair[]; skipped: SkippedDirective[] } {
-  return profile === "mkdocs-material" ? scoreDirectivesMkdocs(directives) : scoreDirectives(directives);
+  if (profile === "mkdocs-material") return scoreDirectivesMkdocs(directives);
+  return keyword === "erDiagram" ? scoreDirectivesEr(directives) : scoreDirectives(directives);
 }
 
 /** Auto-detect the render context: an ancestor `mkdocs.yml` ⇒ mkdocs-material. */
@@ -383,7 +475,7 @@ export async function auditFile(
   const out: DiagramContrastReport[] = [];
   for (const entry of diagrams) {
     const directives = extractStyleDirectives(entry.content);
-    const { pairs, skipped } = scoreForProfile(directives, profile);
+    const { pairs, skipped } = scoreForProfile(directives, profile, detectKeyword(entry.content));
     // Fence-local line numbers → absolute markdown line numbers so users can
     // jump straight to the offending directive in their editor.
     const offset = entry.fence ? entry.fence.line_start : 0;
@@ -409,7 +501,7 @@ export function auditContent(
   profile: Profile = "github",
 ): DiagramContrastReport {
   const directives = extractStyleDirectives(content);
-  const { pairs, skipped } = scoreForProfile(directives, profile);
+  const { pairs, skipped } = scoreForProfile(directives, profile, detectKeyword(content));
   return {
     file_path: filePath,
     profile,
@@ -454,7 +546,8 @@ function formatReport(r: DiagramContrastReport): string {
     const rating = p.assessment.rating;
     const ratingColor = rating === "AAA" || rating === "AA" ? C.green : rating === "AA Large" ? C.yellow : C.red;
     const threshold = p.kind === "text" ? "≥4.5" : "≥3.0";
-    const themeTag = p.theme ? `${C.dim}${p.theme.padEnd(5)}${C.reset} ` : "";
+    const themeLabel = p.row ? `${p.theme}/${p.row}` : p.theme;
+    const themeTag = themeLabel ? `${C.dim}${themeLabel.padEnd(p.row ? 10 : 5)}${C.reset} ` : "";
     const advisoryTag = p.advisory && !p.passes ? ` ${C.dim}(advisory)${C.reset}` : "";
     lines.push(
       `  ${icon} L${String(p.line).padStart(3)} ${themeTag}${p.directive_kind} ${C.bold}${p.selector}${C.reset}  ${p.kind.padEnd(6)} ${ratio}:1 (${threshold}) ${ratingColor}${rating}${C.reset}  ${C.dim}${p.foreground} on ${p.background}${C.reset}${advisoryTag}`,

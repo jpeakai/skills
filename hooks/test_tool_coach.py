@@ -1,6 +1,6 @@
 """Tests for the tool_coach PreToolUse hook.
 
-Vendored from neozenith/agentic-dotfiles (MIT licensed; see hooks/README.md).
+Vendored from neozenith/agentic-dotfiles (MIT licensed, https://github.com/neozenith/agentic-dotfiles).
 
 This file is repo tooling, so its dependencies are the project's ``dev`` group
 rather than a PEP-723 header. ``tool_coach.py`` beside it is the opposite case:
@@ -171,6 +171,80 @@ def test_notebook_path_is_checked_too(root: Path) -> None:
 def test_write_inside_the_project_is_allowed(root: Path) -> None:
     payload = {"tool_name": "Write", "tool_input": {"file_path": str(root / "a.txt")}}
     assert tool_coach.decide(payload, SHIPPED_RULES, root) is None
+
+
+# -- Questions to the user ------------------------------------------------
+def option(label: str, preview: str | None = "Solves: x\nCost: y") -> dict:
+    opt = {"label": label, "description": "one-line trade-off"}
+    if preview is not None:
+        opt["preview"] = preview
+    return opt
+
+
+def question(*options: dict, header: str = "Cache", multi: bool = False) -> dict:
+    return {
+        "header": header,
+        "question": "Which cache TTL should the fetcher use?",
+        "multiSelect": multi,
+        "options": list(options),
+    }
+
+
+def picker(*questions: dict) -> dict:
+    return {"tool_name": "AskUserQuestion", "tool_input": {"questions": list(questions)}}
+
+
+RECOMMENDED = option("Five-minute TTL (Recommended)")
+ALTERNATIVE = option("One-hour TTL")
+OTHER = option("Other: none of these fit")
+
+
+def ask(payload: dict, root: Path) -> str | None:
+    return tool_coach.decide(payload, SHIPPED_RULES, root)
+
+
+def test_a_well_formed_question_is_allowed(root: Path) -> None:
+    assert ask(picker(question(RECOMMENDED, ALTERNATIVE, OTHER)), root) is None
+
+
+def test_a_question_with_no_recommendation_is_allowed(root: Path) -> None:
+    assert ask(picker(question(ALTERNATIVE, OTHER)), root) is None
+
+
+@pytest.mark.parametrize(
+    ("payload", "fragment"),
+    [
+        (picker(question(RECOMMENDED, OTHER), question(ALTERNATIVE, OTHER)), "2 questions in one call"),
+        ({"tool_name": "AskUserQuestion", "tool_input": {}}, "0 questions in one call"),
+        (picker(question(ALTERNATIVE, RECOMMENDED, OTHER)), "recommended option is not first"),
+        (picker(question(RECOMMENDED, ALTERNATIVE)), 'no "Other:" option'),
+        (picker(question(RECOMMENDED, option("One-hour TTL", preview=None), OTHER)), 'no notes field, on: "One-hour TTL"'),
+        (picker(question(RECOMMENDED, option("Other: describe it", preview="  "))), "no notes field"),
+        (picker(question(RECOMMENDED, OTHER, multi=True)), "only work single-select"),
+    ],
+)
+def test_a_malformed_question_is_denied(payload: dict, fragment: str, root: Path) -> None:
+    reason = ask(payload, root)
+    assert reason is not None
+    assert fragment in reason
+    assert "notes" in reason
+
+
+def test_every_problem_is_reported_at_once(root: Path) -> None:
+    payload = picker(question(option("One-hour TTL", preview=None), RECOMMENDED, multi=True))
+    reason = ask(payload, root)
+    assert reason is not None
+    for fragment in ("not first", '"Other:"', "no notes field", "single-select"):
+        assert fragment in reason
+
+
+def test_a_batch_still_has_each_question_checked(root: Path) -> None:
+    payload = picker(question(RECOMMENDED, OTHER, header="Cache"), question(ALTERNATIVE, header="Retries"))
+    reason = ask(payload, root)
+    assert reason is not None
+    assert "2 questions in one call" in reason
+    assert '"Retries": no "Other:" option' in reason
+    assert '"Cache":' not in reason
 
 
 # -- Pattern rules --------------------------------------------------------

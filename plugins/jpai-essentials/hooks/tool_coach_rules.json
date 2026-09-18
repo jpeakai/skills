@@ -1,5 +1,5 @@
 {
-  "_credit": "Vendored from neozenith/agentic-dotfiles (MIT). See hooks/README.md.",
+  "_credit": "Vendored from neozenith/agentic-dotfiles (MIT). https://github.com/neozenith/agentic-dotfiles",
   "_comment": [
     "Pattern rules for the tool_coach PreToolUse hook (hooks/tool_coach.py).",
     "Each rule: a regex matched against the Bash `command` string, after heredoc",

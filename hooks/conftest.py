@@ -1,6 +1,6 @@
 """Test config for the hook suite.
 
-Vendored from neozenith/agentic-dotfiles (MIT licensed; see hooks/README.md).
+Vendored from neozenith/agentic-dotfiles (MIT licensed, https://github.com/neozenith/agentic-dotfiles).
 
 The module under test is imported before pytest-cov starts tracing, so its
 module-level statements would report as uncovered. Reloading inside a

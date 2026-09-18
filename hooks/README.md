@@ -13,11 +13,12 @@ A plain "permission denied" teaches nothing and invites the model to retry near-
 |-------|------|------------|
 | No deletions | structural | Bash |
 | No out-of-project scratch space | structural | Bash, Write, Edit, NotebookEdit, Read |
+| One question at a time, recommendation first, an `Other:` option, notes on every option | structural | AskUserQuestion |
 | Tool-choice coaching (inline `-c` snippets, bare interpreters, manual `PYTHONPATH`, the `timeout` binary) | pattern rules in `tool_coach_rules.json` | Bash |
 
 ```mermaid
 flowchart LR
-    T["Tool call<br/>Bash / Write / Edit / Read"]:::input
+    T["Tool call<br/>Bash / file tools / AskUserQuestion"]:::input
     H["tool_coach.py<br/>PreToolUse"]:::proc
     S["Structural checks<br/>argv-parsed"]:::check
     P["Pattern rules<br/>editable JSON"]:::check
@@ -58,6 +59,7 @@ flowchart TB
     subgraph checks["Checks"]
         ND["No deletions<br/>rm, git rm, find -delete"]:::check
         NS["No scratch outside project"]:::check
+        QS["One question at a time<br/>Other option, notes everywhere"]:::check
         TR["tool_coach_rules.json<br/>inline -c, bare interpreters"]:::check
     end
 
@@ -71,8 +73,9 @@ flowchart TB
     EV --> HD --> H
     H --> ND
     H --> NS
+    H --> QS
     H --> TR
-    ND & NS & TR --> OUT
+    ND & NS & QS & TR --> OUT
     OUT --> A
     OUT --> D
     H -.-> ERR
@@ -99,13 +102,6 @@ Full behaviour and rationale are in the module docstrings of `tool_coach.py` and
 Stdlib only (`json`, `os`, `re`, `shlex`, `sys`, `pathlib`).
 There is nothing to install and no virtualenv to resolve, on every call in either agent.
 
-## Provenance
-
-`tool_coach.py`, `tool_coach_rules.json`, `test_tool_coach.py` and `conftest.py` are vendored from [`neozenith/agentic-dotfiles`](https://github.com/neozenith/agentic-dotfiles) (MIT licensed), unmodified in logic.
-Only doc comments were added here to note that origin.
-This file (`hooks/README.md`) and `hooks.json` are new.
-All credit for the hook's design and test suite belongs to that repo.
-
 ## What's portable, and why
 
 This directory is the plugin-facing, ecosystem-agnostic core: two stdlib Python scripts and a JSON rules file.
@@ -125,7 +121,7 @@ It, too, is shared verbatim:
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Bash|Write|Edit|NotebookEdit|Read",
+        "matcher": "Bash|Write|Edit|NotebookEdit|Read|AskUserQuestion",
         "hooks": [
           {
             "type": "command",
@@ -214,7 +210,7 @@ Claude Code (`.claude/settings.json`, or a project's own `hooks/hooks.json` if i
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Bash|Write|Edit|NotebookEdit|Read",
+        "matcher": "Bash|Write|Edit|NotebookEdit|Read|AskUserQuestion",
         "hooks": [
           {
             "type": "command",
@@ -240,13 +236,13 @@ The model sees the message, the call proceeds, and the breakage stays visible un
 
 ## Tests
 
-The test file's PEP-723 header declares pytest itself, so nothing needs installing first.
+Pytest comes from this repo's `dev` dependency group, so `uv run` resolves it with nothing to install first.
 
 ```sh
 uv run pytest hooks/test_tool_coach.py --cov=tool_coach --cov-report=term-missing
 ```
 
-That reports 52 passing cases and 96% line coverage of `tool_coach.py`.
-A bare `pytest hooks/test_tool_coach.py` works only if pytest is already on your path: this repo has no `pyproject.toml` to install it.
+The run reports the case count and the line coverage of `tool_coach.py`; read them there rather than here.
+A bare `pytest hooks/test_tool_coach.py` works only if pytest is already on your path; `uv run` is the path that needs no setup.
 
-52 cases, no mocks, real payloads through the real decision path.
+No mocks: every case is a real payload through the real decision path.

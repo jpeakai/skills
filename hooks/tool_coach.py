@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """PreToolUse coaching hook, portable across Claude Code and Codex CLI.
 
-Vendored from neozenith/agentic-dotfiles (MIT licensed; see hooks/README.md
-for provenance) and kept logic-for-logic identical, because the payload this
-script reads and the JSON it prints are wire-compatible with both agents'
-PreToolUse hook contract (same event/field names; Codex additionally sets
-`CLAUDE_PLUGIN_ROOT` for exactly this kind of out-of-the-box compatibility).
+Vendored from neozenith/agentic-dotfiles (MIT licensed,
+https://github.com/neozenith/agentic-dotfiles); the only local change in logic
+is the `AskUserQuestion` check. It is portable because the payload it reads and
+the JSON it prints are wire-compatible with both agents' PreToolUse hook
+contract (same event/field names; Codex additionally sets `CLAUDE_PLUGIN_ROOT`
+for exactly this kind of out-of-the-box compatibility).
 
 Reads the PreToolUse event JSON on stdin and, when a tool call breaks one of
 this repo's working agreements, emits a `deny` decision whose *reason* is a
@@ -23,6 +24,10 @@ Two kinds of check, in this order:
      outside the project are invisible to the person reviewing the work.
      Applies to Bash commands and to the path arguments of `Write` / `Edit` /
      `NotebookEdit` / `Read`.
+   - *One question at a time, always answerable with reasoning.* An
+     `AskUserQuestion` call must ask exactly one question, put the recommended
+     option first, include an explicit `Other:` option, and give every option
+     a preview so the user can attach notes to whichever one they pick.
 2. **Pattern rules** (`tool_coach_rules.json`). Regexes matched against the
    Bash command string, for tool-choice coaching: inline interpreter snippets,
    bare interpreters, manual import-path injection, the timeout binary. Edit
@@ -88,6 +93,9 @@ FORBIDDEN_ROOTS = tuple(
 # Tools that name a filesystem path in their input rather than a shell command.
 TOOLS_WITH_PATHS = {"Write", "Edit", "NotebookEdit", "Read"}
 
+# The escape-hatch option every question must offer, matched on its label.
+OTHER_LABEL = re.compile(r"^\s*Other\b", re.IGNORECASE)
+
 HEREDOC_START = re.compile(r"<<-?\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1")
 
 DELETE_GUIDANCE = """\
@@ -115,6 +123,32 @@ Use the project-local tmp/ instead:
 Why: scratch files under a system temp root or an out-of-project scratchpad cannot be inspected, diffed or audited alongside the change they support. Keep your hands above the table.
 
 tmp/ is already gitignored, so nothing scratch will be committed."""
+
+QUESTION_GUIDANCE = """\
+Ask the user one question at a time, and let every answer carry its reasoning.
+
+Re-issue the call with this shape:
+
+    AskUserQuestion({ questions: [{            // exactly ONE question
+      header: "<≤12 chars>",
+      question: "<the decision, with enough context to answer it cold>",
+      multiSelect: false,                      // previews only work single-select
+      options: [
+        { label: "<option> (Recommended)", description: "...", preview: "..." },  // recommended FIRST
+        { label: "<alternative>",          description: "...", preview: "..." },
+        { label: "Other: none of these fit", description: "Describe your own answer in the notes",
+          preview: "None of the suggested options fit.\\nUse the notes to describe what you want instead." }
+      ]
+    }]})
+
+The rules, and why each one matters:
+
+    - One question per call. The answer to one question should shape the next; a batch forces every answer before the first has propagated.
+    - Recommended option first. The user reads the suggestion before the alternatives, and accepting it is the cheapest path.
+    - An explicit `Other:` option, always. When no suggestion fits, the user needs a way to say so that is part of the question itself.
+    - A preview on EVERY option, including `Other:`. The preview pane is what exposes the notes field, so the user can pick an option and "yes, and..." it with their reasoning. An option without a preview cannot carry notes.
+
+Ask the questions you dropped in later turns, after this answer is in."""
 
 
 # -- Hook I/O -------------------------------------------------------------
@@ -305,6 +339,45 @@ def outside_paths(command: str, root: Path) -> list[str]:
     ]
 
 
+# -- Questions to the user ------------------------------------------------
+def question_problems(tool_input: dict) -> list[str]:
+    """Every way this AskUserQuestion call breaks the rules, in reading order.
+
+    All of them are reported at once, so the model can fix the call in a
+    single retry rather than discovering the rules one denial at a time. A
+    batched call still has each question's options checked, so the retry that
+    splits the batch does not trip over a second round of problems.
+    """
+    questions = [q for q in tool_input.get("questions") or [] if isinstance(q, dict)]
+    problems: list[str] = []
+    if len(questions) != 1:
+        problems.append(
+            f"{len(questions)} questions in one call: ask exactly one, so its answer can shape the next question"
+        )
+
+    for question in questions:
+        # Name the question only when there is more than one to tell apart.
+        where = f'"{question.get("header", "?")}": ' if len(questions) > 1 else ""
+        options = [o for o in question.get("options") or [] if isinstance(o, dict)]
+        labels = [str(o.get("label", "")) for o in options]
+
+        if any("(Recommended)" in label for label in labels[1:]):
+            problems.append(f"{where}the recommended option is not first")
+
+        if not any(OTHER_LABEL.match(label) for label in labels):
+            problems.append(f'{where}no "Other:" option for when none of the suggestions fit')
+
+        no_notes = [label for label, o in zip(labels, options) if not str(o.get("preview") or "").strip()]
+        if no_notes:
+            shown = ", ".join(f'"{label}"' for label in no_notes)
+            problems.append(f"{where}no preview, so no notes field, on: {shown}")
+
+        if question.get("multiSelect"):
+            problems.append(f"{where}multiSelect is true: previews, and so notes, only work single-select")
+
+    return problems
+
+
 # -- Decision -------------------------------------------------------------
 def decide(payload: dict, rules: list[dict], root: Path) -> str | None:
     """The deny reason for this tool call, or None to stay out of the way."""
@@ -333,6 +406,12 @@ def decide(payload: dict, rules: list[dict], root: Path) -> str | None:
         target = tool_input.get("file_path") or tool_input.get("notebook_path") or ""
         if target and is_outside(target, root):
             return f"Blocked: `{target}` is outside the project.\n\n{SCRATCH_GUIDANCE}"
+
+    elif tool == "AskUserQuestion":
+        problems = question_problems(tool_input)
+        if problems:
+            shown = "\n".join(f"  - {p}" for p in problems)
+            return f"Blocked: this question cannot be answered one at a time with reasoning:\n{shown}\n\n{QUESTION_GUIDANCE}"
 
     return None
 

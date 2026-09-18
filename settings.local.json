@@ -1,0 +1,89 @@
+{
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "permissions": {
+    "allow": [
+      "Bash(curl:*)",
+      "Bash(ls:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm test)",
+      "Bash(npm test:*)",
+      "Bash(npx playwright test:*)",
+      "Bash(npx tsc:*)",
+      "Bash(pgrep:*)",
+      "Bash(pnpm build:*)",
+      "Bash(pnpm exec playwright test:*)",
+      "Bash(pnpm test:*)",
+      "mcp__iconify",
+      "mcp__playwright",
+      "mcp__context7",
+      "mcp__sequential-thinking__sequentialthinking",
+      "Bash(jq:*)",
+      "Bash(grep:*)",
+      "Bash(mkdir:*)",
+      "WebFetch(domain:docs.anthropic.com)",
+      "WebFetch(domain:packaging.python.org)",
+      "Bash(ps:*)",
+      "Bash(uv run:*)",
+      "WebSearch",
+      "Bash(duckdb:*)",
+      "Bash(uvx ruff format:*)",
+      "Bash(sqlite3:*)",
+      "Bash(claude -p :*)",
+      "Bash(uv run claude-observer:*)",
+      "Bash(uv add:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(test:*)",
+      "Bash(awk:*)",
+      "Bash(sed:*)",
+      "Bash(make test:*)",
+      "Bash(uvx isort:*)",
+      "mcp__serena",
+      "Bash(make:*)",
+      "Bash(tree:*)"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Bash(aws configure export-credentials:*)",
+      "Bash(timeout:*)",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(uv run python -c :*)",
+      "Bash(uv run python3 -c :*)",
+      "Bash(uv run --no-project python - <<:*)",
+      "Bash(uv run --no-project python3 - <<:*)",
+      "Bash(uv run --no-sync python3 -c :*)",
+      "Bash(uv run --no-project python3 -c :*)",
+      "Bash(uv run --no-sync --no-project python3 -c :*)",
+      "Bash(uv run --no-sync python -c :*)",
+      "Bash(uv run --no-project python -c :*)",
+      "Bash(uv run --no-sync --no-project python -c :*)",
+      "Bash(uv run * python -c :*)",
+      "Bash(uv run * python3 -c :*)",
+      "Bash(rm:*)",
+      "Bash(PYTHONPATH=:*)"
+    ],
+    "defaultMode": "acceptEdits"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Write|Edit|NotebookEdit|Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/tool_coach.py\"",
+            "timeout": 10,
+            "statusMessage": "Checking the call against this project's working agreements…"
+          }
+        ]
+      }
+    ]
+  },
+  "disableWorkflows": false,
+  "outputStyle": "Explanatory",
+  "enableAllProjectMcpServers": true
+}

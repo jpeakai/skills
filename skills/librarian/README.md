@@ -39,6 +39,7 @@ In Claude Code:
 /librarian apply                # execute the approved shelving plan
 /librarian index docs/          # curate queryable YAML siblings for a document set
 /librarian index okf-yaml adrs/ # adopt or migrate to the named okf-yaml ADR surface
+/librarian index okf-yml adrs/  # the same convention; either spelling of the name works
 ```
 
 Driving the indexer directly (no agent needed):

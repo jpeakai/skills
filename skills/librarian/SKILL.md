@@ -1,7 +1,7 @@
 ---
 name: librarian
-description: "Repo documentation organisation: the canonical document set (README, CONTRIBUTING, agent file, ADR surface, GLOSSARY) exists and cross-links, and every doc — and every section in a doc — lives where its content says it belongs. Modes: (1) AUDIT (default) — report missing, misfiled and misnamed docs and sections as a shelving plan; (2) APPLY — execute it with history-preserving moves and link rewrites; (3) INIT — bootstrap docs/CONVENTIONS.md from the repo's own dialect or a named flavour (minimal/standard/rigorous); (4) INDEX — curate YAML siblings so docs are queryable with jq/yq and schema-gated. Use when asked to organise repo docs, check doc layout or placement, add missing canonical docs, relocate or rename docs, make docs machine-readable or generate YAML indexes for markdown, adopt an okf-yaml/OKF ADR surface, or on 'librarian'. Skip when the ask is prose quality, staleness/drift, or within-one-file readability — content-quality skills own those."
-argument-hint: "[audit | apply | init [minimal|standard|rigorous] | index [okf-yaml]] [paths] (default: audit whole repo)"
+description: "Repo documentation organisation: the canonical document set (README, CONTRIBUTING, agent file, ADR surface, GLOSSARY) exists and cross-links, and every doc — and every section in a doc — lives where its content says it belongs. Modes: (1) AUDIT (default) — report missing, misfiled and misnamed docs and sections as a shelving plan; (2) APPLY — execute it with history-preserving moves and link rewrites; (3) INIT — bootstrap docs/CONVENTIONS.md from the repo's own dialect or a named flavour (minimal/standard/rigorous); (4) INDEX — curate YAML siblings so docs are queryable with jq/yq and schema-gated. Use when asked to organise repo docs, check doc layout or placement, add missing canonical docs, relocate or rename docs, make docs machine-readable or generate YAML indexes for markdown, adopt an okf-yaml/okf-yml/OKF ADR surface, or on 'librarian'. Skip when the ask is prose quality, staleness/drift, or within-one-file readability — content-quality skills own those."
+argument-hint: "[audit | apply | init [minimal|standard|rigorous] | index [okf-yaml|okf-yml]] [paths] (default: audit whole repo)"
 user-invocable: true
 ---
 
@@ -27,6 +27,7 @@ Resources (read on first use):
   Load for index mode, and during audit only when the repo already has generated siblings.
 - [resources/adr_okf_yaml.md](resources/adr_okf_yaml.md) — the named `okf-yaml` ADR-surface convention: the record schema, the typed relation vocabulary, OKF conformance of the generated markdown, the shelving-plan finding table, and the migration operation.
   Load when `okf-yaml` is named as an argument, when `docs/CONVENTIONS.md` declares it, or when an ADR surface is observed to follow it.
+  `okf-yml` names the same convention: accept either spelling wherever the name is read, and write `okf-yaml` in everything the skill emits.
 - [resources/evidence.md](resources/evidence.md) — research citations and counter-evidence behind the baseline (dated; check freshness before extending doctrine).
 - `resources/learned/` (if present) — prior user adjudications on placement rulings.
   Treat as already-decided; do not re-litigate.
@@ -40,7 +41,7 @@ Resources (read on first use):
 - `init`: generate `docs/CONVENTIONS.md` describing the repo's existing dialect and wire the root CLAUDE.md reference to it.
 - `index`: curate machine-readable YAML siblings for a document set — generate them, verify the round trip, and record the arrangement as a dialect line.
   Mutating; generated files only.
-  Takes an optional named convention: `index okf-yaml adrs/` adopts or migrates to the [`okf-yaml` ADR surface](resources/adr_okf_yaml.md); bare `index` indexes markdown in place without changing how anyone authors.
+  Takes an optional named convention: `index okf-yaml adrs/` (or `index okf-yml adrs/`, the same convention) adopts or migrates to the [`okf-yaml` ADR surface](resources/adr_okf_yaml.md); bare `index` indexes markdown in place without changing how anyone authors.
 - A path argument scopes audit/apply to that subtree (monorepo package case); the dialect is still resolved from the repo root downward.
 
 ## Step 0 — Discover the dialect (every mode)
@@ -144,7 +145,7 @@ Read [resources/structured_siblings.md](resources/structured_siblings.md) first:
    Absent one, report that plain markdown is correct and stop; more structure is not a finding.
 2. **Pick the arrangement and say which.** Authored-YAML (records become data, markdown is generated) or indexed-markdown (markdown stays authoritative, YAML is generated beside it).
    Default to indexed-markdown: it changes nothing about how anyone authors, and it is reversible by deleting the artifacts.
-   A **named convention** short-circuits this choice — `okf-yaml` selects authored-YAML with a fixed schema, relation vocabulary and bundle layout; follow [resources/adr_okf_yaml.md](resources/adr_okf_yaml.md) from there, including its migration operation and verification gate.
+   A **named convention** short-circuits this choice — `okf-yaml`, spelled either way, selects authored-YAML with a fixed schema, relation vocabulary and bundle layout; follow [resources/adr_okf_yaml.md](resources/adr_okf_yaml.md) from there, including its migration operation and verification gate.
 3. **Generate.** For indexed-markdown, one index per document:
 
    ```sh

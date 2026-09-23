@@ -193,7 +193,7 @@ See the provenance note.
 ### As part of this repo's plugins (recommended)
 
 Already wired: see the root [README](../README.md#installing).
-Installing either `jpai-essentials` or `jpai-delivery`, in Claude Code or Codex, brings this hook with it.
+Installing `jpai-essentials`, in Claude Code or Codex, brings this hook with it.
 
 This directory is canonical.
 `scripts/sync_plugins.py` mirrors `hooks.json`, `tool_coach.py`, `tool_coach_rules.json` and this README into each pack under `plugins/`.

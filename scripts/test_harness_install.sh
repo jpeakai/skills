@@ -77,7 +77,7 @@ for p in "${PLUGINS[@]}"; do
 done
 
 # `plugin details` is the component inventory: it is what proves the skills and
-# the hook were discovered through the symlinks, not merely that files copied.
+# the hook were discovered through the mirror, not merely that files copied.
 for p in "${PLUGINS[@]}"; do
     details="$(claude plugin details "$p" 2>&1)"
     if [ "$p" = "jpai-essentials" ]; then want=("${ESSENTIALS_SKILLS[@]}"); else want=("${DELIVERY_SKILLS[@]}"); fi
@@ -85,8 +85,13 @@ for p in "${PLUGINS[@]}"; do
         echo "$details" | grep -q "$s"
         check $? "$p: skill $s discovered"
     done
-    echo "$details" | grep -qiE 'hook'
-    check $? "$p: hook discovered"
+    if [ "$p" = "jpai-essentials" ]; then
+        echo "$details" | grep -qiE 'hook'
+        check $? "$p: hook discovered"
+    else
+        echo "$details" | grep -qiE 'hook'
+        if [ $? -eq 0 ]; then bad "$p: ships no hook" "a hook was discovered"; else ok "$p: ships no hook"; fi
+    fi
 done
 
 # Isolation: the sandbox must not have picked up the developer's own plugins.

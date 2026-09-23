@@ -7,7 +7,7 @@ See [Editing](#editing) before changing a file in this directory.
 | Plugin | Skills | Hook |
 |---|---|---|
 | [`jpai-essentials`](jpai-essentials) | `librarian`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `concise-decisions`, `agnostic` | yes |
-| [`jpai-delivery`](jpai-delivery) | `plan-gap`, `concise-decisions` | yes |
+| [`jpai-delivery`](jpai-delivery) | `plan-gap`, `concise-decisions` | no |
 
 `concise-decisions` is in both packs deliberately: it is the decision surface `plan-gap` asks its questions through, and it stands alone for documentation work.
 Installing both packs is fine: each harness namespaces skills by plugin.
@@ -91,6 +91,7 @@ flowchart TB
 
 The two manifests are hand-written per pack; only `skills/` and `hooks/` are generated.
 The hook test suite stays canonical and is deliberately not shipped.
+Only a pack that sets `hooks: true` in `composition.yaml` gets a `hooks/` directory.
 
 </details>
 

@@ -149,11 +149,19 @@ def check_composition(rep: Report) -> None:
 def check_hook_wiring(rep: Report) -> None:
     print("\nHook wiring is a regular file and matches the canonical copy")
     canonical = (REPO / "hooks" / WIRING_FILE).read_bytes()
+    composition = load_yaml(REPO / "plugins" / "composition.yaml")["plugins"]
     for plugin in sorted((REPO / "plugins").iterdir()):
         if not plugin.is_dir():
             continue
         wiring = plugin / "hooks" / WIRING_FILE
         rel = wiring.relative_to(REPO)
+        if not composition.get(plugin.name, {}).get("hooks"):
+            rep.check(
+                not (plugin / "hooks").exists(),
+                f"{plugin.name}: no hooks/ (composition.yaml declares none)",
+                "the tree still carries a hook the declaration dropped",
+            )
+            continue
         if not rep.check(wiring.exists(), f"{rel} exists"):
             continue
         rep.check(
@@ -170,6 +178,7 @@ def check_hook_wiring(rep: Report) -> None:
 
 def check_manifests(rep: Report) -> None:
     print("\nEach plugin's two manifests agree with its directory name")
+    composition = load_yaml(REPO / "plugins" / "composition.yaml")["plugins"]
     for plugin in sorted((REPO / "plugins").iterdir()):
         if not plugin.is_dir():
             continue
@@ -199,11 +208,20 @@ def check_manifests(rep: Report) -> None:
 
         # Codex needs explicit paths; Claude auto-discovers, so only Codex is asserted here.
         rep.check(xj.get("skills") == "./skills", f"{plugin.name}: Codex skills path", xj.get("skills"))
-        rep.check(
-            xj.get("hooks") == f"./hooks/{WIRING_FILE}",
-            f"{plugin.name}: Codex hooks path",
-            xj.get("hooks"),
-        )
+        if composition.get(plugin.name, {}).get("hooks"):
+            rep.check(
+                xj.get("hooks") == f"./hooks/{WIRING_FILE}",
+                f"{plugin.name}: Codex hooks path",
+                xj.get("hooks"),
+            )
+        else:
+            # Codex resolves the declared path at install time; a path with no
+            # file behind it is a load error, not a silently ignored key.
+            rep.check(
+                "hooks" not in xj,
+                f"{plugin.name}: Codex manifest declares no hooks path",
+                xj.get("hooks"),
+            )
 
 
 def check_skills(rep: Report) -> None:

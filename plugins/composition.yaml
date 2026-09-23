@@ -34,7 +34,7 @@ plugins:
       # Installing both packs is fine — each harness namespaces by plugin.
       - concise-decisions
       - plan-gap             # gap analysis as a tiered, measurable spec
-    hooks: true
+    hooks: false
 
 # Not in any pack: `cli`. It stays canonical in ../skills/cli and is installed
 # manually. Add it to a pack by naming it above.

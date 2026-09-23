@@ -10,11 +10,11 @@ The skills are published as two installable plugins, so you take the pack you wa
 | [`jpai-essentials`](plugins/jpai-essentials) | Documentation and diagrams | `librarian`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `concise-decisions`, `agnostic` |
 | [`jpai-delivery`](plugins/jpai-delivery) | Delivery planning | `plan-gap`, `concise-decisions` |
 
-Both packs ship the `tool_coach` PreToolUse hook.
+`jpai-essentials` ships the `tool_coach` PreToolUse hook.
 
 ## Installing
 
-The two plugin marketplaces install a whole pack and its hook.
+The two plugin marketplaces install a whole pack, and `jpai-essentials` brings the hook.
 The other three routes give you finer control, down to a single skill.
 
 ### Claude Code
@@ -62,7 +62,7 @@ apm install jpeakai/skills/plugins/jpai-essentials --target claude,codex
 apm install jpeakai/skills --skill librarian
 ```
 
-The pack form deploys the hook too, once per target.
+The `jpai-essentials` pack form deploys the hook too, once per target.
 The `--skill` form takes one skill by name out of the canonical tree.
 Either way the dependency lands in your `apm.yml` and what resolved is recorded in `apm.lock.yaml`, so a bare `apm install` reproduces it.
 Suffix the source with `#<sha>` to pin the ref, otherwise apm warns that it is tracking the default branch.

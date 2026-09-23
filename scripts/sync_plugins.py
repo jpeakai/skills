@@ -181,6 +181,18 @@ def sync(check_only: bool) -> int:
                     else:
                         present.unlink()
                     actions.append(f"removed plugins/{plugin}/hooks/{present.name}")
+        else:
+            # A pack that declares no hook must carry no mirrored copy: the
+            # harness registers whatever hooks.json it finds in the tree.
+            hooks_dir = plugin_dir / "hooks"
+            if hooks_dir.exists() or hooks_dir.is_symlink():
+                drift.append(f"plugins/{plugin}/hooks exists but composition.yaml declares no hook")
+                if not check_only:
+                    if hooks_dir.is_symlink():
+                        hooks_dir.unlink()
+                    else:
+                        shutil.rmtree(hooks_dir)
+                    actions.append(f"removed plugins/{plugin}/hooks")
 
     if check_only:
         if drift:

@@ -3,6 +3,7 @@
 A named, selectable convention for a decision-record surface: **records are authored as YAML, and their markdown is generated in a form that conforms to the Open Knowledge Format (OKF)**.
 
 Invoke it by name — `/librarian index okf-yaml <path>` to adopt or migrate, `/librarian audit` to judge a surface that already declares it.
+The name is accepted spelled either `okf-yaml` or `okf-yml`; `okf-yaml` is canonical and is the spelling written into `docs/CONVENTIONS.md`, generated files and findings.
 It is one option, not the default.
 [adr_template.md](adr_template.md) owns the shape of a single record and remains the rung-3 default; this file owns the shape of the whole **bundle** and is only correct when a trigger from [structured_siblings.md](structured_siblings.md) has fired.
 

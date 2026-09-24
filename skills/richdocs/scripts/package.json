@@ -1,0 +1,11 @@
+{
+  "name": "richdocs-scripts",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@happy-dom/global-registrator": "^20.9.0",
+    "@types/bun": "latest",
+    "happy-dom": "^20.9.0",
+    "typescript": "^5"
+  }
+}

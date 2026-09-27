@@ -79,6 +79,9 @@ open tmp/richdocs/REVIEW.html
 | `assets/design-tokens.json` | Default neutral brandpack — edit the copy in the output dir to re-skin |
 | `resources/*.md` | Deep dives: serving, stencils, rich blocks, discovery-doc recipes |
 
+A document with three or more headings gets a collapsible contents sidebar,
+built from its headings on every render, with a stable anchor per heading.
+
 Fenced ` ```cytoscape ` and ` ```plotly ` blocks inside the markdown render
 as interactive canvases; a block body of `{ "data": "path.json" }` pulls an
 external data file at refresh time. See `resources/rich-blocks.md`.

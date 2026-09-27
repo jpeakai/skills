@@ -7,6 +7,39 @@ before changing anything: each entry carries a **Lens**, a forward-looking rule 
 apply to the next related decision.
 
 
+### ADR-021 — A heading sidebar is navigation, not rung 4
+
+- **Status:** accepted (refines ADR-002)
+- **Context:** long companions had no navigation, so readers scrolled end to
+  end. A sidebar patched into one generated page worked, but regeneration
+  erased it, because the HTML is never the source (ADR-001). ADR-002 had
+  filed every sidebar under rung 4 (a standalone SPA), which left no home for
+  the simplest kind: an index of the document's own headings.
+- **Decision:** the viewer builds a collapsible sidebar from the rendered `h1`
+  to `h4` headings whenever a document has three or more. It lives in
+  `assets/viewer-toc.js`, hoisted before `viewer.js` like the other
+  renderers, and runs once after the markdown is parsed and before any
+  fenced block is upgraded. Anchors are GitHub-style slugs, unique in
+  document order (`setup`, `setup-1`), and never reuse an id already on the
+  page. Selecting an entry scrolls to the heading, records the fragment, marks
+  the entry `aria-current` and moves focus to the heading. The wide layout
+  remembers collapsed or open in `localStorage` (`richdocs-toc`). Below 72rem
+  the sidebar becomes a drawer that always opens closed, takes focus when
+  opened, and closes on Escape, on an outside tap, or on a choice. The article
+  keeps its 52rem column, and print hides the sidebar. Fewer than three
+  headings leaves the page exactly as before.
+- **Consequences:** the sidebar is derived, never authored, so ADR-001 holds:
+  it is rebuilt on every render, in both output modes. Its behaviour is
+  tested in happy-dom through `bun test` (`scripts/viewer_toc.test.ts`),
+  which makes bun and happy-dom test-time dependencies of this skill's gate.
+  The shipped scripts stay stdlib Python. What needs a layout engine (which
+  heading is under the header) cannot be asserted without faking geometry, so
+  it is checked in a real browser instead, per the extension checklist.
+- **Lens:** rung 4 is **routing and views**: state the markdown does not hold.
+  A feature derived wholly from the rendered document, and rebuilt on every
+  render, belongs in the companion. Ask "could the markdown alone regenerate
+  this?" If yes, it is not rung 4.
+
 ### ADR-020 — A vendored copy carries no `SKILL.md`
 
 - **Status:** accepted (refines ADR-007)
@@ -183,7 +216,8 @@ labels), never the non-negotiable one (CVD distinguishability).
 - **Status:** partially superseded by ADR-007 — the *scope* decision stands
   (richdocs ships packaged tools; rung-4 SPA builds are out of scope), but
   the lateral links from runtime surfaces to the `cli` skill were removed;
-  richdocs surfaces no longer reference sibling skills.
+  richdocs surfaces no longer reference sibling skills. Refined by ADR-021:
+  a sidebar indexing the document's own headings is not rung 4.
 - **Decision:** `richdocs` ships runnable, generic tools; its resources cover only
   what's new (stencil pack, block contract, serving, recipes). A doc that outgrows the
   companion (routing, sidebar, views) graduates to a full SPA build — see the fidelity

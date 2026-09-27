@@ -27,14 +27,63 @@ header.rd-header .rd-meta {
   color: var(--rd-muted); font-size: 0.75rem; font-family: var(--rd-font-mono);
 }
 header.rd-header button {
-  margin-left: auto;
   background: var(--rd-bg); color: var(--rd-fg);
   border: 1px solid var(--rd-border); border-radius: var(--rd-radius, 8px);
   padding: 0.25rem 0.7rem; cursor: pointer; font-size: 0.85rem;
 }
+header.rd-header #rd-theme-toggle { margin-left: auto; }
+header.rd-header button[hidden] { display: none; }
+header.rd-header button:focus-visible { outline: 2px solid var(--rd-link, var(--rd-accent)); outline-offset: 2px; }
 
 /* ── Document body ───────────────────────────────────────────────────── */
-main { max-width: 52rem; margin: 0 auto; padding: 1.5rem 1rem 5rem; }
+/* The layout row only matters once viewer-toc.js marks the page .rd-has-toc.
+   Without a sidebar, main keeps its centred 52rem column exactly as before. */
+.rd-layout { display: flex; align-items: flex-start; }
+main { flex: 1 1 auto; min-width: 0; max-width: 52rem; margin: 0 auto; padding: 1.5rem 1rem 5rem; }
+
+/* Land a heading just below the sticky header, not underneath it. viewer-toc.js
+   measures the header into --rd-header-h. */
+#rd-article h1, #rd-article h2, #rd-article h3, #rd-article h4 {
+  scroll-margin-top: calc(var(--rd-header-h, 3rem) + 0.75rem);
+}
+
+/* ── Heading sidebar (ADR-021) ───────────────────────────────────────── */
+/* Closed is display:none, so a closed sidebar is also out of the tab order. */
+#rd-toc { display: none; }
+.rd-has-toc[data-toc=open] #rd-toc {
+  display: block;
+  position: sticky; top: var(--rd-header-h, 3rem);
+  flex: 0 0 16rem; width: 16rem;
+  max-height: calc(100vh - var(--rd-header-h, 3rem));
+  overflow-y: auto; overscroll-behavior: contain;
+  padding: 1.25rem 0.75rem 2rem 1rem;
+  border-right: 1px solid var(--rd-border);
+  font-size: 0.85rem; line-height: 1.4;
+}
+#rd-toc ol { list-style: none; margin: 0; padding: 0; }
+#rd-toc ol ol { padding-left: 0.85rem; }
+#rd-toc a {
+  display: block; padding: 0.25rem 0.5rem; margin: 1px 0;
+  color: var(--rd-muted); text-decoration: none;
+  border-left: 2px solid transparent; border-radius: 0 4px 4px 0;
+}
+#rd-toc a:hover { color: var(--rd-fg); background: var(--rd-surface); }
+#rd-toc a:focus-visible { outline: 2px solid var(--rd-link, var(--rd-accent)); outline-offset: -2px; }
+/* The current entry: text-safe accent for the words, the fill only as a rule. */
+#rd-toc a[aria-current] {
+  color: var(--rd-link, var(--rd-accent)); font-weight: 600;
+  border-left-color: var(--rd-accent); background: var(--rd-surface);
+}
+
+/* Narrow: the sidebar becomes a drawer over the article, which keeps its width. */
+@media (max-width: 72rem) {
+  .rd-has-toc[data-toc=open] #rd-toc {
+    position: fixed; left: 0; bottom: 0; z-index: 20;
+    width: min(18rem, 85vw); max-height: none;
+    background: var(--rd-bg);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  }
+}
 
 /* Headings wear the brand's display face, declared as `fonts.display` in the
    brandpack. Falls back to the body face when a brand has only one. */
@@ -130,3 +179,10 @@ main th { background: var(--rd-surface); }
 /* Rendered mermaid SVGs carry their own width; in the lightbox the viewBox scales them. */
 .rd-lightbox > svg { width: 96vw; height: 94vh; }
 body.rd-lightbox-open { overflow: hidden; }
+
+/* ── Print ───────────────────────────────────────────────────────────── */
+/* The sidebar is screen navigation. Paper keeps the single-column layout it
+   always had, so the print layout is unchanged by ADR-021. */
+@media print {
+  #rd-toc, #rd-toc-toggle { display: none !important; }
+}

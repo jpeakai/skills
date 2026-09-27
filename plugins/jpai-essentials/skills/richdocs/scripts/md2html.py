@@ -56,6 +56,7 @@ VIEWER_CSS = ASSETS_DIR / "viewer.css"
 VIEWER_JS = ASSETS_DIR / "viewer.js"
 VIEWER_CYTOSCAPE_JS = ASSETS_DIR / "viewer-cytoscape.js"
 VIEWER_DECKGL_JS = ASSETS_DIR / "viewer-deckgl.js"
+VIEWER_TOC_JS = ASSETS_DIR / "viewer-toc.js"
 
 DEFAULT_OUT = Path("tmp/richdocs")
 
@@ -254,6 +255,7 @@ def _base_html(
         "{{VIEWER_JS}}": VIEWER_JS.read_text(encoding="utf-8"),
         "{{VIEWER_CYTOSCAPE_JS}}": VIEWER_CYTOSCAPE_JS.read_text(encoding="utf-8"),
         "{{VIEWER_DECKGL_JS}}": VIEWER_DECKGL_JS.read_text(encoding="utf-8"),
+        "{{VIEWER_TOC_JS}}": VIEWER_TOC_JS.read_text(encoding="utf-8"),
         "{{RD_CONFIG}}": _embed_json(
             build_config(build_id=build_id, source=source, tokens_source=tokens_source)
         ),

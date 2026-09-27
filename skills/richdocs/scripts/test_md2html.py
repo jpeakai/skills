@@ -90,6 +90,41 @@ def test_deckgl_renderer_is_inlined_and_hoisted_before_viewer_js() -> None:
     )
 
 
+def test_viewer_toc_js_has_no_template_placeholders() -> None:
+    """ADR-008 applies to the heading sidebar too (ADR-021)."""
+    js = md2html.VIEWER_TOC_JS.read_text(encoding="utf-8")
+    assert "{{" not in js
+    assert "function rdInitToc(" in js
+
+
+def test_toc_is_inlined_and_hoisted_before_viewer_js() -> None:
+    """viewer.js calls rdInitToc after parsing, so it must be DEFINED earlier in the page."""
+    html = md2html.build_multi_html(build_id="B", title="T", source="doc.md")
+    assert html.index("function rdInitToc(") < html.index(
+        'JSON.parse(document.getElementById("rd-config")'
+    )
+    assert "rdInitToc(article);" in html
+
+
+@pytest.mark.parametrize("inline", [False, True])
+def test_every_output_mode_ships_the_sidebar_shell(inline: bool) -> None:
+    """The sidebar is generated, never post-processed, in both output modes."""
+    if inline:
+        html = md2html.build_inline_html(
+            "# A\n## B\n### C\n",
+            md2html.FALLBACK_TOKENS,
+            build_id="B",
+            title="T",
+            source="d.md",
+        )
+    else:
+        html = md2html.build_multi_html(build_id="B", title="T", source="d.md")
+    assert '<nav id="rd-toc" aria-label="Contents">' in html
+    assert 'id="rd-toc-toggle"' in html
+    assert 'aria-controls="rd-toc"' in html
+    assert html.index('id="rd-toc"') < html.index('id="rd-article"')
+
+
 def test_embed_json_escapes_script_close() -> None:
     embedded = md2html._embed_json("x</script><script>alert(1)")
     assert "</script" not in embedded

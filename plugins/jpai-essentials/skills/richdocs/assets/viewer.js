@@ -289,6 +289,8 @@ loadTokens().then(function (tokens) {
   var article = document.getElementById("rd-article");
   article.innerHTML = window.marked.parse(md);
   wrapTables(article);
+  // Before the fence upgrades, so only authored headings are indexed (ADR-021).
+  rdInitToc(article);
   return upgradeFences(article);
 }).catch(function (err) {
   showError(document.getElementById("rd-article"), err);

@@ -113,6 +113,13 @@ uv run --no-project .claude/skills/richdocs/scripts/showcase.py --theme osakanig
     and can add project-only themes. With no override dir the skill is the built-in set
     only — fully self-contained.
 
+- **Heading sidebar**: a document with three or more `h1` to `h4` headings gets a
+  collapsible contents sidebar, built from the rendered headings on every load
+  (ADR-021). Each heading gets a stable anchor (`#setup`, then `#setup-1` for a
+  duplicate), so links like `REVIEW.html#setup` work in both output modes. The
+  header's **contents** button collapses it, and the choice is remembered. On a
+  narrow screen it is a drawer. Nothing to author: fewer headings, no sidebar.
+
 - **Multi-file (default, `--out` = `tmp/richdocs`)** — writes `<stem>.html`
   plus a copy of the `.md` and `design-tokens.json`. The HTML fetches the
   paired markdown at runtime (`?v=<BUILD_ID>`, `cache: no-store`) and renders

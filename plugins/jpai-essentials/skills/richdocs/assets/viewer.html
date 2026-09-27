@@ -31,12 +31,17 @@
 </head>
 <body>
 <header class="rd-header">
+  <!-- Shown by viewer-toc.js only when the document has enough headings. -->
+  <button id="rd-toc-toggle" type="button" aria-controls="rd-toc" aria-expanded="false" hidden>contents</button>
   <h1 id="rd-title">{{TITLE}}</h1>
   <span class="rd-meta">{{SOURCE}}</span>
   <span class="rd-meta">build {{BUILD_ID}}</span>
   <button id="rd-theme-toggle" type="button" aria-label="Toggle theme">theme</button>
 </header>
-<main><article id="rd-article">Loading…</article></main>
+<div class="rd-layout">
+  <nav id="rd-toc" aria-label="Contents"></nav>
+  <main><article id="rd-article">Loading…</article></main>
+</div>
 {{BOOTSTRAP}}
 <!-- Everything md2html.py injects lives here, so viewer.js stays placeholder-free
      and remains real, lintable JavaScript. -->
@@ -44,6 +49,10 @@
 <!-- Graph styling first: viewer.js calls rdRenderCytoscape() from here. -->
 <script>
 {{VIEWER_CYTOSCAPE_JS}}
+</script>
+<!-- Likewise rdInitToc(), the heading sidebar (ADR-021). -->
+<script>
+{{VIEWER_TOC_JS}}
 </script>
 <!-- Likewise rdRenderDeckGL(): hoisted before the renderer that calls it. -->
 <script>

@@ -74,9 +74,9 @@ verdict document buries the verdicts.
 ## Fidelity ladder (stop at the lowest rung that answers the question)
 
 1. Plain markdown (GitHub renders it) —
-2. → `md2html.py` companion (theme, typography, live mermaid) —
+2. → `md2html.py` companion (theme, typography, live mermaid, heading sidebar) —
 3. → + fenced cytoscape/plotly/deckgl blocks (interaction, data-driven, 3D) —
-4. → full SPA viewer with routing/sidebar/views — a real standalone
+4. → full SPA viewer with routing/views/app navigation — a real standalone
    sub-project with its own build, not a companion; out of richdocs' scope.
 
 Jumping to rung 4 for a document that needed rung 2 is how viewers become

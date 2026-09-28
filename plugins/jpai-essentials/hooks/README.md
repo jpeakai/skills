@@ -14,7 +14,7 @@ A plain "permission denied" teaches nothing and invites the model to retry near-
 | No deletions | structural | Bash |
 | No out-of-project scratch space | structural | Bash, Write, Edit, NotebookEdit, Read |
 | One question at a time, recommendation first, an `Other:` option, notes on every option | structural | AskUserQuestion |
-| Tool-choice coaching (inline `-c` snippets, bare interpreters, manual `PYTHONPATH`, the `timeout` binary) | pattern rules in `tool_coach_rules.json` | Bash |
+| Tool-choice coaching (inline `-c` snippets, interpreters fed code on stdin, bare interpreters, manual `PYTHONPATH`, the `timeout` binary) | pattern rules in `tool_coach_rules.json` | Bash |
 
 ```mermaid
 flowchart LR
@@ -60,7 +60,7 @@ flowchart TB
         ND["No deletions<br/>rm, git rm, find -delete"]:::check
         NS["No scratch outside project"]:::check
         QS["One question at a time<br/>Other option, notes everywhere"]:::check
-        TR["tool_coach_rules.json<br/>inline -c, bare interpreters"]:::check
+        TR["tool_coach_rules.json<br/>inline -c, stdin, bare interpreters"]:::check
     end
 
     OUT["hookSpecificOutput<br/>permissionDecision + reason"]:::proc

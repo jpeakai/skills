@@ -83,3 +83,7 @@ docs-ci:
 # more of the host than the other targets.
 harness-ci:
 	./scripts/test_harness_install.sh
+
+# Use when this repo is cloned into a project as .claude/ to setup the sibling .codex/
+codex-setup:
+	cp -R codex-conf/ ../.codex/

@@ -268,6 +268,49 @@ def test_uv_run_is_left_alone(root: Path) -> None:
     assert decide("uv run -m pkg.module", root) is None
 
 
+@pytest.mark.parametrize(
+    "command",
+    [
+        "uv run python - <<'EOF'\nprint(1)\nEOF",
+        "uv run python3 - <<EOF\nprint(1)\nEOF",
+        "uv run python <<EOF\nprint(1)\nEOF",
+        "uv run python3 <<-EOF\n\tprint(1)\n\tEOF",
+        "uv run --no-project python - <<'EOF'\nprint(1)\nEOF",
+        "uv run --no-sync --with requests python3 - <<EOF\nprint(1)\nEOF",
+        "uv run python3.12 - <<EOF\nprint(1)\nEOF",
+        "uv run python -u - <<EOF\nprint(1)\nEOF",
+        "uv run python <<< 'print(1)'",
+        "uv run python < tmp/snippet.txt",
+        "uv run python /dev/stdin <<EOF\nprint(1)\nEOF",
+        "cat tmp/snippet.txt | uv run python",
+        "cat tmp/snippet.txt | uv run python3 -",
+        "uv run - <<EOF\nprint(1)\nEOF",
+        "uv run --no-project - <<'EOF'\nprint(1)\nEOF",
+        "python3 - <<EOF\nprint(1)\nEOF",
+    ],
+)
+def test_stdin_fed_python_is_redirected(command: str, root: Path) -> None:
+    reason = decide(command, root)
+    assert reason is not None
+    assert "on stdin" in reason
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "uv run tmp/script.py <<'EOF'\ndata\nEOF",
+        "uv run python tmp/script.py < tmp/input.txt",
+        "uv run python -m pkg.module < tmp/input.txt",
+        "uv run python --version",
+        "uv run ruff format - < tmp/x.py",
+        "uv add python-dotenv",
+        "cat > notes.md <<'EOF'\nuv run python - <<X\nEOF",
+    ],
+)
+def test_stdin_lookalikes_are_left_alone(command: str, root: Path) -> None:
+    assert decide(command, root) is None
+
+
 def test_structural_checks_win_over_pattern_rules(root: Path) -> None:
     reason = decide("python3 x.py && rm x.py", root)
     assert reason is not None
@@ -287,6 +330,7 @@ def test_empty_command_is_ignored(root: Path) -> None:
 def test_shipped_rules_all_compile() -> None:
     assert [r["name"] for r in SHIPPED_RULES] == [
         "no-python-dash-c",
+        "no-python-stdin",
         "no-bare-python",
         "no-pythonpath",
         "no-timeout-binary",

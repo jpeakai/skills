@@ -30,13 +30,15 @@ Two kinds of check, in this order:
      a preview so the user can attach notes to whichever one they pick.
 2. **Pattern rules** (`tool_coach_rules.json`). Regexes matched against the
    Bash command string, for tool-choice coaching: inline interpreter snippets,
-   bare interpreters, manual import-path injection, the timeout binary. Edit
+   interpreters fed code on stdin, bare interpreters, manual import-path
+   injection, the timeout binary. Edit
    that file to add a rule; no code change needed.
 
 Heredoc bodies are stripped before every command check. A heredoc body is data
 being written, not a command being run, so scanning it produces pure false
 positives: writing a *document about* a blocked command would otherwise be
-blocked by the very rule the document describes.
+blocked by the very rule the document describes. The line that opens the
+heredoc is kept, so `uv run python - <<EOF` is still caught by its stdin rule.
 
 Contract (Claude Code hooks):
   exit 0 + JSON body  -> decision applied (we emit deny + reason).

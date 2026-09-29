@@ -85,11 +85,13 @@ for p in "${PLUGINS[@]}"; do
         echo "$details" | grep -q "$s"
         check $? "$p: skill $s discovered"
     done
+    # Read the component count, never the bare word: `details` prints
+    # `Hooks (0)` for a pack with none, and the description itself can say "hook".
     if [ "$p" = "jpai-essentials" ]; then
-        echo "$details" | grep -qiE 'hook'
+        echo "$details" | grep -qE '^ *Hooks \([1-9][0-9]*\)'
         check $? "$p: hook discovered"
     else
-        echo "$details" | grep -qiE 'hook'
+        echo "$details" | grep -qE '^ *Hooks \([1-9][0-9]*\)'
         if [ $? -eq 0 ]; then bad "$p: ships no hook" "a hook was discovered"; else ok "$p: ships no hook"; fi
     fi
 done

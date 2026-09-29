@@ -179,15 +179,6 @@
       }
     }
   },
-  "categoryColours": {
-    "Compute": "#7a9b00",
-    "Storage": "#4d88f2",
-    "Database": "#df5f34",
-    "Networking": "#0ca389",
-    "Security": "#b068d4",
-    "Integration": "#aa8804",
-    "General": "#858585"
-  },
   "status": {
     "light": {
       "colours": {

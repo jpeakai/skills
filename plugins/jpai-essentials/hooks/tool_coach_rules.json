@@ -13,7 +13,9 @@
     "the wrapped, absolute-path and pipeline forms a regex would miss.",
     "",
     "Order matters: put more-specific patterns above broader ones (the inline-snippet",
-    "rule must precede the bare-interpreter rule). Edit this file freely - no code",
+    "and stdin rules must precede the bare-interpreter rule). Heredoc stripping keeps",
+    "the line that opens the heredoc, so `python - <<EOF` is still visible to the",
+    "stdin rule. Edit this file freely - no code",
     "change needed. Patterns are Python `re` syntax."
   ],
   "rules": [
@@ -21,6 +23,11 @@
       "name": "no-python-dash-c",
       "pattern": "\\bpython3?\\b[^\\n;&|]*\\s-c(?:\\b|=|$)",
       "message": "Blocked: an inline -c snippet. Ad-hoc inline code leaves no auditable trace of what ran. Instead, write a real script FILE under tmp/ (for example tmp/<descriptive_name>.py) and run it with `uv run tmp/<descriptive_name>.py`. Treat the script as a named artifact you can re-read, diff and re-run. This applies to every variant, including the ones wrapped in `uv run`."
+    },
+    {
+      "name": "no-python-stdin",
+      "pattern": "(?:\\bpython3?(?:\\.\\d+)?(?:\\s+-[A-Za-z]+)*\\s*(?:(?<=\\s)-(?=\\s|$|[;&|)<])|<|/dev/stdin\\b)|\\buv\\s+run\\b[^\\n;&|]*?\\spython3?(?:\\.\\d+)?\\s*(?=$|[\\n;&|)])|\\buv\\s+run(?:\\s+--?[\\w-]+(?:=\\S+|\\s+(?!-)[^\\s;&|<]+)?)*\\s+-(?=\\s|$|[;&|)<]))",
+      "message": "Blocked: Python code fed in on stdin (a heredoc, a here-string, a `<` redirect, a pipe, a bare `-` or /dev/stdin). Code piped into an interpreter leaves no auditable trace of what ran, exactly like an inline -c snippet. Instead, write the code to a real script FILE under tmp/ (for example tmp/<descriptive_name>.py) with the Write tool and run it with `uv run tmp/<descriptive_name>.py`. If the heredoc is DATA for a script rather than code, keep it and feed it to the script file: `uv run tmp/<descriptive_name>.py <<'EOF'`. This applies to every variant, including `uv run -` and the ones with uv flags before the interpreter."
     },
     {
       "name": "no-bare-python",

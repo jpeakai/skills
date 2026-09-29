@@ -27,6 +27,17 @@ The other three routes give you finer control, down to a single skill.
 /plugin install jpai-delivery@jpeakai
 ```
 
+To update, refresh the marketplace, then update each pack you installed:
+
+```sh
+claude plugin marketplace update jpeakai
+claude plugin update jpai-essentials@jpeakai
+claude plugin update jpai-delivery@jpeakai
+```
+
+An update applies on restart, so start a new session afterwards.
+`claude plugin list` shows the version each pack is on.
+
 ### Codex
 
 `.agents/plugins/marketplace.json` is the repo-scoped marketplace Codex looks for.
@@ -36,6 +47,18 @@ codex plugin marketplace add jpeakai/skills
 codex plugin add jpai-essentials@jpeakai
 codex plugin add jpai-delivery@jpeakai
 ```
+
+To update, refresh the marketplace snapshot, then add each pack again:
+
+```sh
+codex plugin marketplace upgrade jpeakai
+codex plugin add jpai-essentials@jpeakai
+codex plugin add jpai-delivery@jpeakai
+```
+
+Codex has no update command, because it caches each version of a plugin in its own directory.
+Adding a pack again installs the version the refreshed snapshot now carries.
+`codex plugin list` shows the version each pack is on.
 
 ### npx skills
 

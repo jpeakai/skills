@@ -83,6 +83,17 @@ function swatch(hex, label, sub) {
     + (label ? "<b>" + label + "</b>" : "") + "<span>" + (sub || hex) + "</span></div>";
 }
 
+// Expose each category's palette slot as --rd-cat-N, so the draw.io SVGs (plain
+// markup, composed once in Python) follow the brand and mode without a rebuild.
+var CAT_SLOTS = rdCategorySlots(SC.categories);
+function paintCategories() {
+  var t = brand().tokens, m = mode(), root = document.documentElement;
+  SC.categories.forEach(function (name, i) {
+    var c = rdCategoryColour(t, m, CAT_SLOTS, name);
+    if (c) { root.style.setProperty("--rd-cat-" + (i + 1), c); } else { root.style.removeProperty("--rd-cat-" + (i + 1)); }
+  });
+}
+
 function paintSwatches() {
   var b = brand(), m = mode(), t = b.tokens;
   var th = t.themes[m];
@@ -91,13 +102,12 @@ function paintSwatches() {
       return swatch(th[k], k, th[k]);
     }).join("");
 
-  var series = t.canvas.plotly[m].series || [];
-  document.getElementById("sc-series-ramp").innerHTML =
-    series.map(function (c, i) { return swatch(c, String(i + 1), c); }).join("");
-
-  var cats = t.categoryColours || {};
-  document.getElementById("sc-cat-ramp").innerHTML =
-    Object.keys(cats).map(function (k) { return swatch(cats[k], k, cats[k]); }).join("");
+  // ONE categorical palette (ADR-023): colours that stay distinct when taken in
+  // order. A swatch shows only its slot number; the palette names no categories.
+  var palette = rdCategorical(t, m);
+  document.getElementById("sc-categorical-ramp").innerHTML =
+    palette.map(function (c, i) { return swatch(c, String(i + 1), c); }).join("");
+  paintCategories();
 
   var plot = t.canvas.plotly[m];
   var muted = plot.muted || [];
@@ -344,7 +354,9 @@ var CY_ELEMENTS = [
   { data: { source: "bus", target: "agent", label: "trigger" } },
   { data: { source: "agent", target: "primary", label: "update" } }
 ];
-var cyBlock = { el: null, payload: { elements: CY_ELEMENTS, height: 480 } };
+// `categories` pins the page-wide slot order, so a category is the same colour here
+// as in the Mermaid and draw.io diagrams.
+var cyBlock = { el: null, payload: { elements: CY_ELEMENTS, categories: SC.categories, height: 480 } };
 
 function drawGraph() {
   return loadScript("cytoscape", SC.cdn.cytoscape)
@@ -402,6 +414,9 @@ var MERMAID_DETAIL = [
   "  AGT --> PDB"
 ].join("\n");
 
+// Subgraph id -> page category (the palette slot it wears).
+var MERMAID_CATEGORIES = { edge: "Networking", sec: "Security", compute: "Compute", data: "Database" };
+
 function drawMermaid() {
   var b = brand(), m = mode(), t = b.tokens, th = t.themes[m];
   window.mermaid.initialize({
@@ -415,8 +430,14 @@ function drawMermaid() {
       clusterBkg: th.surface, clusterBorder: th.border
     }
   });
+  // Subgraphs are categories: each wears its palette slot as border, a tint of it as
+  // fill, and the theme's own text colour for the label (same recipe as Cytoscape.js).
+  var detail = MERMAID_DETAIL + "\n" + Object.keys(MERMAID_CATEGORIES).map(function (id) {
+    var c = rdCategoryColour(t, m, CAT_SLOTS, MERMAID_CATEGORIES[id]);
+    return c ? "  style " + id + " fill:" + rdMix(c, th.bg, 0.84) + ",stroke:" + c + ",stroke-width:2px,color:" + th.fg : "";
+  }).join("\n");
   // Rendered mermaid SVG is not re-themable in place — always re-render both.
-  var jobs = [["sc-mermaid", MERMAID_OVERVIEW, "ov"], ["sc-mermaid-detail", MERMAID_DETAIL, "de"]];
+  var jobs = [["sc-mermaid", MERMAID_OVERVIEW, "ov"], ["sc-mermaid-detail", detail, "de"]];
   return Promise.all(jobs.map(function (j) {
     var host = document.getElementById(j[0]);
     if (!host) return Promise.resolve();
@@ -441,6 +462,7 @@ function escapeHtml(s) {
 var embLocal = { el: null, payload: null };
 var embGlobal = { el: null, payload: null };
 var geoBlock = { el: null, payload: null };
+var oklchBlock = { el: null, payload: null };
 
 // Two independent controls over the SAME point cloud:
 //   colour — encode the KNOWN topic, or the EVoC-DISCOVERED cluster. Toggling is the
@@ -450,11 +472,18 @@ var geoBlock = { el: null, payload: null };
 //            independent of whichever 3D projection is on screen.
 var embState = { colour: "topic", sel: [] };
 
-function embColour(clusterColours) {
+// Topics and EVoC clusters are both categories, so both take palette slots
+// (ADR-023): topics in the fixture's topic order, clusters by id. Noise (-1) is not
+// a category, so it wears the theme's muted grey.
+function embColour() {
+  var t = brand().tokens, m = mode(), th = t.themes[m];
+  var topicSlots = rdCategorySlots(SC.embeddings.local.topics);
+  var noise = hexRgb(th.muted);
   return function (d) {
-    return embState.colour === "cluster"
-      ? (clusterColours[String(d.cluster)] || [130, 130, 130])
-      : d.color;
+    var c = embState.colour === "cluster"
+      ? (d.cluster >= 0 ? rdCategorical(t, m)[d.cluster] : null)
+      : rdCategoryColour(t, m, topicSlots, d.topic);
+    return c ? hexRgb(c) : noise;
   };
 }
 
@@ -481,7 +510,7 @@ function embPayload(key, colourFn, halo) {
 function renderEmb() {
   if (typeof deck === "undefined") return;
   var t = brand().tokens, m = mode(), th = t.themes[m];
-  var colourFn = embColour(SC.embeddings.local.clusterColors);
+  var colourFn = embColour();
   var halo = hexRgb(th.link || th.accent).concat([220]);
   [["sc-emb-local", "local", embLocal], ["sc-emb-global", "global", embGlobal]].forEach(function (j) {
     var blk = j[2];
@@ -535,6 +564,41 @@ function updateEmbReadout() {
     + (same ? "same topic" : "different topics") + "</span></div>";
 }
 
+// The active brand's categorical palette and sequential scale in OKLCH. The data is just
+// hex strings: viewer-deckgl.js derives each point's position AND colour from the
+// hex itself. The gamut ring sits at the palette's mean lightness, where a
+// categorical palette should form a flat ring.
+function renderOklch() {
+  if (typeof deck === "undefined") return;
+  oklchBlock.el = document.getElementById("sc-oklch");
+  if (!oklchBlock.el) return;
+  var t = brand().tokens, m = mode(), plot = t.canvas.plotly[m];
+  var series = rdCategorical(t, m).map(function (hex, i) { return { hex: hex, label: "slot " + (i + 1) }; });
+  var seq = (plot.sequential || []).map(function (hex, i) { return { hex: hex, label: "sequential " + (i + 1) }; });
+  var meanL = series.reduce(function (a, d) { return a + rdRgbToOklch(rdHexToRgb(d.hex)).L; }, 0) / series.length;
+  var steps = seq.slice(1).map(function (d, i) {
+    return { source: rdProject("oklch", seq[i].hex), target: rdProject("oklch", d.hex) };
+  });
+  oklchBlock.payload = {
+    view: "orbit", space: "oklch", height: 480,
+    gamut: [Math.round(meanL * 1000) / 1000],
+    // Frame the whole solid, not just the gamut slab: the sequential scale spans
+    // dark to light, and the default gamut framing would crop it.
+    initialViewState: { target: [0, 0.08, 0], zoom: 9.1, rotationX: 24, rotationOrbit: -28, minZoom: 7, maxZoom: 12 },
+    layers: [
+      {
+        type: "LineLayer", id: "oklch-seq-path", data: steps, pickable: false,
+        getSourcePosition: function (d) { return d.source; },
+        getTargetPosition: function (d) { return d.target; },
+        getColor: hexRgb(t.themes[m].muted).concat([180]), getWidth: 2
+      },
+      { type: "PointCloudLayer", id: "oklch-seq", pointSize: 10, data: seq },
+      { type: "PointCloudLayer", id: "oklch-series", pointSize: 16, data: series }
+    ]
+  };
+  try { rdRenderDeckGL(oklchBlock, t, m); } catch (e) { oklchBlock.el.textContent = "deckgl error: " + e.message; }
+}
+
 function drawGeo() {
   return Promise.all([
     loadScript("maplibre", SC.cdn.maplibre),
@@ -583,6 +647,7 @@ function drawGeo() {
 function drawDeck() {
   return loadScript("deckgl", SC.cdn.deckgl).then(function () {
     renderEmb();
+    renderOklch();
     return drawGeo();
   });
 }
@@ -840,5 +905,15 @@ if (sqlInput) {
 }
 
 mountArchitectures();
-setBrand(BRANDS[0].name);
+// The doc viewer's sidebar and section folds (ADR-022). Before the first render,
+// so every chart measures the column it will actually live in. Only a section's
+// own headings are indexed: the h3 titles inside cards are furniture.
+rdInitToc(document.querySelector(".wrap"), {
+  header: document.querySelector(".sc-bar"),
+  selector: "section > h2, section > h3, section > h4"
+});
+// Full-screen diagrams with deep zoom, exactly as in a doc (ADR-024): a Mermaid
+// or draw.io SVG opens on click; the Cytoscape.js graph opens from its button.
+rdInitZoom({ pictures: ".sc-mermaid svg, svg.sc-arch" });
+setBrand(SC.defaultBrand || BRANDS[0].name);
 

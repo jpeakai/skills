@@ -29,8 +29,8 @@ PYTEST_ARGS = -v -c /dev/null --rootdir .
         format-check format-check-py \
         lint lint-py \
         lint-fix lint-fix-py \
-        typecheck typecheck-py \
-        test test-py \
+        typecheck typecheck-py typecheck-ts \
+        test test-py test-js \
         test-cov test-cov-py \
         ci fix
 
@@ -68,15 +68,19 @@ lint-fix-py: $(PY_SRC)
 
 # ── Typecheck ──────────────────────────────────────────────────────────────
 
-typecheck: typecheck-py
+typecheck: typecheck-py typecheck-ts
 
 # mypy resolved hermetically via `uv run --with mypy` — no system install assumed.
 typecheck-py: $(addsuffix .py,$(PY_SCRIPTS) $(PRIVATE_PY_SCRIPTS))
 	$(UV) --with mypy mypy $(addsuffix .py,$(PY_SCRIPTS) $(PRIVATE_PY_SCRIPTS)) --ignore-missing-imports --strict
 
+# The DOM tests for the viewer's own JavaScript are TypeScript (ADR-021).
+typecheck-ts:
+	bunx --bun tsc --noEmit -p $(THIS_DIR)tsconfig.json
+
 # ── Test ───────────────────────────────────────────────────────────────────
 
-test: test-py
+test: test-py test-js
 
 # PEP-723 entry points — deps declared in each test file itself
 test-py:
@@ -86,7 +90,13 @@ test-py:
 	$(UV) test_showcase.py $(PYTEST_ARGS)
 	$(UV) test_themecheck.py $(PYTEST_ARGS)
 
-test-cov: test-cov-py
+# The viewer's JavaScript runs in a browser, not here. Its behaviour is
+# asserted in happy-dom (ADR-021); bun is a test-time dependency only, and the
+# shipped scripts stay stdlib Python.
+test-js:
+	bun test --cwd $(THIS_DIR)
+
+test-cov: test-cov-py test-js
 
 test-cov-py:
 	$(UV) test_serve.py $(PYTEST_ARGS) \

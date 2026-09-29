@@ -7,6 +7,38 @@ before changing anything: each entry carries a **Lens**, a forward-looking rule 
 apply to the next related decision.
 
 
+### ADR-023 — One categorical palette; a category is a slot
+
+- **Status:** accepted (supersedes the `categoryColours` half of ADR-004)
+- **Context:** "chart series" and "category colours" were two names and two
+  copies of one idea (`categoryColours` was a reordered subset of `series`, or
+  unrelated AWS hues), a repeated source of confusion.
+- **Decision:** a brand has ONE categorical palette, `canvas.plotly.<mode>.series`.
+  It colours chart series and every diagram category (Cytoscape.js compounds,
+  Mermaid subgraphs, draw.io icons, embedding topics). A category takes the next
+  slot in a declared order (else first appearance), never cycles, and gets no
+  colour past the last slot. `categoryColours` is deleted, and `themecheck.py`
+  fails any pack that ships it. Helpers live in `viewer-cytoscape.js`.
+- **Consequences:** categories follow brand and mode, and pass the series gate.
+- **Lens:** a new encoding of "which kind of thing" takes palette slots. Never add
+  a second name-to-colour map.
+
+### ADR-022 — The sidebar folds, the article folds, and the showcase shares both
+
+- **Status:** accepted (extends ADR-021)
+- **Context:** a hand-patched companion added a sidebar that collapses to a rail,
+  contents branches that fold per level, and article sections that fold in place.
+  Regeneration would erase them (ADR-001); the showcase had no navigation.
+- **Decision:** `viewer-toc.js` builds all three; styles live in `viewer-toc.css`.
+  The fold button sits beside its heading, never inside it. The lone top heading
+  does not fold, and navigating to a heading unfolds everything around it. A
+  folded body stays in the layout (`height: 0`, `visibility: hidden`), so a
+  diagram re-rendered while folded still measures a real width. The showcase
+  inlines both files and calls `rdInitToc` with a `header` and `selector`.
+- **Consequences:** one module drives both pages, so they cannot drift.
+- **Lens:** another page passes options to `rdInitToc`, never forks it. Anything
+  a fold hides must stay measurable.
+
 ### ADR-021 — A heading sidebar is navigation, not rung 4
 
 - **Status:** accepted (refines ADR-002)
@@ -399,7 +431,7 @@ labels), never the non-negotiable one (CVD distinguishability).
 - **Decision:** one `design-tokens.json` carries both palettes; the template
   applies `themes.*` as CSS vars and feeds `canvas.*` into renderers; theme
   flip does both. Data-encoding colours (`categoryColours`, status) are
-  brand- and theme-invariant.
+  brand- and theme-invariant. *(Categories superseded by ADR-023.)*
 - **Consequences:** ~~one hand-sync hazard remains~~ — retired by ADR-008.
   `FALLBACK_TOKENS` is now read from `assets/design-tokens.json`, so there is
   only one copy of the default palette.

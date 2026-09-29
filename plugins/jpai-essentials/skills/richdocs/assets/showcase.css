@@ -48,6 +48,15 @@ body {
 .sc-seg.square button { border-radius: 0; }
 .sc-seg button[aria-pressed="true"] { background: var(--rd-accent); color: var(--rd-on-accent, var(--rd-bg)); }
 
+/* ── contents sidebar (viewer-toc.css) ────────────────────────────────── */
+.rd-layout > .wrap { flex: 1 1 auto; min-width: 0; }
+.sc-toc-toggle {
+  font: inherit; font-size: .8rem; font-weight: 500; cursor: pointer;
+  padding: .35rem .9rem; border-radius: var(--rd-pill, 999px);
+  color: var(--rd-fg); background: transparent; border: 1px solid var(--rd-border);
+}
+.sc-toc-toggle[hidden] { display: none; }
+
 /* ── sections ─────────────────────────────────────────────────────────── */
 section { padding: var(--sc-gap) 0; border-bottom: 1px solid var(--rd-border); }
 section:last-of-type { border-bottom: 0; }

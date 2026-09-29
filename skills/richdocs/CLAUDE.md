@@ -28,16 +28,18 @@ make -C .claude/skills/richdocs/scripts ci    # gate: must exit 0 before handoff
 | `assets/viewer.html` | the page shell — the **only** file carrying `{{...}}` placeholders |
 | `assets/viewer.css` | viewer chrome; all colour/font via `--rd-*` custom properties |
 | `assets/viewer.js` | runtime renderer (marked → fenced-block upgrades → theme flip). **Placeholder-free by contract** — reads generation-time values from the `#rd-config` JSON block |
-| `assets/viewer-cytoscape.js` | graph styling + render (`rdRenderCytoscape`). Inlined *before* `viewer.js` so its functions are hoisted. Placeholder-free (ADR-008) |
-| `assets/viewer-toc.js` | heading sidebar (`rdInitToc`): anchors, nested contents, collapse state, drawer. Inlined *before* `viewer.js`, same hoisting contract (ADR-021) |
-| `scripts/viewer_toc.test.ts` | DOM tests for the sidebar in happy-dom (`bun test`), part of `make ci`. Test-time only: bun and happy-dom never ship in a script (ADR-021) |
+| `assets/viewer-cytoscape.js` | graph styling + render (`rdRenderCytoscape`), and the categorical palette helpers (`rdCategorical`, `rdCategorySlots`, `rdCategoryColour`) every diagram uses (ADR-023). Inlined *before* `viewer.js` so its functions are hoisted. Placeholder-free (ADR-008) |
+| `assets/viewer-toc.js` | heading sidebar (`rdInitToc`): anchors, foldable contents tree, rail/drawer state, section folds. Inlined *before* `viewer.js`, same hoisting contract. The showcase inlines it too, via options (ADR-021, ADR-022) |
+| `assets/viewer-toc.css` | sidebar, rail, drawer and fold styles, inlined verbatim by both `viewer.html` and `showcase.html` (ADR-022) |
+| `scripts/viewer_palette.test.ts` | tests for the categorical palette helpers (`bun test`, no DOM) (ADR-023) |
+| `scripts/viewer_toc.test.ts` | DOM tests for the sidebar and folds in happy-dom (`bun test`), part of `make ci`. Test-time only: bun and happy-dom never ship in a script (ADR-021) |
 | `assets/viewer-deckgl.js` | 3D / geographic render (`rdRenderDeckGL`) + the OKLab/OKLCH maths and colour-space projections. Inlined *before* `viewer.js`, same hoisting contract (ADR-014) |
 | `resources/themes/<name>/` | a built-in brand theme: `design-tokens.json` (required) + `theme.css` (optional). Selected with `--theme`; default brand is `osakanights` (ADR-009, ADR-018) |
 | `tmp/richdocs/theme/<name>/` | **optional** project-local theme override (cwd-relative, gitignored). Shadows the built-in of the same name and adds project-only themes; absent ⇒ built-in set only (ADR-018) |
 | `scripts/Makefile` | fix/ci contract per `.claude/rules/claude_skills/scripts.md` |
 | `assets/stencils.json.zip` | vendored draw.io icon packs (~3.4 MB; see `assets/NOTICE`) |
 | `assets/design-tokens.json` | default neutral brandpack (schema in `rich-blocks.md`) |
-| `resources/adr-log.md` | the **ADR log** (ADR-001…021) — decision lenses; split out of this file for the 500-line invariant |
+| `resources/adr-log.md` | the **ADR log** (ADR-001…023) — decision lenses; split out of this file for the 500-line invariant |
 | `resources/learned/` | self-curated adjudications/facts (statefulness Pathway 2) — read before re-litigating a past failure |
 | `vendor/mermaidjs-diagrams/` | wholesale vendored mermaid toolchain (parse/complexity + contrast gates, theming references) — refresh per ADR-007, never cherry-pick; its entrypoint is `mermaidjs-diagrams.md`, never a second `SKILL.md` |
 
@@ -59,7 +61,7 @@ make -C .claude/skills/richdocs/scripts ci    # gate: must exit 0 before handoff
 
 ## ADR log
 
-The full decision log (ADR-001 … ADR-021), each entry carrying its **Lens**, lives in
+The full decision log (ADR-001 … ADR-023), each entry carrying its **Lens**, lives in
 [`resources/adr-log.md`](resources/adr-log.md). Read it before changing anything and
 apply each ADR's Lens to the next related decision. It was promoted to its own node to
 keep this file under the 500-line invariant (`.claude/rules/claude_skills/index.md`); it
@@ -81,6 +83,11 @@ is the same log, just split out.
   computed ranges onto `xaxis`/`yaxis`), so an `Object.assign({}, base, …)` shallow
   copy leaks the bar chart's numeric y-range into the heatmap's categorical axis.
   Build a **fresh layout per chart**. Vector traces survive this; rasters do not.
+- **Symptom: a diagram category is a different colour from the same category
+  elsewhere, or a pack carries `categoryColours`** — a second palette crept back.
+  There is ONE categorical palette, `canvas.plotly.<mode>.series`; a category is a
+  slot of it, in a declared order. `themecheck.py` fails a pack with
+  `categoryColours` (ADR-023).
 - **Symptom: a theme passes every check but looks nothing like the brand** — the
   brandpack substituted a colour the brand does not own, because one token was
   asked to be both a fill and a text colour. Run `themecheck.py`; split
@@ -177,7 +184,8 @@ is the same log, just split out.
       real browser, in **both** `--inline` and multi-file mode. `make ci` cannot
       see browser behaviour (ADR-006). For the sidebar, also check the current
       entry while scrolling and after a click, since happy-dom has no layout
-      (ADR-021).
+      (ADR-021). Fold a section holding a diagram, flip the theme, unfold it:
+      the diagram must keep its size (ADR-022).
 - [ ] New generation-time value: add it to `build_config()` → the `#rd-config`
       block. **Never** add a `{{...}}` placeholder to `viewer.js` (ADR-008) — a
       test will fail, and the file stops being valid JS.

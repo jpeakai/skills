@@ -1,4 +1,5 @@
-// Tests for assets/viewer-toc.js, the heading sidebar (ADR-021).
+// Tests for assets/viewer-toc.js, the heading sidebar and section folds
+// (ADR-021, ADR-022).
 //
 // Strategy:
 //   - Load the REAL viewer.html body (placeholders stripped) into happy-dom, so
@@ -26,8 +27,11 @@ const SHELL = readFileSync(join(ASSETS, "viewer.html"), "utf-8");
 // Everything between <body> and the first injected script: header + layout.
 const BODY = (SHELL.split("<body>")[1] ?? "").split("{{BOOTSTRAP}}")[0]?.replace(/\{\{\w+\}\}/g, "") ?? "";
 
+type Fold = { button: HTMLButtonElement; body: HTMLElement };
+
 type Controller = {
   entries: { level: number; id: string; text: string; el: HTMLElement }[];
+  folds: Record<string, Fold>;
   go: (id: string) => void;
   setOpen: (open: boolean, persist: boolean) => void;
   isNarrow: () => boolean;
@@ -37,7 +41,7 @@ type Controller = {
 
 type TocApi = {
   rdSlugify: (text: string) => string;
-  rdInitToc: (article: Element) => Controller | null;
+  rdInitToc: (article: Element, opts?: { header?: Element; selector?: string; folds?: boolean }) => Controller | null;
 };
 
 function loadToc(): TocApi {
@@ -134,7 +138,7 @@ describe("hierarchy", () => {
     expect(top.length).toBe(1); // Overview
     const underOverview = root.querySelectorAll(":scope > li > ol > li");
     expect([...underOverview].map((li) => li.querySelector("a")?.textContent)).toEqual(["Setup", "Usage", "Setup"]);
-    const underSetup = underOverview[0]?.querySelectorAll(":scope > ol > li > a");
+    const underSetup = underOverview[0]?.querySelectorAll(":scope > ol > li > .rd-toc-row > a");
     expect([...(underSetup ?? [])].map((a) => a.textContent)).toEqual(["Install", "Configure"]);
     expect(root.querySelector('a[data-rd-toc-id="macos"]')?.closest("ol")?.closest("li")?.querySelector("a")?.textContent).toBe(
       "Install",
@@ -150,7 +154,7 @@ describe("hierarchy", () => {
 
   test("a document opening deeper than h1 still roots at its first level", () => {
     render("<h2>A</h2><h3>B</h3><h2>C</h2><h1>D</h1>");
-    const top = [...document.querySelectorAll("#rd-toc > ol > li > a")].map((a) => a.textContent);
+    const top = [...document.querySelectorAll("#rd-toc > ol > li > .rd-toc-row > a")].map((a) => a.textContent);
     expect(top).toEqual(["A", "C", "D"]);
   });
 
@@ -320,5 +324,166 @@ describe("responsive drawer", () => {
     render(LONG_DOC);
     document.dispatchEvent(new window.KeyboardEvent("keydown", { key: "Escape" }));
     expect(tocState()).toBe("open");
+  });
+});
+
+const click = (el: Element): void => {
+  el.dispatchEvent(new window.MouseEvent("click", { bubbles: true, cancelable: true }));
+};
+
+describe("sidebar rail", () => {
+  test("the sidebar carries its own collapse control, wired to the list", () => {
+    render(LONG_DOC);
+    const collapse = $("#rd-toc-collapse");
+    expect(collapse.closest("#rd-toc")).not.toBeNull();
+    expect(collapse.getAttribute("aria-controls")).toBe("rd-toc-list");
+    expect($("#rd-toc-list").tagName).toBe("OL");
+    expect(collapse.getAttribute("aria-expanded")).toBe("true");
+    expect(collapse.getAttribute("aria-label")).toBe("Collapse contents");
+  });
+
+  test("on the wide layout it folds to the rail and back, remembered like the header toggle", () => {
+    render(LONG_DOC);
+    const collapse = $("#rd-toc-collapse");
+    click(collapse);
+    expect(tocState()).toBe("closed");
+    expect(collapse.getAttribute("aria-label")).toBe("Expand contents");
+    expect($("#rd-toc-toggle").getAttribute("aria-expanded")).toBe("false");
+    expect(localStorage.getItem("richdocs-toc")).toBe("closed");
+    click(collapse);
+    expect(tocState()).toBe("open");
+    expect(localStorage.getItem("richdocs-toc")).toBe("open");
+  });
+
+  test("in the drawer it is the close button, and hands focus back to the header toggle", () => {
+    setWidth(NARROW);
+    render(LONG_DOC);
+    $("#rd-toc-toggle").click();
+    click($("#rd-toc-collapse"));
+    expect(tocState()).toBe("closed");
+    expect(document.activeElement).toBe($("#rd-toc-toggle"));
+  });
+});
+
+describe("contents branches", () => {
+  test("only an entry with children gets a branch toggle, at every level", () => {
+    render(LONG_DOC);
+    const branchIds = [...document.querySelectorAll("#rd-toc .rd-toc-branch")].map(
+      (b) => b.closest("li")?.querySelector("a")?.getAttribute("data-rd-toc-id"),
+    );
+    expect(branchIds).toEqual(["overview", "setup", "install", "setup-1"]);
+    expect(document.querySelectorAll("#rd-toc .rd-toc-spacer").length).toBe(4);
+  });
+
+  test("a branch toggle folds and unfolds just its own subtree", () => {
+    render(LONG_DOC);
+    const btn = $('#rd-toc-sub-setup').closest("li")?.querySelector(".rd-toc-branch") as HTMLElement;
+    expect(btn.getAttribute("aria-controls")).toBe("rd-toc-sub-setup");
+    click(btn);
+    expect(btn.getAttribute("aria-expanded")).toBe("false");
+    expect($("#rd-toc-sub-setup").hidden).toBe(true);
+    expect($("#rd-toc-sub-overview").hidden).toBe(false);
+    expect(location.hash).toBe("");
+    click(btn);
+    expect($("#rd-toc-sub-setup").hidden).toBe(false);
+  });
+
+  test("a folded branch marks its visible parent when the current entry is inside", () => {
+    const { ctl } = render(LONG_DOC);
+    ctl?.go("macos");
+    const trail = [...document.querySelectorAll("#rd-toc .rd-toc-trail")].map((a) => a.getAttribute("data-rd-toc-id"));
+    expect(trail).toEqual(["overview", "setup", "install"]);
+    ctl?.go("usage");
+    expect([...document.querySelectorAll("#rd-toc .rd-toc-trail")].map((a) => a.getAttribute("data-rd-toc-id"))).toEqual([
+      "overview",
+    ]);
+  });
+});
+
+const FOLD_DOC = `
+  <h1>Title</h1><p>lede</p>
+  <h2>Alpha</h2><p>a1</p>
+  <h3>Alpha one</h3><p>a1.1</p>
+  <h2>Empty</h2>
+  <h2>Beta</h2><p>b1</p><h5>fine print</h5><p>b2</p>
+`;
+
+describe("section folds", () => {
+  test("every section with content folds, except the lone top heading", () => {
+    const { ctl } = render(FOLD_DOC);
+    expect(Object.keys(ctl?.folds ?? {}).sort()).toEqual(["alpha", "alpha-one", "beta"]);
+    expect($("#title").parentElement?.id).toBe("rd-article");
+  });
+
+  test("a section runs to the next heading at its level or shallower, nesting deeper ones", () => {
+    const { ctl } = render(FOLD_DOC);
+    const alpha = ctl?.folds.alpha?.body as HTMLElement;
+    expect(alpha.contains($("#alpha-one"))).toBe(true);
+    expect(alpha.contains($("#empty"))).toBe(false);
+    // An unindexed h5 is content, not a boundary.
+    expect(ctl?.folds.beta?.body.querySelector("h5")?.textContent).toBe("fine print");
+  });
+
+  test("the button sits beside the heading, so its text, id and entry are untouched", () => {
+    const { ctl } = render(FOLD_DOC);
+    const head = $("#alpha").parentElement as HTMLElement;
+    expect(head.className).toContain("rd-fold-head");
+    expect(head.firstElementChild).toBe(ctl?.folds.alpha?.button as HTMLElement);
+    expect($("#alpha").textContent).toBe("Alpha");
+    const btn = ctl?.folds.alpha?.button as HTMLElement;
+    expect(btn.getAttribute("aria-controls")).toBe(ctl?.folds.alpha?.body.id as string);
+    expect(btn.getAttribute("aria-label")).toBe("Section Alpha");
+  });
+
+  test("the button folds and unfolds the body", () => {
+    const { ctl } = render(FOLD_DOC);
+    const fold = ctl?.folds.alpha as Fold;
+    click(fold.button);
+    expect(fold.button.getAttribute("aria-expanded")).toBe("false");
+    expect(fold.body.hidden).toBe(true);
+    click(fold.button);
+    expect(fold.body.hidden).toBe(false);
+  });
+
+  test("navigating to a heading unfolds it and every section around it", () => {
+    const { ctl } = render(FOLD_DOC);
+    const outer = ctl?.folds.alpha as Fold;
+    const inner = ctl?.folds["alpha-one"] as Fold;
+    click(inner.button);
+    click(outer.button);
+    click($('#rd-toc a[data-rd-toc-id="alpha-one"]'));
+    expect(outer.body.hidden).toBe(false);
+    expect(outer.button.getAttribute("aria-expanded")).toBe("true");
+    expect(inner.body.hidden).toBe(false);
+  });
+
+  test("a fragment into a folded section unfolds it on back and forward", () => {
+    const { ctl } = render(FOLD_DOC);
+    click((ctl?.folds.alpha as Fold).button);
+    history.replaceState(null, "", "#alpha-one");
+    window.dispatchEvent(new window.PopStateEvent("popstate"));
+    expect(ctl?.folds.alpha?.body.hidden).toBe(false);
+  });
+
+  test("folds: false leaves the headings where they were", () => {
+    document.body.innerHTML = BODY;
+    const article = $("#rd-article");
+    article.innerHTML = FOLD_DOC;
+    const ctl = loadToc().rdInitToc(article, { folds: false });
+    expect(Object.keys(ctl?.folds ?? {})).toEqual([]);
+    expect(document.querySelectorAll(".rd-fold-head").length).toBe(0);
+  });
+});
+
+describe("options", () => {
+  test("a selector and a label override index a page that is not a rendered doc", () => {
+    document.body.innerHTML = BODY;
+    const article = $("#rd-article");
+    article.innerHTML = `
+      <section><h2 data-rd-toc-label="Overview">brand name</h2><p>x</p></section>
+      <section><h2>Colour</h2><h3>Ramp</h3><p>y</p><div class="card"><h3>Card</h3></div></section>`;
+    const ctl = loadToc().rdInitToc(article, { selector: "section > h2, section > h3" });
+    expect(ctl?.entries.map((e) => e.text)).toEqual(["Overview", "Colour", "Ramp"]);
+    expect(ctl?.entries[0]?.id).toBe("overview");
   });
 });

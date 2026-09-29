@@ -1,0 +1,144 @@
+/* Heading sidebar and section folds (ADR-021, ADR-022). Shared verbatim by the
+   doc viewer and the theme showcase, which both inline viewer-toc.js. Every
+   colour comes from the --rd-* custom properties; never a hex here (ADR-004). */
+
+/* The layout row only matters once viewer-toc.js marks the page .rd-has-toc.
+   Without a sidebar, the content column stays centred exactly as before. */
+.rd-layout { display: flex; align-items: flex-start; }
+
+/* Land a heading just below the sticky header, not underneath it. viewer-toc.js
+   measures the header into --rd-header-h. */
+.rd-has-toc :is(h1, h2, h3, h4)[id] {
+  scroll-margin-top: calc(var(--rd-header-h, 3rem) + 0.75rem);
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────────────── */
+#rd-toc { display: none; }
+.rd-has-toc #rd-toc {
+  display: block;
+  position: sticky; top: var(--rd-header-h, 3rem);
+  flex: 0 0 16rem; width: 16rem;
+  height: calc(100vh - var(--rd-header-h, 3rem));
+  overflow-y: auto; overscroll-behavior: contain;
+  padding: 0 0.6rem 2rem 0.75rem;
+  border-right: 1px solid var(--rd-border);
+  font-size: 0.85rem; line-height: 1.4;
+}
+.rd-toc-head {
+  position: sticky; top: 0; z-index: 1;
+  display: flex; align-items: center; gap: 0.5rem;
+  min-height: 2.75rem; margin-bottom: 0.4rem;
+  background: var(--rd-bg);
+  border-bottom: 1px solid var(--rd-border);
+}
+.rd-toc-title {
+  flex: 1; font-weight: 600; color: var(--rd-fg);
+  font-family: var(--rd-font-display, var(--rd-font-body));
+}
+#rd-toc-collapse {
+  display: inline-grid; place-items: center;
+  flex: 0 0 1.75rem; width: 1.75rem; height: 1.75rem; padding: 0;
+  color: var(--rd-fg); background: var(--rd-surface);
+  border: 1px solid var(--rd-border); border-radius: var(--rd-pill, 999px);
+  font: inherit; font-size: 1.1rem; line-height: 1; cursor: pointer;
+}
+#rd-toc-collapse > span { transition: transform 160ms ease; }
+
+/* Wide and collapsed: a rail that keeps only the expand control, so the article
+   gets the room back and the way in stays exactly where it was. */
+.rd-has-toc[data-toc=closed] #rd-toc {
+  flex-basis: 2.9rem; width: 2.9rem; overflow: hidden; padding: 0 0.5rem;
+}
+.rd-has-toc[data-toc=closed] .rd-toc-head { justify-content: center; border-bottom: 0; }
+.rd-has-toc[data-toc=closed] .rd-toc-title,
+.rd-has-toc[data-toc=closed] #rd-toc-list { display: none; }
+.rd-has-toc[data-toc=closed] #rd-toc-collapse > span { transform: rotate(180deg); }
+
+/* ── Contents tree ───────────────────────────────────────────────────── */
+#rd-toc ol { list-style: none; margin: 0; padding: 0; }
+#rd-toc ol ol { margin-left: 0.8rem; padding-left: 0.35rem; border-left: 1px solid var(--rd-border); }
+#rd-toc ol[hidden] { display: none; }
+.rd-toc-row { display: flex; align-items: flex-start; min-width: 0; }
+.rd-toc-spacer { flex: 0 0 1.35rem; }
+.rd-toc-branch {
+  flex: 0 0 1.35rem; width: 1.35rem; height: 1.35rem; margin-top: 0.2rem; padding: 0;
+  display: inline-grid; place-items: center;
+  color: var(--rd-muted); background: transparent; border: 0;
+  border-radius: calc(var(--rd-radius, 8px) / 2); cursor: pointer;
+}
+/* A drawn chevron, so it never depends on the brand's webfont having the glyph. */
+.rd-toc-branch::before {
+  content: ""; width: 0.38rem; height: 0.38rem;
+  border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+  transform: translateY(-20%) rotate(45deg); transition: transform 160ms ease;
+}
+.rd-toc-branch[aria-expanded=false]::before { transform: rotate(-45deg); }
+.rd-toc-branch:hover { color: var(--rd-fg); background: var(--rd-surface); }
+#rd-toc a {
+  flex: 1; min-width: 0; display: block; padding: 0.25rem 0.5rem; margin: 1px 0;
+  color: var(--rd-muted); text-decoration: none;
+  border-left: 2px solid transparent; border-radius: 0 4px 4px 0;
+}
+#rd-toc a:hover { color: var(--rd-fg); background: var(--rd-surface); }
+#rd-toc :is(a, button):focus-visible { outline: 2px solid var(--rd-link, var(--rd-accent)); outline-offset: -2px; }
+/* The current entry: text-safe accent for the words, the fill only as a rule. */
+#rd-toc a[aria-current] {
+  color: var(--rd-link, var(--rd-accent)); font-weight: 600;
+  border-left-color: var(--rd-accent); background: var(--rd-surface);
+}
+/* A folded branch holding the current entry says so on its visible parent. */
+.rd-toc-closed > .rd-toc-row > a.rd-toc-trail { color: var(--rd-fg); border-left-color: var(--rd-border); }
+
+/* Narrow: the sidebar becomes a drawer over the article, which keeps its width.
+   Closed is display:none there, so a closed drawer is out of the tab order. */
+@media (max-width: 72rem) {
+  .rd-has-toc #rd-toc, .rd-has-toc[data-toc=closed] #rd-toc { display: none; }
+  .rd-has-toc[data-toc=open] #rd-toc {
+    display: block;
+    position: fixed; left: 0; bottom: 0; z-index: 20;
+    width: min(18rem, 85vw); height: auto;
+    background: var(--rd-bg);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  }
+}
+/* Wide: the rail is the control, so the header button is only for the drawer. */
+@media (min-width: 72.01rem) {
+  .rd-has-toc #rd-toc-toggle { display: none; }
+}
+
+/* ── Section folds ───────────────────────────────────────────────────── */
+/* The button sits beside the heading, baseline-aligned with its first line. */
+.rd-fold-head { display: flex; align-items: baseline; gap: 0.4rem; }
+.rd-fold-head > :is(h1, h2, h3, h4) { flex: 1; min-width: 0; }
+.rd-fold {
+  flex: 0 0 auto; position: relative; top: 0.15rem;
+  display: inline-grid; place-items: center;
+  width: 1.5rem; height: 1.5rem; padding: 0;
+  color: var(--rd-muted); background: transparent;
+  border: 1px solid var(--rd-border); border-radius: var(--rd-radius, 8px);
+  cursor: pointer;
+}
+/* Drawn, like the contents branches, so no brand webfont can shrink or drop it. */
+.rd-fold::before {
+  content: ""; width: 0.42rem; height: 0.42rem;
+  border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+  transform: translateY(-20%) rotate(45deg); transition: transform 160ms ease;
+}
+.rd-fold[aria-expanded=false]::before { transform: rotate(-45deg); }
+.rd-fold:hover, .rd-fold[aria-expanded=false] { color: var(--rd-fg); background: var(--rd-surface); }
+.rd-fold:focus-visible { outline: 2px solid var(--rd-link, var(--rd-accent)); outline-offset: 2px; }
+/* Folded, but NOT display:none. The body keeps its width in the layout, so a
+   chart or diagram re-rendered while folded (a theme flip) still measures a real
+   box; mermaid in particular lays out garbage in a display:none parent.
+   visibility:hidden also drops it from the tab order and the accessibility tree. */
+.rd-fold-body[hidden] {
+  display: block; height: 0; overflow: hidden; visibility: hidden;
+}
+
+/* ── Print ───────────────────────────────────────────────────────────── */
+/* The sidebar and folds are screen navigation. Paper gets every section, in the
+   single-column layout it always had. */
+@media print {
+  #rd-toc, #rd-toc-toggle, .rd-fold { display: none !important; }
+  .rd-fold-body[hidden] { height: auto; overflow: visible; visibility: visible; }
+}

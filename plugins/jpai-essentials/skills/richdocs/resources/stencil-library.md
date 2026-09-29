@@ -55,19 +55,22 @@ data → Graph(nodes, edges) → deterministic layout → SVG compositor → (ca
 ```
 
 1. **Registry is the single editable seam.** Map your domain types to
-   `(stencil_id, category)` and categories to accent colours. Adding a node
-   type or rebranding touches only these dicts:
+   `(stencil_id, category)`, and give the categories a fixed order. Each category
+   takes the next slot of the brand's categorical palette (ADR-023), so adding a
+   node type touches only the registry, and a rebrand touches nothing:
 
    ```python
    STENCIL_BY_TYPE = {
        "aws_lambda_function": ("mxgraph.aws4/lambda", "Compute"),
        "aws_s3_bucket":       ("mxgraph.aws4/simple_storage_service", "Storage"),
    }
-   CATEGORY_COLOR = {"Compute": "#ED7100", "Storage": "#7AA116"}
+   CATEGORIES = ["Compute", "Storage"]  # slot order: never cycled
+   palette = tokens["canvas"]["plotly"][mode]["series"]
+   CATEGORY_COLOR = dict(zip(CATEGORIES, palette))
    ```
 
-   The default `assets/design-tokens.json` ships the same palette under
-   `categoryColours` so diagrams and HTML companions stay colour-consistent.
+   The same slots colour the charts and the other diagrams, so a category is one
+   colour everywhere in a brand and mode. There is no separate category map.
 
 2. **Deterministic layout, no graphviz.** Cluster by category left-to-right;
    grid nodes top-down, wrap past ~6 rows; sort every collection. Determinism

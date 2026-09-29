@@ -123,6 +123,9 @@ def test_every_output_mode_ships_the_sidebar_shell(inline: bool) -> None:
     assert 'id="rd-toc-toggle"' in html
     assert 'aria-controls="rd-toc"' in html
     assert html.index('id="rd-toc"') < html.index('id="rd-article"')
+    # The sidebar and fold styles are inlined, not left as a placeholder (ADR-022).
+    assert ".rd-fold-body[hidden]" in html
+    assert "{{VIEWER_TOC_CSS}}" not in html
 
 
 def test_embed_json_escapes_script_close() -> None:
@@ -402,7 +405,10 @@ def test_write_inline_output(doc: Path, tmp_path: Path) -> None:
     html = html_path.read_text(encoding="utf-8")
     assert "window.__DOC_MD__ = " in html
     assert "graph LR" in html
-    assert "categoryColours" in html
+    # The tokens are inlined, carrying the one categorical palette and no second
+    # category map (ADR-023).
+    assert '"series"' in html
+    assert "categoryColours" not in html
     assert not (out_dir / "mydoc.tokens.json").exists()
 
 

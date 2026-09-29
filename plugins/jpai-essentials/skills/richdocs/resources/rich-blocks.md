@@ -145,8 +145,7 @@ Re-brand = edit the copy, refresh. Schema (all keys required):
     "plotly":    { "light": { "paper": "…", "plot": "…", "font": "…", "grid": "…",
                               "series": ["…", "…", "…", "…", "…"] },
                    "dark": { "…" } }
-  },
-  "categoryColours": { "Compute": "#ED7100", "Storage": "#7AA116", "…": "…" }
+  }
 }
 ```
 
@@ -167,9 +166,13 @@ with blinding white charts.
 
 ### Rules that keep brandpacks sane
 
-- **Data-encoding colours are not branded.** Status red/amber/green and
-  `categoryColours` stay constant across brands and themes; only chrome and
-  accent re-skin. A rebrand must never change what the colours *mean*.
+- **One categorical palette (ADR-023).** `canvas.plotly.<mode>.series` is the
+  only categorical palette. It colours chart series *and* diagram categories:
+  a Cytoscape.js compound's `data.category`, a Mermaid subgraph, a draw.io icon.
+  A category takes the next slot in a fixed order (a block's `categories` list,
+  else first appearance), never cycles, and gets no colour past the last slot.
+  There is no `categoryColours` map; `themecheck.py` rejects a pack that ships one.
+  Status colours stay reserved and are never a slot.
 - **WCAG AA (≥4.5:1)** for all fg/bg pairs in both themes. The default pack
   is pre-checked; verify any replacement.
 - **`FALLBACK_TOKENS`** baked into the generated JS is a fetch-failure safety

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
 """PreToolUse coaching hook, portable across Claude Code and Codex CLI.
 
 Vendored from neozenith/agentic-dotfiles (MIT licensed,

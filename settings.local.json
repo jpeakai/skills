@@ -81,7 +81,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/tool_coach.py\"",
+            "command": "uv run \"$CLAUDE_PROJECT_DIR/.claude/hooks/tool_coach.py\"",
             "timeout": 5,
             "statusMessage": "Checking the call against this project's working agreements…"
           }

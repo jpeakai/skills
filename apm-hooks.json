@@ -1,0 +1,16 @@
+{
+  "PreToolUse": [
+    {
+      "matcher": "Bash|Write|Edit|NotebookEdit|Read|AskUserQuestion",
+      "hooks": [
+        {
+          "type": "command",
+          "statusMessage": "Checking the call against this project's working agreements\u2026",
+          "command": "python3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/skills/hooks/tool_coach.py\"",
+          "timeout": 10
+        }
+      ],
+      "_apm_source": "jpeakai/skills"
+    }
+  ]
+}

@@ -102,13 +102,11 @@ function paintSwatches() {
       return swatch(th[k], k, th[k]);
     }).join("");
 
-  // ONE categorical palette (ADR-023): chart series and diagram categories alike.
-  // Each swatch shows its slot number and the page category that takes it.
+  // ONE categorical palette (ADR-023): colours that stay distinct when taken in
+  // order. A swatch shows only its slot number; the palette names no categories.
   var palette = rdCategorical(t, m);
   document.getElementById("sc-categorical-ramp").innerHTML =
-    palette.map(function (c, i) {
-      return swatch(c, String(i + 1) + (SC.categories[i] ? " · " + SC.categories[i] : ""), c);
-    }).join("");
+    palette.map(function (c, i) { return swatch(c, String(i + 1), c); }).join("");
   paintCategories();
 
   var plot = t.canvas.plotly[m];

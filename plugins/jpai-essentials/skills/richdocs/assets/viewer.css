@@ -106,31 +106,8 @@ main th { background: var(--rd-surface); }
   font-family: var(--rd-font-mono); font-size: 0.85rem; white-space: pre-wrap;
 }
 
-/* --- Diagram lightbox (click any img/svg to expand, click again to dismiss) --- */
+/* Diagrams open full screen on click; the modal lives in viewer-zoom.css (ADR-024).
+   Only the in-page cue stays here: charts and graphs are not click-to-open. */
 #rd-article img,
 #rd-article svg { cursor: zoom-in; }
-.rd-lightbox {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2vh 2vw;
-  background: color-mix(in srgb, var(--rd-bg, #0b0e14) 88%, transparent);
-  backdrop-filter: blur(4px);
-  cursor: zoom-out;
-}
-.rd-lightbox > img,
-.rd-lightbox > svg {
-  max-width: 96vw;
-  max-height: 94vh;
-  width: auto;
-  height: auto;
-  background: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
-}
-/* Rendered mermaid SVGs carry their own width; in the lightbox the viewBox scales them. */
-.rd-lightbox > svg { width: 96vw; height: 94vh; }
-body.rd-lightbox-open { overflow: hidden; }
+#rd-article .rd-plotly svg { cursor: auto; }

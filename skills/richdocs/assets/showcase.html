@@ -11,6 +11,8 @@
 <style>{{SHOWCASE_CSS}}</style>
 <!-- The doc viewer's sidebar and section folds, verbatim (ADR-022). -->
 <style>{{VIEWER_TOC_CSS}}</style>
+<!-- The doc viewer's full-screen diagrams with deep zoom, verbatim (ADR-024). -->
+<style>{{VIEWER_ZOOM_CSS}}</style>
 <!-- Each brand's theme.css, confined to :root[data-brand="<name>"] so brands in a
      gallery cannot leak into one another. -->
 <style>{{THEME_CSS}}</style>
@@ -284,6 +286,9 @@ var SC_SINGLE = {{SINGLE}};
 <!-- The doc viewer's sidebar and folds too: same file, so the two cannot drift. -->
 <script>
 {{VIEWER_TOC_JS}}
+</script>
+<script>
+{{VIEWER_ZOOM_JS}}
 </script>
 <script>
 {{SHOWCASE_JS}}

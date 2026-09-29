@@ -124,6 +124,12 @@ uv run --no-project .claude/skills/richdocs/scripts/showcase.py --theme osakanig
   button. Nothing to author: fewer headings, no sidebar. The theme showcase
   carries the same sidebar and folds.
 
+- **Full-screen diagrams**: click any Mermaid diagram, SVG or image to open it full
+  screen; a Cytoscape.js graph has a **Full screen** button. In full screen the
+  wheel zooms about the cursor (up to 40 times) and a drag pans. In the page,
+  Ctrl or Cmd + wheel, or a pinch, zooms a diagram in place, while a plain wheel
+  always scrolls (ADR-024). The theme showcase behaves the same.
+
 - **Multi-file (default, `--out` = `tmp/richdocs`)** — writes `<stem>.html`
   plus a copy of the `.md` and `design-tokens.json`. The HTML fetches the
   paired markdown at runtime (`?v=<BUILD_ID>`, `cache: no-store`) and renders

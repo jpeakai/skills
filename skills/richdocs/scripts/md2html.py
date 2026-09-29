@@ -58,6 +58,8 @@ VIEWER_CYTOSCAPE_JS = ASSETS_DIR / "viewer-cytoscape.js"
 VIEWER_DECKGL_JS = ASSETS_DIR / "viewer-deckgl.js"
 VIEWER_TOC_JS = ASSETS_DIR / "viewer-toc.js"
 VIEWER_TOC_CSS = ASSETS_DIR / "viewer-toc.css"
+VIEWER_ZOOM_JS = ASSETS_DIR / "viewer-zoom.js"
+VIEWER_ZOOM_CSS = ASSETS_DIR / "viewer-zoom.css"
 
 DEFAULT_OUT = Path("tmp/richdocs")
 
@@ -253,6 +255,8 @@ def _base_html(
         "{{BOOTSTRAP}}": bootstrap,
         "{{VIEWER_CSS}}": VIEWER_CSS.read_text(encoding="utf-8"),
         "{{VIEWER_TOC_CSS}}": VIEWER_TOC_CSS.read_text(encoding="utf-8"),
+        "{{VIEWER_ZOOM_CSS}}": VIEWER_ZOOM_CSS.read_text(encoding="utf-8"),
+        "{{VIEWER_ZOOM_JS}}": VIEWER_ZOOM_JS.read_text(encoding="utf-8"),
         "{{THEME_CSS}}": theme_css,
         "{{VIEWER_JS}}": VIEWER_JS.read_text(encoding="utf-8"),
         "{{VIEWER_CYTOSCAPE_JS}}": VIEWER_CYTOSCAPE_JS.read_text(encoding="utf-8"),

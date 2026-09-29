@@ -912,5 +912,8 @@ rdInitToc(document.querySelector(".wrap"), {
   header: document.querySelector(".sc-bar"),
   selector: "section > h2, section > h3, section > h4"
 });
+// Full-screen diagrams with deep zoom, exactly as in a doc (ADR-024): a Mermaid
+// or draw.io SVG opens on click; the Cytoscape.js graph opens from its button.
+rdInitZoom({ pictures: ".sc-mermaid svg, svg.sc-arch" });
 setBrand(SC.defaultBrand || BRANDS[0].name);
 

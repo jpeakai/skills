@@ -144,6 +144,8 @@ code, .mono { font-family: var(--rd-font-mono); }
 
 /* ── architecture ─────────────────────────────────────────────────────── */
 .sc-arch { display: block; width: 100%; height: auto; }
+.sc-mermaid svg, svg.sc-arch { cursor: zoom-in; }
+.sc-cy { position: relative; }
 .sc-archwrap { position: relative; }
 .sc-archwrap .sc-actions {
   display: flex; gap: .5rem; margin-top: .75rem; flex-wrap: wrap; align-items: center;

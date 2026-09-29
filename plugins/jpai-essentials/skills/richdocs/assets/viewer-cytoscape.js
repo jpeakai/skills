@@ -227,17 +227,33 @@ function rdRenderCytoscape(block, tokens, theme) {
 
   if (block.cy) block.cy.destroy();
 
+  var style = rdCyStyle(tokens, theme, rdCategorySlots(rdCyCategories(payload)));
   block.cy = window.cytoscape({
     container: el,
     elements: payload.elements,
     layout: rdCyLayout(payload),
-    style: rdCyStyle(tokens, theme, rdCategorySlots(rdCyCategories(payload))),
-    // A doc is for reading, not for fighting a viewport. Zoom is available, but
-    // the graph must never be *dragged away* by an accidental scroll.
+    style: style,
+    // A doc is for reading, not for fighting a viewport: a plain wheel scrolls the
+    // page. Ctrl/Cmd + wheel zooms in place, and "Full screen" opens a copy that
+    // zooms freely (viewer-zoom.js, ADR-024).
     autoungrabify: false,
     userZoomingEnabled: false,
     boxSelectionEnabled: false
   });
+
+  // What viewer-zoom.js needs to zoom this graph and open a copy of it. The style
+  // cannot be read back from the instance: its category colours are functions.
+  el.__rdCy = block.cy;
+  el.__rdCyStyle = style;
+  el.__rdCyFit = undefined;
+  if (!el.querySelector(".rd-zoom-expand")) {
+    var expand = document.createElement("button");
+    expand.type = "button";
+    expand.className = "rd-zoom-expand";
+    expand.textContent = "Full screen";
+    expand.setAttribute("aria-label", "Open this graph full screen");
+    el.appendChild(expand);
+  }
 
   block.cy.on("mouseover", "node", function (e) {
     e.target.addClass("rd-hover");
@@ -249,5 +265,6 @@ function rdRenderCytoscape(block, tokens, theme) {
   });
 
   block.cy.fit(undefined, 20);
+  el.__rdCyFit = block.cy.zoom();
   return block.cy;
 }

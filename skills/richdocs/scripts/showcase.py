@@ -56,6 +56,8 @@ VIEWER_CYTOSCAPE_JS = ASSETS_DIR / "viewer-cytoscape.js"
 VIEWER_DECKGL_JS = ASSETS_DIR / "viewer-deckgl.js"
 VIEWER_TOC_JS = ASSETS_DIR / "viewer-toc.js"
 VIEWER_TOC_CSS = ASSETS_DIR / "viewer-toc.css"
+VIEWER_ZOOM_JS = ASSETS_DIR / "viewer-zoom.js"
+VIEWER_ZOOM_CSS = ASSETS_DIR / "viewer-zoom.css"
 # Committed, precomputed 3D embeddings so the showcase is self-contained and its build
 # stays OFFLINE. These are regenerated out-of-band by a Tier-A helper (model2vec +
 # umap-learn; needs network + a model download), never during `make ci`.
@@ -554,6 +556,8 @@ def build_html(themes: list[Theme], *, build_id: str, single: bool) -> str:
         "{{SHOWCASE_CSS}}": SHOWCASE_CSS.read_text(encoding="utf-8"),
         "{{VIEWER_TOC_CSS}}": VIEWER_TOC_CSS.read_text(encoding="utf-8"),
         "{{VIEWER_TOC_JS}}": VIEWER_TOC_JS.read_text(encoding="utf-8"),
+        "{{VIEWER_ZOOM_CSS}}": VIEWER_ZOOM_CSS.read_text(encoding="utf-8"),
+        "{{VIEWER_ZOOM_JS}}": VIEWER_ZOOM_JS.read_text(encoding="utf-8"),
         "{{SHOWCASE_JS}}": SHOWCASE_JS.read_text(encoding="utf-8"),
         "{{VIEWER_CYTOSCAPE_JS}}": VIEWER_CYTOSCAPE_JS.read_text(encoding="utf-8"),
         "{{VIEWER_DECKGL_JS}}": VIEWER_DECKGL_JS.read_text(encoding="utf-8"),

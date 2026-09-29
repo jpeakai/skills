@@ -1,0 +1,50 @@
+/* Full-screen diagram viewer with deep zoom (ADR-024). Shared verbatim by the
+   doc viewer and the theme showcase, which both inline viewer-zoom.js. Every
+   colour comes from the --rd-* custom properties; never a hex here (ADR-004). */
+
+/* The modal wears the page's own theme, so a themed diagram looks the same at
+   full screen as it does in the page. */
+.rd-zoom {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; flex-direction: column;
+  background: var(--rd-bg); color: var(--rd-fg);
+  font-family: var(--rd-font-body);
+}
+.rd-zoom-bar {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--rd-surface); border-bottom: 1px solid var(--rd-border);
+  font-size: 0.85rem;
+}
+.rd-zoom-bar button, .rd-zoom-expand {
+  font: inherit; font-size: 0.8rem; line-height: 1; cursor: pointer;
+  min-width: 2rem; padding: 0.4rem 0.7rem;
+  color: var(--rd-fg); background: var(--rd-bg);
+  border: 1px solid var(--rd-border); border-radius: var(--rd-pill, 999px);
+}
+.rd-zoom-bar button:focus-visible, .rd-zoom-expand:focus-visible {
+  outline: 2px solid var(--rd-link, var(--rd-accent)); outline-offset: 2px;
+}
+.rd-zoom-hint { flex: 1; color: var(--rd-muted); text-align: center; }
+
+.rd-zoom-stage {
+  position: relative; flex: 1; min-height: 0; overflow: hidden;
+  cursor: grab; touch-action: none; user-select: none;
+}
+.rd-zoom-stage.rd-dragging { cursor: grabbing; }
+/* An SVG fills the stage; its viewBox does the zooming, so it stays sharp. */
+.rd-zoom-stage > svg { display: block; width: 100%; height: 100%; max-width: none; }
+.rd-zoom-stage > img { position: absolute; left: 0; top: 0; max-width: none; transform-origin: 0 0; }
+.rd-zoom-cy { position: absolute; inset: 0; cursor: default; }
+body.rd-zoom-open { overflow: hidden; }
+
+/* The graph's own way in: a click inside a graph is for dragging its nodes. */
+.rd-zoom-expand {
+  position: absolute; top: 0.5rem; right: 0.5rem; z-index: 5;
+  opacity: 0.85;
+}
+.rd-zoom-expand:hover { opacity: 1; }
+
+@media print {
+  .rd-zoom, .rd-zoom-expand { display: none !important; }
+}

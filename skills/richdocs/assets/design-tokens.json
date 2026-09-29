@@ -54,14 +54,5 @@
         "series": ["#60a5fa", "#2dd4bf", "#fbbf24", "#f87171", "#a78bfa"]
       }
     }
-  },
-  "categoryColours": {
-    "Compute": "#ED7100",
-    "Storage": "#7AA116",
-    "Database": "#C925D1",
-    "Networking": "#8C4FFF",
-    "Security": "#DD344C",
-    "Integration": "#E7157B",
-    "General": "#64748b"
   }
 }

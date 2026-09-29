@@ -297,6 +297,13 @@ def check_series(
 def check_theme(name: str, tokens: dict[str, Any]) -> list[str]:
     """Return a list of failure lines. Empty means the theme is compliant."""
     failures: list[str] = []
+    # One categorical palette (ADR-023). A second map of "category colours" is the
+    # overloaded concept this gate exists to keep out: categories take palette slots.
+    if "categoryColours" in tokens:
+        failures.append(
+            f"{name}: ships `categoryColours` · a category is a slot of "
+            "`canvas.plotly.<mode>.series`, never a second palette (ADR-023)"
+        )
     for mode in ("light", "dark"):
         t = roles(tokens["themes"][mode])
         for label, fg, bg, floor, rule in CHECKS:

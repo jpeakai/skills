@@ -117,8 +117,18 @@ uv run --no-project .claude/skills/richdocs/scripts/showcase.py --theme osakanig
   collapsible contents sidebar, built from the rendered headings on every load
   (ADR-021). Each heading gets a stable anchor (`#setup`, then `#setup-1` for a
   duplicate), so links like `REVIEW.html#setup` work in both output modes. The
-  header's **contents** button collapses it, and the choice is remembered. On a
-  narrow screen it is a drawer. Nothing to author: fewer headings, no sidebar.
+  sidebar collapses to a slim rail, and the choice is remembered. Each branch of
+  the contents tree folds, and each section of the article folds in place beside
+  its heading (ADR-022). Following a link unfolds whatever hides its target. On a
+  narrow screen the sidebar is a drawer, opened from the header's **contents**
+  button. Nothing to author: fewer headings, no sidebar. The theme showcase
+  carries the same sidebar and folds.
+
+- **Full-screen diagrams**: click any Mermaid diagram, SVG or image to open it full
+  screen; a Cytoscape.js graph has a **Full screen** button. In full screen the
+  wheel zooms about the cursor (up to 40 times) and a drag pans. In the page,
+  Ctrl or Cmd + wheel, or a pinch, zooms a diagram in place, while a plain wheel
+  always scrolls (ADR-024). The theme showcase behaves the same.
 
 - **Multi-file (default, `--out` = `tmp/richdocs`)** — writes `<stem>.html`
   plus a copy of the `.md` and `design-tokens.json`. The HTML fetches the

@@ -36,6 +36,7 @@ from xml.sax.saxutils import quoteattr
 
 from md2html import (
     CDN,
+    DEFAULT_THEME,
     THEMES_DIR,
     Theme,
     available_themes,
@@ -53,6 +54,10 @@ SHOWCASE_CSS = ASSETS_DIR / "showcase.css"
 SHOWCASE_JS = ASSETS_DIR / "showcase.js"
 VIEWER_CYTOSCAPE_JS = ASSETS_DIR / "viewer-cytoscape.js"
 VIEWER_DECKGL_JS = ASSETS_DIR / "viewer-deckgl.js"
+VIEWER_TOC_JS = ASSETS_DIR / "viewer-toc.js"
+VIEWER_TOC_CSS = ASSETS_DIR / "viewer-toc.css"
+VIEWER_ZOOM_JS = ASSETS_DIR / "viewer-zoom.js"
+VIEWER_ZOOM_CSS = ASSETS_DIR / "viewer-zoom.css"
 # Committed, precomputed 3D embeddings so the showcase is self-contained and its build
 # stays OFFLINE. These are regenerated out-of-band by a Tier-A helper (model2vec +
 # umap-learn; needs network + a model download), never during `make ci`.
@@ -64,13 +69,18 @@ DEFAULT_OUT = Path("tmp/richdocs")
 
 @dataclass(frozen=True)
 class Node:
-    """One box. `icon` is a vendored stencil id; `x`/`y` are grid cells, not pixels."""
+    """One box. `icon` is a vendored stencil id; `x`/`y` are grid cells, not pixels.
+
+    `category` is one of CATEGORIES. Its icon wears that category's slot of the
+    brand's categorical palette (ADR-023).
+    """
 
     id: str
     label: str
     icon: str
     x: int
     y: int
+    category: str
 
 
 @dataclass(frozen=True)
@@ -80,6 +90,32 @@ class Arch:
     nodes: list[Node]
     edges: list[tuple[str, str, str]]  # (source, target, label)
 
+
+# The gallery's brand switcher order. Brands not listed (a new built-in, or a
+# project-only theme) follow alphabetically, so nothing installed is ever hidden.
+GALLERY_ORDER: list[str] = ["osakanights", "v2ai", "freshgreens", "locomotif"]
+
+
+def gallery_order(names: list[str]) -> list[str]:
+    """Order brand names for the switcher: GALLERY_ORDER first, then the rest A-Z."""
+    listed = [n for n in GALLERY_ORDER if n in names]
+    return listed + sorted(n for n in names if n not in GALLERY_ORDER)
+
+
+# The page-wide category order (ADR-023). A category is the next slot of the
+# brand's categorical palette, the SAME list its charts use, so "Security" is one
+# colour in the Cytoscape.js graph, the Mermaid subgraphs and the draw.io icons.
+# Eight names for eight slots: a ninth would have no colour of its own.
+CATEGORIES: list[str] = [
+    "Networking",
+    "Security",
+    "Compute",
+    "Integration",
+    "Database",
+    "Storage",
+    "AI",
+    "Operations",
+]
 
 # Architecture diagrams composed from real draw.io stencils. The icon id doubles as
 # the drawio `resIcon`, so the emitted XML re-opens as a first-class AWS shape
@@ -93,27 +129,53 @@ ARCHITECTURES: list[Arch] = [
             "BigQuery / GCS — provisioned keylessly through Workload Identity."
         ),
         nodes=[
-            Node("sa", "Runtime SA", "mxgraph.gcp2/Cloud IAM", 1, 0),
-            Node("browser", "React SPA", "mxgraph.gcp2/Users", 0, 2),
+            Node("sa", "Runtime SA", "mxgraph.gcp2/Cloud IAM", 1, 0, "Security"),
+            Node("browser", "React SPA", "mxgraph.gcp2/Users", 0, 2, "Networking"),
             Node(
-                "iap", "Identity-Aware Proxy", "mxgraph.gcp2/Identity Aware Proxy", 1, 2
+                "iap",
+                "Identity-Aware Proxy",
+                "mxgraph.gcp2/Identity Aware Proxy",
+                1,
+                2,
+                "Security",
             ),
-            Node("backend", "FastAPI backend", "mxgraph.gcp2/Cloud Run", 2, 1),
-            Node("agent", "ADK agent", "mxgraph.gcp2/Cloud Run", 2, 2),
-            Node("dbt", "dbt sidecar", "mxgraph.gcp2/Container Engine", 2, 3),
+            Node(
+                "backend", "FastAPI backend", "mxgraph.gcp2/Cloud Run", 2, 1, "Compute"
+            ),
+            Node("agent", "ADK agent", "mxgraph.gcp2/Cloud Run", 2, 2, "Compute"),
+            Node(
+                "dbt", "dbt sidecar", "mxgraph.gcp2/Container Engine", 2, 3, "Compute"
+            ),
             Node(
                 "vertex",
                 "Vertex AI Gemini",
                 "mxgraph.gcp2/Cloud Machine Learning",
                 3,
                 0,
+                "AI",
             ),
-            Node("fs", "Firestore", "mxgraph.gcp2/cloud firestore", 3, 1),
-            Node("bq", "BigQuery", "mxgraph.gcp2/BigQuery", 3, 2),
-            Node("gcs", "Cloud Storage", "mxgraph.gcp2/Cloud Storage", 3, 3),
-            Node("build", "Cloud Build", "mxgraph.gcp2/Container Builder", 4, 1),
-            Node("ar", "Artifact Registry", "mxgraph.gcp2/Container Registry", 4, 2),
-            Node("wif", "Workload Identity", "mxgraph.gcp2/Cloud IAM", 4, 3),
+            Node("fs", "Firestore", "mxgraph.gcp2/cloud firestore", 3, 1, "Database"),
+            Node("bq", "BigQuery", "mxgraph.gcp2/BigQuery", 3, 2, "Database"),
+            Node("gcs", "Cloud Storage", "mxgraph.gcp2/Cloud Storage", 3, 3, "Storage"),
+            Node(
+                "build",
+                "Cloud Build",
+                "mxgraph.gcp2/Container Builder",
+                4,
+                1,
+                "Operations",
+            ),
+            Node(
+                "ar",
+                "Artifact Registry",
+                "mxgraph.gcp2/Container Registry",
+                4,
+                2,
+                "Operations",
+            ),
+            Node(
+                "wif", "Workload Identity", "mxgraph.gcp2/Cloud IAM", 4, 3, "Security"
+            ),
         ],
         edges=[
             ("browser", "iap", "https"),
@@ -139,24 +201,31 @@ ARCHITECTURES: list[Arch] = [
             "SQS-depth alarm, or a Scheduler tick via the lifecycle Lambda."
         ),
         nodes=[
-            Node("browser", "User Browser", "mxgraph.aws4/user", 0, 2),
-            Node("r53", "Route 53", "mxgraph.aws4/route 53", 1, 0),
-            Node("acm", "ACM cert", "mxgraph.aws4/certificate manager", 1, 1),
-            Node("cf", "CloudFront", "mxgraph.aws4/cloudfront", 1, 2),
-            Node("edge", "Lambda@Edge auth", "mxgraph.aws4/lambda", 1, 3),
-            Node("s3", "S3 SPA assets", "mxgraph.aws4/s3", 2, 0),
-            Node("vpc", "VPC", "mxgraph.aws4/vpc", 2, 1),
-            Node("ecs", "Fargate task", "mxgraph.aws4/fargate", 2, 2),
-            Node("sqs", "SQS queue", "mxgraph.aws4/sqs", 2, 3),
-            Node("ecr", "ECR", "mxgraph.aws4/ecr", 3, 0),
-            Node("ssm", "SSM Params", "mxgraph.aws4/systems manager", 3, 1),
-            Node("logs", "CloudWatch", "mxgraph.aws4/cloudwatch", 3, 2),
-            Node("eb", "EventBridge", "mxgraph.aws4/eventbridge", 3, 3),
+            Node("browser", "User Browser", "mxgraph.aws4/user", 0, 2, "Networking"),
+            Node("r53", "Route 53", "mxgraph.aws4/route 53", 1, 0, "Networking"),
             Node(
-                "iam", "IAM roles", "mxgraph.aws4/identity and access management", 4, 1
+                "acm", "ACM cert", "mxgraph.aws4/certificate manager", 1, 1, "Security"
             ),
-            Node("ctl", "Lifecycle Lambda", "mxgraph.aws4/lambda", 4, 2),
-            Node("sch", "Scheduler", "mxgraph.aws4/cloudwatch", 4, 3),
+            Node("cf", "CloudFront", "mxgraph.aws4/cloudfront", 1, 2, "Networking"),
+            Node("edge", "Lambda@Edge auth", "mxgraph.aws4/lambda", 1, 3, "Security"),
+            Node("s3", "S3 SPA assets", "mxgraph.aws4/s3", 2, 0, "Storage"),
+            Node("vpc", "VPC", "mxgraph.aws4/vpc", 2, 1, "Networking"),
+            Node("ecs", "Fargate task", "mxgraph.aws4/fargate", 2, 2, "Compute"),
+            Node("sqs", "SQS queue", "mxgraph.aws4/sqs", 2, 3, "Integration"),
+            Node("ecr", "ECR", "mxgraph.aws4/ecr", 3, 0, "Operations"),
+            Node("ssm", "SSM Params", "mxgraph.aws4/systems manager", 3, 1, "Security"),
+            Node("logs", "CloudWatch", "mxgraph.aws4/cloudwatch", 3, 2, "Operations"),
+            Node("eb", "EventBridge", "mxgraph.aws4/eventbridge", 3, 3, "Integration"),
+            Node(
+                "iam",
+                "IAM roles",
+                "mxgraph.aws4/identity and access management",
+                4,
+                1,
+                "Security",
+            ),
+            Node("ctl", "Lifecycle Lambda", "mxgraph.aws4/lambda", 4, 2, "Compute"),
+            Node("sch", "Scheduler", "mxgraph.aws4/cloudwatch", 4, 3, "Integration"),
         ],
         edges=[
             ("browser", "cf", "https"),
@@ -364,6 +433,9 @@ def compose_architecture_svg(arch: Arch, stencils: dict[str, dict[str, Any]]) ->
         entry = stencils.get(n.icon)
         if entry is None:  # a typo must fail the BUILD, not render an empty box
             raise SystemExit(f"error: stencil not found: {n.icon!r}")
+        if n.category not in CATEGORIES:
+            raise SystemExit(f"error: unknown category {n.category!r} on {n.id!r}")
+        slot = CATEGORIES.index(n.category) + 1
         ew, eh = float(entry["w"]), float(entry["h"])
         scale = ICON / max(ew, eh)
         parts.append(
@@ -371,7 +443,8 @@ def compose_architecture_svg(arch: Arch, stencils: dict[str, dict[str, Any]]) ->
         )
         parts.append(
             f'<g transform="translate({cx - ew * scale / 2:.1f},{cy - eh * scale / 2:.1f}) '
-            f'scale({scale:.4f})" color="var(--sc-icon)">{entry["svg"]}</g>'
+            f'scale({scale:.4f})" color="var(--rd-cat-{slot}, var(--sc-icon))">'
+            f"{entry['svg']}</g>"
         )
         parts.append(
             f'<text x="{cx}" y="{cy + ICON / 2 + 16}" text-anchor="middle" font-size="11.5" '
@@ -391,9 +464,18 @@ def compose_architecture_svg(arch: Arch, stencils: dict[str, dict[str, Any]]) ->
 
 # ── Assembly ───────────────────────────────────────────────────────────────
 def _load_embeddings(path: Path) -> dict[str, Any]:
-    """Load a precomputed 3D embedding and attach a tooltip label per point."""
+    """Load a precomputed 3D embedding and attach a tooltip label per point.
+
+    The fixture's baked RGB colours are dropped: topics and clusters are
+    categories, so the page colours them from the brand's palette (ADR-023).
+    """
     data: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+    data.pop("clusterColors", None)
+    # `topics` maps name -> baked colour; keep only the names, in fixture order,
+    # which is the order the topics take palette slots.
+    data["topics"] = list(data.get("topics", {}))
     for p in data.get("points", []):
+        p.pop("color", None)
         text = p.get("text", "")
         p["label"] = (
             p.get("topic", "") + " · " + (text[:64] + ("…" if len(text) > 64 else ""))
@@ -406,6 +488,13 @@ def build_payload(themes: list[Theme], *, build_id: str) -> dict[str, object]:
     stencils = load_stencils(DEFAULT_ZIP)
     return {
         "buildId": build_id,
+        # The gallery opens on the skill's default brand (ADR-018), whose own
+        # defaultTheme then picks the mode. A gallery without it opens on the first.
+        "defaultBrand": (
+            DEFAULT_THEME
+            if any(t.name == DEFAULT_THEME for t in themes)
+            else themes[0].name
+        ),
         "cdn": {
             "cytoscape": CDN["cytoscape"],
             "dagre": CDN["dagre"],
@@ -416,6 +505,7 @@ def build_payload(themes: list[Theme], *, build_id: str) -> dict[str, object]:
             "maplibreCss": CDN["maplibreCss"],
             "duckdb": CDN["duckdb"],
         },
+        "categories": CATEGORIES,
         "embeddings": {
             "local": _load_embeddings(EMB_LOCAL),
             "global": _load_embeddings(EMB_GLOBAL),
@@ -464,6 +554,10 @@ def build_html(themes: list[Theme], *, build_id: str, single: bool) -> str:
         "{{THEME_IMPORTS}}": "\n".join(imports),
         "{{THEME_CSS}}": "\n".join(scoped),
         "{{SHOWCASE_CSS}}": SHOWCASE_CSS.read_text(encoding="utf-8"),
+        "{{VIEWER_TOC_CSS}}": VIEWER_TOC_CSS.read_text(encoding="utf-8"),
+        "{{VIEWER_TOC_JS}}": VIEWER_TOC_JS.read_text(encoding="utf-8"),
+        "{{VIEWER_ZOOM_CSS}}": VIEWER_ZOOM_CSS.read_text(encoding="utf-8"),
+        "{{VIEWER_ZOOM_JS}}": VIEWER_ZOOM_JS.read_text(encoding="utf-8"),
         "{{SHOWCASE_JS}}": SHOWCASE_JS.read_text(encoding="utf-8"),
         "{{VIEWER_CYTOSCAPE_JS}}": VIEWER_CYTOSCAPE_JS.read_text(encoding="utf-8"),
         "{{VIEWER_DECKGL_JS}}": VIEWER_DECKGL_JS.read_text(encoding="utf-8"),
@@ -504,7 +598,7 @@ def main(args: argparse.Namespace) -> None:
         themes = [load_theme(args.theme)]
         stem = f"showcase-{args.theme}"
     else:
-        names = available_themes()
+        names = gallery_order(available_themes())
         if not names:
             print(f"error: no themes installed under {THEMES_DIR}", file=sys.stderr)
             raise SystemExit(1)

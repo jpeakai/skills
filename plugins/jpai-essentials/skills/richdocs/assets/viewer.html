@@ -22,6 +22,10 @@
   })();
 </script>
 <style>{{VIEWER_CSS}}</style>
+<!-- Sidebar and section folds, shared verbatim with the showcase (ADR-022). -->
+<style>{{VIEWER_TOC_CSS}}</style>
+<!-- Full-screen diagrams with deep zoom, shared with the showcase (ADR-024). -->
+<style>{{VIEWER_ZOOM_CSS}}</style>
 <!-- Per-brand overrides: webfont @imports, display face, chrome refinements.
      Comes AFTER viewer.css so a theme can override anything it needs. Empty
      when no --theme is selected. -->
@@ -50,9 +54,13 @@
 <script>
 {{VIEWER_CYTOSCAPE_JS}}
 </script>
-<!-- Likewise rdInitToc(), the heading sidebar (ADR-021). -->
+<!-- Likewise rdInitToc(), the heading sidebar and section folds (ADR-021, ADR-022). -->
 <script>
 {{VIEWER_TOC_JS}}
+</script>
+<!-- Likewise rdInitZoom(), full-screen diagrams with deep zoom (ADR-024). -->
+<script>
+{{VIEWER_ZOOM_JS}}
 </script>
 <!-- Likewise rdRenderDeckGL(): hoisted before the renderer that calls it. -->
 <script>

@@ -69,6 +69,17 @@ def test_invisible_chart_series_is_caught() -> None:
     assert any("series 1" in f for f in failures)
 
 
+def test_a_second_category_palette_is_rejected() -> None:
+    """Categories take slots of the one categorical palette (ADR-023)."""
+    pack = json.loads(
+        (themecheck.THEMES_DIR / "v2ai" / "design-tokens.json").read_text("utf-8")
+    )
+    assert themecheck.check_theme("v2ai", pack) == []
+    pack["categoryColours"] = {"Compute": "#ED7100"}
+    failures = themecheck.check_theme("x", pack)
+    assert any("categoryColours" in f for f in failures)
+
+
 def test_series_contrast_waiver_is_honoured_but_cvd_is_not() -> None:
     """A documented `waivers.seriesContrast` skips ONLY mark-contrast, ONLY for the
     primary series. CVD adjacency is never waivable — colour-never-alone reinforces a

@@ -103,7 +103,7 @@ def test_unknown_stencil_crashes_the_build() -> None:
     bad = showcase.Arch(
         title="x",
         caption="",
-        nodes=[showcase.Node("n", "n", "nope/nope", 0, 0)],
+        nodes=[showcase.Node("n", "n", "nope/nope", 0, 0, "Compute")],
         edges=[],
     )
     with pytest.raises(SystemExit, match="stencil not found"):
@@ -169,6 +169,82 @@ def test_showcase_js_has_no_template_placeholders() -> None:
     """ADR-008 applies to the showcase assets too."""
     assert "{{" not in showcase.SHOWCASE_JS.read_text(encoding="utf-8")
     assert "{{" not in showcase.SHOWCASE_CSS.read_text(encoding="utf-8")
+
+
+def test_gallery_order_puts_the_listed_brands_first() -> None:
+    assert showcase.gallery_order(
+        ["freshgreens", "locomotif", "osakanights", "v2ai"]
+    ) == [
+        "osakanights",
+        "v2ai",
+        "freshgreens",
+        "locomotif",
+    ]
+    # Unlisted brands follow A-Z; listed brands that are absent are skipped.
+    assert showcase.gallery_order(["zeta", "v2ai", "acme"]) == ["v2ai", "acme", "zeta"]
+
+
+def test_gallery_opens_on_the_default_brand() -> None:
+    """osakanights (dark-native) first, whatever the alphabetical order (ADR-018)."""
+    themes = [md2html.load_theme(n) for n in md2html.available_themes()]
+    assert (
+        showcase.build_payload(themes, build_id="B")["defaultBrand"]
+        == md2html.DEFAULT_THEME
+    )
+    others = [t for t in themes if t.name != md2html.DEFAULT_THEME]
+    assert (
+        showcase.build_payload(others, build_id="B")["defaultBrand"] == others[0].name
+    )
+
+
+def test_every_architecture_node_takes_a_palette_slot() -> None:
+    """draw.io icons are tinted by category slot, and an unknown category fails the build."""
+    stencils = showcase.load_stencils(showcase.DEFAULT_ZIP)
+    arch = showcase.ARCHITECTURES[0]
+    assert len(showcase.CATEGORIES) <= 8  # one slot each in an eight-colour palette
+    svg = showcase.compose_architecture_svg(arch, stencils)
+    for n in arch.nodes:
+        slot = showcase.CATEGORIES.index(n.category) + 1
+        assert f"var(--rd-cat-{slot}" in svg
+    bad = showcase.Arch(
+        arch.title,
+        arch.caption,
+        [showcase.Node("x", "X", arch.nodes[0].icon, 0, 0, "Nope")],
+        [],
+    )
+    with pytest.raises(SystemExit, match="unknown category"):
+        showcase.compose_architecture_svg(bad, stencils)
+
+
+def test_embeddings_drop_baked_colours() -> None:
+    """Topics and clusters are categories, coloured from the palette in the page."""
+    emb = showcase._load_embeddings(showcase.EMB_LOCAL)
+    assert "clusterColors" not in emb
+    assert all("color" not in p for p in emb["points"])
+    assert emb["topics"] == [
+        "cloud-infra",
+        "cooking",
+        "astronomy",
+        "finance",
+        "music-theory",
+        "marine-biology",
+    ]
+
+
+def test_showcase_reuses_the_viewer_sidebar_and_folds(tmp_path: Path) -> None:
+    """Same file as the doc viewer, so the two pages cannot drift (ADR-022)."""
+    name = md2html.available_themes()[0]
+    showcase.main(_args(tmp_path, theme=name))
+    html = (tmp_path / f"showcase-{name}.html").read_text(encoding="utf-8")
+    assert "function rdInitToc(" in html
+    assert ".rd-fold-body[hidden]" in html
+    assert '<nav id="rd-toc" aria-label="Contents">' in html
+    assert 'id="rd-toc-toggle"' in html
+    # Hoisted: defined before the showcase script that calls it.
+    assert html.index("function rdInitToc(") < html.index(
+        "rdInitToc(document.querySelector"
+    )
+    assert "{{" not in html
 
 
 def test_build_parser_defaults() -> None:

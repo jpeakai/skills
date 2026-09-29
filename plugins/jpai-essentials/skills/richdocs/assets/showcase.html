@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,6 +9,10 @@
      each brand's scoped block and emitted here. -->
 <style>{{THEME_IMPORTS}}</style>
 <style>{{SHOWCASE_CSS}}</style>
+<!-- The doc viewer's sidebar and section folds, verbatim (ADR-022). -->
+<style>{{VIEWER_TOC_CSS}}</style>
+<!-- The doc viewer's full-screen diagrams with deep zoom, verbatim (ADR-024). -->
+<style>{{VIEWER_ZOOM_CSS}}</style>
 <!-- Each brand's theme.css, confined to :root[data-brand="<name>"] so brands in a
      gallery cannot leak into one another. -->
 <style>{{THEME_CSS}}</style>
@@ -18,19 +22,23 @@
 <body>
 
 <div class="sc-bar">
+  <!-- Shown by viewer-toc.js; on a wide screen the sidebar's own rail takes over. -->
+  <button id="rd-toc-toggle" class="sc-toc-toggle" type="button" aria-controls="rd-toc" aria-expanded="false" hidden>Contents</button>
   <span class="sc-title" id="sc-title">{{TITLE}}</span>
   <div class="sc-seg" id="sc-brands" role="group" aria-label="Brand"></div>
   <div class="sc-seg" id="sc-modes" role="group" aria-label="Mode">
-    <button data-mode="light" aria-pressed="true">Light</button>
-    <button data-mode="dark" aria-pressed="false">Dark</button>
+    <button data-mode="light" aria-pressed="false">Light</button>
+    <button data-mode="dark" aria-pressed="true">Dark</button>
   </div>
 </div>
 
+<div class="rd-layout">
+<nav id="rd-toc" aria-label="Contents"></nav>
 <div class="wrap">
 
   <section>
     <div class="sc-eyebrow">Theme showcase</div>
-    <h2 id="sc-hero">—</h2>
+    <h2 id="sc-hero" data-rd-toc-label="Brand">—</h2>
     <p id="sc-blurb">Every surface a brand has to survive: colour, type, components,
       charts, graphs, and architecture diagrams. Flip the brand and the mode — nothing
       below is hardcoded.</p>
@@ -41,21 +49,21 @@
   </section>
 
   <section>
-    <div class="sc-eyebrow">Colour</div>
-    <h2>The palette, doing its job.</h2>
+    <div class="sc-eyebrow">Design tokens</div>
+    <h2>Colour Palette</h2>
     <h3>Theme surfaces</h3>
     <div class="sc-ramp" id="sc-theme-ramp"></div>
-    <h3>Chart series — the categorical order</h3>
-    <p style="font-size:.9rem">Assigned in fixed order, never cycled. Any prefix of the
-      sequence must stay separated.</p>
-    <div class="sc-ramp" id="sc-series-ramp"></div>
-    <h3>Category colours</h3>
-    <div class="sc-ramp" id="sc-cat-ramp"></div>
+    <h3>Categorical palette</h3>
+    <p style="font-size:.9rem">One palette for every categorical encoding: chart series,
+      and the categories in Cytoscape.js, Mermaid.js and draw.io diagrams. Slots are
+      assigned in fixed order and never cycled, so any prefix of the sequence stays
+      separated. A category is simply the next slot.</p>
+    <div class="sc-ramp" id="sc-categorical-ramp"></div>
   </section>
 
   <section>
-    <div class="sc-eyebrow">Typography</div>
-    <h2>Three faces, one voice.</h2>
+    <div class="sc-eyebrow">Display · body · mono</div>
+    <h2>Typography</h2>
 
     <div class="sc-gate">
       <div class="sc-eyebrow">The disambiguation gate — do these resolve without effort?</div>
@@ -92,16 +100,16 @@
   </section>
 
   <section>
-    <div class="sc-eyebrow">Components</div>
-    <h2>Chrome.</h2>
+    <div class="sc-eyebrow">Themed chrome</div>
+    <h2>Components</h2>
     <div class="sc-grid" style="margin-top:1.5rem">
       <div class="sc-card">
         <span class="sc-tag" style="color:var(--rd-accent)">Available</span>
-        <h3 style="margin-top:.8rem">A card</h3>
+        <h3 style="margin-top:.8rem">Card</h3>
         <p style="font-size:.9rem;margin:0">Surface, border, radius — all from the pack.</p>
       </div>
       <div class="sc-card">
-        <h3 style="margin-top:0">A table</h3>
+        <h3 style="margin-top:0">Table</h3>
         <table>
           <thead><tr><th>Service</th><th>Cost</th></tr></thead>
           <tbody>
@@ -111,7 +119,7 @@
         </table>
       </div>
       <div class="sc-card">
-        <h3 style="margin-top:0">A quote</h3>
+        <h3 style="margin-top:0">Quote</h3>
         <blockquote>The brandpack chooses the faces. The stylesheet loads them.</blockquote>
         <code>oklch(0.80 0.11 h)</code>
       </div>
@@ -119,21 +127,21 @@
   </section>
 
   <section>
-    <div class="sc-eyebrow">Data visualisation</div>
-    <h2>Charts wear the brand.</h2>
+    <div class="sc-eyebrow">Brand colourway</div>
+    <h2>Plotly.js - Charts</h2>
     <div class="sc-grid" style="grid-template-columns:repeat(auto-fit,minmax(340px,1fr))">
       <div class="sc-panel"><div class="sc-plot" id="sc-bar"></div></div>
       <div class="sc-panel"><div class="sc-plot" id="sc-line"></div></div>
     </div>
 
-    <h3>Muted — grey is the default, colour is the exception</h3>
+    <h3>Muted series</h3>
     <p style="font-size:.9rem">If everything is coloured, nothing is emphasised. Push every
       series to grey and let one keep its hue; the eye finds it before conscious reading.
       The greys sit below 3:1 by design, so the accented series is direct-labelled.</p>
     <div class="sc-ramp" id="sc-muted-ramp"></div>
     <div class="sc-panel"><div class="sc-plot" id="sc-highlight"></div></div>
 
-    <h3>Sequential — one hue, light to dark</h3>
+    <h3>Sequential scale</h3>
     <p style="font-size:.9rem">Magnitude. Lightness strictly monotone, so the steps can be
       ranked. Never a rainbow.</p>
     <div class="sc-ramp" id="sc-seq-ramp"></div>
@@ -141,8 +149,8 @@
   </section>
 
   <section>
-    <div class="sc-eyebrow">Diverging &amp; status</div>
-    <h2>Polarity, and the red-green trap.</h2>
+    <div class="sc-eyebrow">Colour-vision safety</div>
+    <h2>Diverging and Status Colours</h2>
     <p>Two poles, a <strong>neutral grey midpoint</strong> — never a hue at zero, or "no
       change" starts to look like a value. The poles must survive colourblindness, which
       is why <strong>green ↔ red is structurally impossible here</strong>: its poles collapse to
@@ -150,12 +158,12 @@
 
     <div id="sc-divs"></div>
 
-    <h3>The honest test — simulated deuteranopia</h3>
+    <h3>Deuteranopia simulation</h3>
     <p style="font-size:.9rem">The same scales rendered through the Machado-2009 matrix.
       This is what roughly 8% of men actually see.</p>
     <div id="sc-div-sims"></div>
 
-    <h3>Status — reserved, and never colour alone</h3>
+    <h3>Status colours</h3>
     <p style="font-size:.9rem">Status colours are <strong>never</strong> a chart series. If they were,
       a red bar and a red error would be the same thing. Each carries a label, because
       colour may never carry meaning by itself.</p>
@@ -165,31 +173,34 @@
   </section>
 
   <section>
-    <div class="sc-eyebrow">Graph</div>
-    <h2>Cytoscape.</h2>
+    <div class="sc-eyebrow">Dagre layout · compound nodes</div>
+    <h2>Cytoscape.js - Network Graphs</h2>
     <div class="sc-panel"><div class="sc-cy" id="sc-cy"></div></div>
   </section>
 
   <section>
-    <div class="sc-eyebrow">Mermaid diagram · dual density</div>
-    <h2>One system, two zoom levels.</h2>
+    <div class="sc-eyebrow">Dual density</div>
+    <h2>Mermaid.js</h2>
     <p style="font-size:.9rem">The same architecture as an at-a-glance overview and a
       detailed, clustered view. Dense diagrams are where layout, edge routing, and the
       themed palette are actually stress-tested — a five-box flow proves nothing.</p>
-    <h3>Overview</h3>
+    <h3>Overview flowchart</h3>
     <div class="sc-panel"><div class="sc-mermaid" id="sc-mermaid"></div></div>
-    <h3>Detail — subgraph clusters</h3>
+    <h3>Detail flowchart</h3>
     <div class="sc-panel"><div class="sc-mermaid" id="sc-mermaid-detail"></div></div>
   </section>
 
   <section>
-    <div class="sc-eyebrow">3D embeddings · UMAP point cloud</div>
-    <h2>Vector chunks in space.</h2>
+    <div class="sc-eyebrow">3D and geographic scenes</div>
+    <h2>Deck.GL</h2>
+    <p>One renderer, three kinds of scene: a point cloud of text embeddings, a colour
+      space, and a map. Each is the same block type with a different view.</p>
+    <h3>3D Embeddings</h3>
     <p>The 3D view is not only for colour spaces. Here 72 text chunks across six topics
       are embedded, then reduced to 3D with UMAP — the kind of view that makes a RAG
       corpus debuggable: a mis-embedded chunk lands in the wrong cloud. Drag to orbit;
-      hover a point for its chunk. The encoding colours are data, constant across themes;
-      only the canvas re-skins.</p>
+      hover a point for its chunk. Topics and clusters are categories, so they take the
+      brand's categorical palette slots, like every diagram on this page.</p>
     <div class="sc-emb-controls">
       <div class="sc-seg" role="group" aria-label="Point colour">
         <button data-emb-colour="topic" aria-pressed="true">Colour by topic</button>
@@ -198,24 +209,30 @@
       <span class="hint">Topic is the known label; cluster is what EVoC discovered from the
         vectors alone. Where they disagree, the embedding disagrees with the taxonomy.</span>
     </div>
-    <h3>Local structure — <code>n_neighbors = 5</code></h3>
+    <h4>Local structure (<code>n_neighbors = 5</code>)</h4>
     <p style="font-size:.9rem">Tight, well-separated pockets. Emphasises which chunks are
       near-duplicates of each other.</p>
     <div class="sc-panel"><div class="sc-deck" id="sc-emb-local"></div></div>
-    <h3>Global structure — <code>n_neighbors = 30</code></h3>
+    <h4>Global structure (<code>n_neighbors = 30</code>)</h4>
     <p style="font-size:.9rem">The same data, same transform, one knob turned: the coarse
       continent map, showing how topics sit relative to each other.</p>
     <div class="sc-panel"><div class="sc-deck" id="sc-emb-global"></div></div>
-    <h3>Compare two chunks — cosine distance</h3>
+    <h4>Cosine distance</h4>
     <p style="font-size:.9rem">Click any two points to read their cosine distance on the raw
       vectors (the true semantic distance, whichever projection you are looking at). Click a
       selected point again to drop it. Selected points wear a bright halo.</p>
     <div class="sc-emb-readout" id="sc-emb-readout"></div>
-  </section>
 
-  <section>
-    <div class="sc-eyebrow">Geographic · deck.gl + MapLibre</div>
-    <h2>A real dark basemap, no vendor key.</h2>
+    <h3>OKLCH Colour Space</h3>
+    <p>The brand's categorical palette, each slot placed by its colour alone: height is
+      lightness, distance from the grey pole is chroma, and the angle around it is hue.
+      A well-built categorical palette sits as a flat ring at one lightness. The ring
+      drawn at that lightness is the edge of what sRGB can show, so a slot pressed
+      against it has no chroma left to give. The sequential scale climbs the pole in
+      steady steps. Drag to orbit; hover a point for its L, C and H.</p>
+    <div class="sc-panel"><div class="sc-deck" id="sc-oklch"></div></div>
+
+    <h3>Maps</h3>
     <p>The map rides a <strong>vector dark basemap</strong> (CartoDB dark-matter via
       MapLibre GL) with deck.gl arcs on top — free and keyless, crisp at any zoom. Traffic
       arcs fan from the Melbourne hub to the other Australian capitals, coloured from the
@@ -224,8 +241,8 @@
   </section>
 
   <section>
-    <div class="sc-eyebrow">In-browser SQL · duckdb-wasm</div>
-    <h2>Query the data where it lives.</h2>
+    <div class="sc-eyebrow">WebAssembly analytics</div>
+    <h2>DuckDB-Wasm - In-Browser SQL</h2>
     <p>The DESIGN axis is only as strong as the DATA feeding it. Here an analytical SQL
       engine — DuckDB, compiled to WebAssembly — runs entirely in the browser: no server,
       no vendor key, no upload. Edit the query and run it; the result rows drive a themed
@@ -241,8 +258,8 @@
   </section>
 
   <section>
-    <div class="sc-eyebrow">Architecture — editable draw.io SVG</div>
-    <h2>Real stencils, still editable.</h2>
+    <div class="sc-eyebrow">Editable SVG stencils</div>
+    <h2>draw.io - Architecture Diagrams</h2>
     <p>Icons are the vendored draw.io stencil pack. Each SVG carries its own
       <code>mxfile</code> source in a <code>content</code> attribute, so it re-opens in
       diagrams.net as first-class AWS & GCP shapes — not a flattened picture. Download one and
@@ -251,6 +268,7 @@
   </section>
 
   <footer id="sc-footer">—</footer>
+</div>
 </div>
 
 <script type="application/json" id="sc-payload">{{PAYLOAD}}</script>
@@ -264,6 +282,13 @@ var SC_SINGLE = {{SINGLE}};
 </script>
 <script>
 {{VIEWER_DECKGL_JS}}
+</script>
+<!-- The doc viewer's sidebar and folds too: same file, so the two cannot drift. -->
+<script>
+{{VIEWER_TOC_JS}}
+</script>
+<script>
+{{VIEWER_ZOOM_JS}}
 </script>
 <script>
 {{SHOWCASE_JS}}

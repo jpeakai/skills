@@ -296,51 +296,12 @@ loadTokens().then(function (tokens) {
   showError(document.getElementById("rd-article"), err);
 });
 
-/* --- Diagram lightbox ---------------------------------------------------------
- * Click any diagram in the article (raster <img>, inline/object <svg>, or a
- * rendered mermaid svg) to expand it into a near-fullscreen overlay; click the
- * overlay (or press Escape) to dismiss. Canvas-based rich blocks (cytoscape,
- * plotly, deck.gl) are excluded — they are interactive surfaces, not pictures.
- * Delegated from document so it survives every re-render/retheme.
- */
-(function () {
-  function dismiss() {
-    var box = document.querySelector(".rd-lightbox");
-    if (box) { box.remove(); }
-    document.body.classList.remove("rd-lightbox-open");
-  }
-
-  function expand(node) {
-    dismiss();
-    var box = document.createElement("div");
-    box.className = "rd-lightbox";
-    box.setAttribute("role", "dialog");
-    box.setAttribute("aria-label", "Expanded diagram");
-    var clone = node.cloneNode(true);
-    // A mermaid svg carries a fixed pixel width; clear it so the viewBox scales.
-    if (clone.tagName && clone.tagName.toLowerCase() === "svg") {
-      clone.removeAttribute("width");
-      clone.removeAttribute("height");
-      if (clone.style) { clone.style.maxWidth = ""; }
-    }
-    box.appendChild(clone);
-    box.addEventListener("click", dismiss);
-    document.body.appendChild(box);
-    document.body.classList.add("rd-lightbox-open");
-  }
-
-  document.addEventListener("click", function (e) {
-    if (e.target.closest(".rd-lightbox")) { return; } // handled by the overlay itself
-    var hit = e.target.closest("#rd-article img, #rd-article svg");
-    if (!hit) { return; }
-    // Every fenced rich block sits in .rd-canvas — including mermaid, whose svg IS
-    // a picture we want expandable. Exclude only the genuinely interactive kinds.
-    if (hit.closest(".rd-cytoscape, .rd-plotly, .rd-deckgl")) { return; }
-    e.preventDefault();
-    expand(hit);
-  });
-
-  document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") { dismiss(); }
-  });
-})();
+// ── Full-screen diagrams with deep zoom (viewer-zoom.js, ADR-024) ──────────
+// Any picture in the article opens full screen on click: an img, an inline svg,
+// a rendered mermaid diagram. Plotly and deck.gl are interactive surfaces with
+// their own zoom, so their SVGs are excluded. A Cytoscape.js graph opens from its
+// own "Full screen" button. Delegated from document, so it survives re-renders.
+rdInitZoom({
+  pictures: "#rd-article img, #rd-article svg",
+  exclude: ".rd-plotly, .rd-deckgl, .rd-cytoscape"
+});

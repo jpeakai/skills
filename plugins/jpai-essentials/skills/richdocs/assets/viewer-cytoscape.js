@@ -41,6 +41,45 @@ function rdCyPalette(tokens, theme) {
   };
 }
 
+// ── The categorical palette (ADR-023) ───────────────────────────────────────
+// A brand has ONE categorical palette: `canvas.plotly.<mode>.series`. It colours
+// chart series AND the categories of every diagram (Cytoscape.js compounds,
+// Mermaid subgraphs, draw.io icons). There is no separate "category colour" map:
+// a category is simply the next slot of the palette.
+//
+// Slots are assigned in a FIXED order and never cycled. The order is the list a
+// page or block declares, else first appearance. A category past the last slot
+// gets no colour at all: two categories sharing a hue would claim to be one.
+function rdCategorical(tokens, theme) {
+  var p = tokens.canvas && tokens.canvas.plotly && tokens.canvas.plotly[theme];
+  return (p && p.series) || [];
+}
+
+// category name -> slot index, from an ordered list of names (duplicates ignored).
+function rdCategorySlots(names) {
+  var slots = {};
+  var n = 0;
+  (names || []).forEach(function (name) {
+    if (name && !Object.prototype.hasOwnProperty.call(slots, name)) { slots[name] = n++; }
+  });
+  return slots;
+}
+
+// The colour a category wears in this brand and mode, or null past the palette.
+function rdCategoryColour(tokens, theme, slots, name) {
+  var palette = rdCategorical(tokens, theme);
+  var i = Object.prototype.hasOwnProperty.call(slots, name) ? slots[name] : -1;
+  return i >= 0 && i < palette.length ? palette[i] : null;
+}
+
+// Categories in element order, for a block that does not declare `categories`.
+function rdCyCategories(payload) {
+  if (payload.categories) { return payload.categories; }
+  var els = payload.elements || [];
+  if (!Array.isArray(els)) { els = (els.nodes || []).concat(els.edges || []); }
+  return els.map(function (e) { return e && e.data && e.data.category; }).filter(Boolean);
+}
+
 // Blend two hex colours. Used to turn a saturated CATEGORY colour into a subtle
 // theme-appropriate TINT for a compound's fill — so the compound reads as its
 // category (hue + border) while its label stays the theme's contrast-safe text
@@ -54,12 +93,12 @@ function rdMix(a, b, t) {
   }).join("");
 }
 
-function rdCyStyle(tokens, theme) {
+function rdCyStyle(tokens, theme, slots) {
   var p = rdCyPalette(tokens, theme);
-  var cats = tokens.categoryColours || {};
   var bg = (tokens.themes && tokens.themes[theme] && tokens.themes[theme].bg) || (theme === "dark" ? "#111111" : "#ffffff");
-  function catTint(cat) { return cats[cat] ? rdMix(cats[cat], bg, 0.84) : p.compoundBg; }
-  function catBorder(cat) { return cats[cat] || p.compoundBorder; }
+  function colour(cat) { return rdCategoryColour(tokens, theme, slots || {}, cat); }
+  function catTint(cat) { var c = colour(cat); return c ? rdMix(c, bg, 0.84) : p.compoundBg; }
+  function catBorder(cat) { return colour(cat) || p.compoundBorder; }
   return [
     // Labels sit INSIDE the node. The old style floated them underneath, which
     // collided with edges and made dense graphs unreadable.
@@ -117,7 +156,7 @@ function rdCyStyle(tokens, theme) {
     },
 
     // A compound may carry `data(category)`: it is then tinted by that category's
-    // hue with a saturated matching border, while its label keeps the theme's
+    // palette slot with a saturated matching border, while its label keeps the theme's
     // contrast-safe text colour. Different categories → different hues, every label
     // readable in both themes.
     {
@@ -188,17 +227,33 @@ function rdRenderCytoscape(block, tokens, theme) {
 
   if (block.cy) block.cy.destroy();
 
+  var style = rdCyStyle(tokens, theme, rdCategorySlots(rdCyCategories(payload)));
   block.cy = window.cytoscape({
     container: el,
     elements: payload.elements,
     layout: rdCyLayout(payload),
-    style: rdCyStyle(tokens, theme),
-    // A doc is for reading, not for fighting a viewport. Zoom is available, but
-    // the graph must never be *dragged away* by an accidental scroll.
+    style: style,
+    // A doc is for reading, not for fighting a viewport: a plain wheel scrolls the
+    // page. Ctrl/Cmd + wheel zooms in place, and "Full screen" opens a copy that
+    // zooms freely (viewer-zoom.js, ADR-024).
     autoungrabify: false,
     userZoomingEnabled: false,
     boxSelectionEnabled: false
   });
+
+  // What viewer-zoom.js needs to zoom this graph and open a copy of it. The style
+  // cannot be read back from the instance: its category colours are functions.
+  el.__rdCy = block.cy;
+  el.__rdCyStyle = style;
+  el.__rdCyFit = undefined;
+  if (!el.querySelector(".rd-zoom-expand")) {
+    var expand = document.createElement("button");
+    expand.type = "button";
+    expand.className = "rd-zoom-expand";
+    expand.textContent = "Full screen";
+    expand.setAttribute("aria-label", "Open this graph full screen");
+    el.appendChild(expand);
+  }
 
   block.cy.on("mouseover", "node", function (e) {
     e.target.addClass("rd-hover");
@@ -210,5 +265,6 @@ function rdRenderCytoscape(block, tokens, theme) {
   });
 
   block.cy.fit(undefined, 20);
+  el.__rdCyFit = block.cy.zoom();
   return block.cy;
 }

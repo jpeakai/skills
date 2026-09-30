@@ -1,20 +1,37 @@
 ---
 name: richdocs
-description: "Generate and serve rich HTML companions to markdown discovery documents: paired markdown→HTML rendering (marked + mermaid + data-driven cytoscape/plotly fenced blocks), a vendored draw.io stencil library (~AWS/GCP/Azure/K8s SVG icons) for composing custom architecture diagrams, an injectable design-tokens brandpack, and a reliable localhost server for HTML that pulls pinned CDN libraries. Use when turning a review/architecture/cost markdown doc into an interactive HTML view, when a diagram needs real cloud provider icons, when serving local HTML that file:// breaks, or when building a data-driven graph/chart view. Skip when the deliverable is plain mermaid-in-markdown authoring with no HTML companion, or a Python-rendered architecture diagram image."
-argument-hint: "[markdown-file | stencil-search-term]"
+description: "Create code-backed discovery or systems-view architecture documents from repositories and source documents in Markdown, live HTML, or inline HTML. Also render existing Markdown as rich HTML with Mermaid, charts, and cloud stencils. Use for /richdocs discovery, systems view, or HTML companions."
+argument-hint: "[md|html+live|html+inline] [discovery|systems view] [repositories and documents] | [markdown-file]"
 user-invocable: true
 ---
 
-# richdocs — rich HTML companions for discovery docs
+# richdocs — architecture discovery and rich HTML companions
 
 Markdown stays the source of truth. This skill generates an HTML *companion*
 that renders the same `.md` with higher fidelity — interactive graphs, tinted
 provider icons, branded theming — and serves it reliably on localhost.
 
+It can also author a new, source-backed **discovery** document (alias:
+**systems view**) before rendering. Read `resources/discovery.md` for that
+document type. The three output modes share the same research and Markdown
+source:
+
+| Invocation | Deliverable |
+|------------|-------------|
+| `/richdocs md discovery <repositories and documents>` | Authored `.md` with editable diagrams |
+| `/richdocs html+live discovery <repositories and documents>` | Authored `.md` and live multi-file HTML, served locally |
+| `/richdocs html+inline discovery <repositories and documents>` | Authored `.md` and self-contained HTML |
+
+Accept `systems view` in place of `discovery` in all three forms. Parse the
+remaining arguments as sources to explore, including Git repositories and
+Confluence pages. A request to render an existing Markdown file still follows
+the conversion routes below.
+
 ## Route by intent
 
 | Intent | Do this |
 |--------|---------|
+| "Create a discovery / systems view" | read `resources/discovery.md`; research the named sources, author Markdown, then render according to `md`, `html+live`, or `html+inline` |
 | "Make an HTML version of DOC.md" | `md2html.py DOC.md` then `serve.py` (multi-file, live-editable) |
 | "One file I can open / attach" | `md2html.py DOC.md --inline` (self-contained, opens over `file://`) |
 | "I need an AWS/GCP/Azure/K8s icon" | `stencil.py search TERM` → `stencil.py extract ID --color HEX` |
@@ -29,7 +46,7 @@ provider icons, branded theming — and serves it reliably on localhost.
 | "Add a new brand theme" | `resources/themes/<name>/design-tokens.json` (+ optional `theme.css`) |
 | "Is this theme readable?" | `themecheck.py` — contrast gate over every brandpack; part of `make ci` |
 | "Show off / compare the themes" | `showcase.py` → gallery of all brands; `showcase.py --theme NAME` → that brand alone |
-| "Upgrade one of this repo's root docs" | read `resources/discovery-docs.md` (per-archetype recipes) |
+| "Upgrade an existing doc" | read `resources/upgrade-recipes.md` (per-archetype recipes) |
 
 ## Quickstart
 
@@ -233,7 +250,8 @@ Beyond standard markdown + ` ```mermaid `, the HTML companion renders:
 | `resources/serving.md` | Localhost serving contract, pinned CDN table (Tailwind, fonts, cytoscape, deck.gl, plotly, mermaid), `file://` vs `http://` failure modes |
 | `resources/stencil-library.md` | Stencil pack schema, tint mechanism, registry pattern, composing full custom SVG diagrams from icons |
 | `resources/rich-blocks.md` | Fenced block contract, design-tokens schema, two-palette (chrome vs canvas) theming |
-| `resources/discovery-docs.md` | Recipes for upgrading each discovery-doc archetype (diagram-driven, table-driven, prose review) to rich HTML |
+| `resources/discovery.md` | Source-backed systems discovery document type and output modes |
+| `resources/upgrade-recipes.md` | Recipes for upgrading existing diagram, table, and prose documents to rich HTML |
 | `resources/prose-style.md` | Global-audience standard for prose this skill authors: no em-dash, Australian English, short clauses, inclusive language, standardised vocabulary (self-contained copy) |
 | `scripts/serve.py` | No-store localhost server |
 | `scripts/stencil.py` | Stencil library query/extract CLI |

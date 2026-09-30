@@ -85,4 +85,4 @@ distinct ports, or point one server at a parent dir and browse subpaths.
 `serve.py` is deliberately minimal: static files + no-store, nothing else.
 A document that needs routing, multi-page navigation, or an `--archive` bundle has
 outgrown the companion — build it as a standalone SPA sub-project (rung 4 of
-the fidelity ladder in `discovery-docs.md`), not by extending this server.
+the fidelity ladder in `upgrade-recipes.md`), not by extending this server.

@@ -51,8 +51,16 @@ flowchart LR
 **In Claude:**
 
 ```
+/richdocs html+inline discovery repo-a repo-b https://docs.example.org/system
 /richdocs TARGET_ARCHITECTURE.md
 ```
+
+Use `md`, `html+live`, or `html+inline` with `discovery` (alias `systems view`)
+to research repositories and source documents, then author a systems guide.
+The Markdown remains editable in every mode. See
+[`resources/discovery.md`](resources/discovery.md) for the document type;
+[`resources/upgrade-recipes.md`](resources/upgrade-recipes.md) covers existing
+documents.
 
 **Direct scripts (from repo root, never `cd`):**
 
@@ -77,7 +85,7 @@ open tmp/richdocs/REVIEW.html
 | `scripts/stencil.py` | Query/extract tinted SVG icons from the vendored draw.io packs |
 | `assets/stencils.json.zip` | AWS/GCP/Azure/K8s icon library (`assets/NOTICE` for provenance) |
 | `assets/design-tokens.json` | Default neutral brandpack — edit the copy in the output dir to re-skin |
-| `resources/*.md` | Deep dives: serving, stencils, rich blocks, discovery-doc recipes |
+| `resources/*.md` | Deep dives: discovery, existing-document upgrades, serving, stencils, rich blocks |
 
 A document with three or more headings gets a contents sidebar, built from its
 headings on every render, with a stable anchor per heading. The sidebar collapses

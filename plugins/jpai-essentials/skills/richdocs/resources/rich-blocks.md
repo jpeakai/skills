@@ -42,7 +42,7 @@ section in `SKILL.md`.
 - Node tap → detail is intentionally not in the packaged viewer; when a doc
   needs routing/detail panels, it has outgrown the companion — build it as a
   standalone SPA sub-project (rung 4 of the fidelity ladder in
-  `discovery-docs.md`).
+  `upgrade-recipes.md`).
 
 ### ` ```plotly `
 

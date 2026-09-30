@@ -28,7 +28,7 @@ them, and say so in their Status line. Read both files before changing anything.
 - **Decision:** `richdocs` ships runnable, generic tools; its resources cover only
   what's new (stencil pack, block contract, serving, recipes). A doc that outgrows the
   companion (routing, sidebar, views) graduates to a full SPA build — see the fidelity
-  ladder in `discovery-docs.md`.
+  ladder in `upgrade-recipes.md`.
 - **Lens:** before adding a feature to `md2html.py`'s template, ask "is this rung 4?"
   — if yes, it belongs in a standalone SPA project, not here.
 
@@ -272,4 +272,3 @@ them, and say so in their Status line. Read both files before changing anything.
   vendor a wholesale copy into `vendor/` — never link to, invoke, or
   instruct the agent to read a sibling skill's files. Self-containment
   outranks the never-duplicate rule for anything richdocs *operates with*.
-

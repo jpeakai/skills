@@ -18,7 +18,8 @@ make -C .claude/skills/richdocs/scripts ci    # gate: must exit 0 before handoff
 | `resources/serving.md` | `file://` failure mode, no-store contract, pinned CDN table |
 | `resources/stencil-library.md` | pack schema, tint mechanism, compose pattern, refresh procedure |
 | `resources/rich-blocks.md` | fenced block contract, design-tokens schema, two-palette theming |
-| `resources/discovery-docs.md` | per-archetype upgrade recipes, fidelity ladder |
+| `resources/discovery.md` | source-backed systems discovery document type |
+| `resources/upgrade-recipes.md` | per-archetype upgrade recipes, fidelity ladder |
 | `resources/prose-style.md` | global-audience standard for **authored** prose (no em-dash, Australian English, short clauses, inclusive language, standard vocabulary); self-contained copy (ADR-015) |
 | `scripts/serve.py` | no-store localhost server (stdlib) |
 | `scripts/stencil.py` | stencil query/extract CLI (stdlib, in-memory zip load) |
@@ -188,7 +189,7 @@ invariant (`.claude/rules/claude_skills/index.md`); it is one log, just split ou
 
 - [ ] New fenced block type: add lazy loader + renderer in **`assets/viewer.js`**,
       token sub-palette if themable, contract section in `rich-blocks.md`,
-      degradation behaviour on GitHub noted in `discovery-docs.md`.
+      degradation behaviour on GitHub noted in `upgrade-recipes.md`.
 - [ ] New stencil pack: re-vendor zip per `stencil-library.md`, smoke-test
       `packs`/`extract`, update NOTICE if provenance changed.
 - [ ] Any `assets/viewer.*` change: run all three block types + theme flip in a

@@ -14,8 +14,9 @@ authors**:
 - text the skill generates (showcase labels and copy, section intros it writes);
 - UI and error strings emitted by the scripts;
 - this skill's own docs (`SKILL.md`, `README.md`, `resources/*`);
-- prose richdocs writes when it **upgrades** a discovery doc under an author's
-  explicit instruction (see `discovery-docs.md`), where a rewrite is in scope.
+- prose richdocs writes for a new discovery guide (see `discovery.md`) or when
+  it upgrades an existing document under an author's explicit instruction
+  (see `upgrade-recipes.md`).
 
 If the user's canonical markdown breaks a rule below, that is the user's prose to
 keep. Render it as written; do not silently correct it.

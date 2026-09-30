@@ -1,21 +1,20 @@
-# Upgrading Discovery Docs to Rich HTML
+# Upgrading Existing Documents to Rich HTML
 
-Recipes for turning this repo's root `*.md` discovery documents (and docs
-like them) into high-fidelity HTML companions. The markdown stays canonical
+Recipes for turning existing Markdown documents into HTML companions. The markdown stays canonical
 and committed; the HTML companion is generated into `tmp/richdocs/`, served
 locally, and regenerated at will.
 
-## The three archetypes (from this repo's root docs)
+## The three archetypes
 
 | Archetype | Examples here | Dominant elements | Rich-HTML win |
 |-----------|---------------|-------------------|---------------|
-| Diagram-driven architecture | `ARCHITECTURE.md`, `TARGET_ARCHITECTURE.md`, `PLATFORM_SOLUTIONS.md` | 4-5 mermaid flowcharts with classDef palettes | interactive cytoscape twin of the key diagram; provider icons |
-| Table-driven analysis | `COST_MODEL.md`, `IAP_ON_AWS.md`, `PRIOR_ART.md` | 16-35 table rows, cited rates | plotly charts fed by data files; sortable-feel wide-table scroll |
+| Diagram-driven architecture | `ARCHITECTURE.md` | Mermaid flowcharts | interactive cytoscape twin of a key diagram; provider icons |
+| Table-driven analysis | `COST_MODEL.md` | tables with cited rates | plotly charts fed by data files; wide-table scroll |
 | Prose review | `REVIEW.md` | narrative verdicts, blockquotes | typography + theme only — resist adding charts to prose |
 
 ## Recipe: diagram-driven docs
 
-1. Render as-is first: `md2html.py TARGET_ARCHITECTURE.md` + `serve.py`.
+1. Render as-is first: `md2html.py ARCHITECTURE.md` + `serve.py`.
    Mermaid blocks already upgrade to theme-aware interactive renders — often
    this alone is the deliverable.
 2. For the **one** load-bearing diagram, add a cytoscape twin as a fenced

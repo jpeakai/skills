@@ -1,0 +1,15 @@
+/* Gandalf typography and navigation treatment. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+body { font-family: Inter, system-ui, sans-serif; }
+main h1, main h2, main h3, main h4 {
+  font-family: Inter, system-ui, sans-serif;
+  letter-spacing: -0.025em;
+  font-weight: 700;
+}
+main h2 {
+  border-bottom: 1px solid var(--rd-border);
+  padding-bottom: 0.35rem;
+}
+main { max-width: 78rem; }
+main p, main li { line-height: 1.6; }

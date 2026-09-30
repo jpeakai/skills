@@ -173,9 +173,10 @@ def test_showcase_js_has_no_template_placeholders() -> None:
 
 def test_gallery_order_puts_the_listed_brands_first() -> None:
     assert showcase.gallery_order(
-        ["freshgreens", "locomotif", "osakanights", "v2ai"]
+        ["freshgreens", "gandalf", "locomotif", "osakanights", "v2ai"]
     ) == [
         "osakanights",
+        "gandalf",
         "v2ai",
         "freshgreens",
         "locomotif",

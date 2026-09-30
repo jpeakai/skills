@@ -93,7 +93,13 @@ class Arch:
 
 # The gallery's brand switcher order. Brands not listed (a new built-in, or a
 # project-only theme) follow alphabetically, so nothing installed is ever hidden.
-GALLERY_ORDER: list[str] = ["osakanights", "v2ai", "freshgreens", "locomotif"]
+GALLERY_ORDER: list[str] = [
+    "osakanights",
+    "gandalf",
+    "v2ai",
+    "freshgreens",
+    "locomotif",
+]
 
 
 def gallery_order(names: list[str]) -> list[str]:

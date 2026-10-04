@@ -121,6 +121,8 @@ uv run --no-project .claude/skills/richdocs/scripts/showcase.py --theme osakanig
   can actually be `@import`ed and a display face assigned to headings. A brandpack
   alone cannot do either. Overrides `--tokens`. An unknown name fails loudly and
   lists what is installed. Run `--help` to see the current set.
+  - **`fernline`** pairs deep green and lime accents with Montserrat headings and
+    Source Serif 4 body copy. It defaults to light mode and includes a dark palette.
   - **Default theme is `osakanights`** — a plain `md2html.py DOC.md` renders branded,
     not neutral. Pass `--theme NAME` for a different brand, or `--tokens FILE` (with no
     `--theme`) for the raw-brandpack escape hatch.

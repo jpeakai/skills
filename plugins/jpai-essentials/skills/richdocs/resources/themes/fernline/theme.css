@@ -1,0 +1,26 @@
+/* Fernline typography and green accents for Richdocs. */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Source+Serif+4:wght@400;600;700&display=swap');
+
+header.rd-header,
+#rd-toc {
+  font-family: var(--rd-font-display);
+}
+
+article h1 {
+  font-family: var(--rd-font-display);
+  font-weight: 700;
+  letter-spacing: 0.015em;
+  border-left: 6px solid #00e862;
+  padding-left: 0.8rem;
+}
+
+article h2,
+article h3,
+article h4 {
+  font-family: var(--rd-font-body);
+  font-weight: 700;
+}
+
+article blockquote {
+  border-left: 4px solid var(--rd-accent);
+}

@@ -309,7 +309,6 @@ def environment(by_id: dict[str, Record]) -> Environment:
         autoescape=False,
     )
     env.filters["yamlq"] = yamlq
-    env.filters["blockquote"] = lambda s: s.replace("\n", "\n> ")
     env.filters["relation_prose"] = lambda r: PROSE[r]
     env.filters["record_link"] = lambda i: f"{i.split('-')[-1]}-{by_id[i]['slug']}.md"
     return env

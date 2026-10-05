@@ -19,8 +19,6 @@ generated: { by: {{ author }}, at: {{ rec.last_changed_on }}T00:00:00Z }
 ---
 
 <!-- GENERATED from {{ rec.id }} by okf_render.py. Do not edit; edit the .yml and regenerate. -->
-
-> **Lens**: {{ rec.lens | blockquote }}
 {% if rec.relates_to %}
 
 ## Relates to
@@ -31,30 +29,25 @@ generated: { by: {{ author }}, at: {{ rec.last_changed_on }}T00:00:00Z }
 {% endfor %}
 {% endif %}
 
-## Problem
-
-### Symptom
-
-{{ rec.problem.symptom }}
-
-### Pain point
-
-{{ rec.problem.pain_point }}
-
 ## Decision
 
 ### The lens
 
-- **Given**: {{ rec.decision.given }}
-- **We prefer**: {{ rec.decision.we_prefer }}
-- **Because**: {{ rec.decision.because }}
-- **Unless**: {{ rec.decision.unless }}
+#### Given
 
-### In practice
+{{ rec.decision.given }}
 
-{% for item in rec.decision.in_practice %}
-- {{ item }}
-{% endfor %}
+#### We prefer
+
+{{ rec.decision.we_prefer }}
+
+#### Because
+
+{{ rec.decision.because }}
+
+#### Unless
+
+{{ rec.decision.unless }}
 
 ## Consequences
 

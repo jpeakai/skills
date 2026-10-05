@@ -9,7 +9,8 @@
 
 ## Decisional Balance
 
-- Given a `Value System`, we apply that filter (aka `Lens`) into sorting whether that thing is a `Pro` or a `Con`, whether it is a `Benefit` or a `Cost`.
+- Given a `Value System`, we apply that filter (aka `Lens`) to sort each thing.
+  Is it a `Pro` or a `Con`? Is it a `Benefit` or a `Cost`?
 - This sorting of Pros vs Cons is called `Decisional Balance`.
 - An ADR is intended to capture this `Lens` of how to sort information through our `Value System`.
 

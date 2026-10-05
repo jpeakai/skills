@@ -228,7 +228,7 @@ def test_graph_html_escapes_a_script_close_in_record_prose(bundle: Path) -> None
     # Injected into the body, not the frontmatter: the frontmatter is stripped
     # before inlining, so a field there would never reach the data block.
     rec = first_record(bundle)
-    rec["problem"]["symptom"] = "A payload containing </script> reaches the renderer intact."
+    rec["decision"]["given"] = "a payload containing </script> reaches the renderer intact"
     write(bundle, "0001-validate-at-the-boundary.yml", rec)
     okf_render.render(bundle)
     html = (bundle / "graph.html").read_text(encoding="utf-8")
@@ -284,6 +284,14 @@ def test_generated_markdown_is_okf_conformant(bundle: Path) -> None:
     frontmatter = yaml.safe_load(text.split("---\n")[1])
     assert frontmatter["type"] == "Architecture Decision"
     assert frontmatter["title"]
+
+
+def test_the_graph_view_is_okf_conformant(bundle: Path) -> None:
+    """graph.md is not a reserved name, so OKF requires it to carry a typed frontmatter."""
+    okf_render.render(bundle)
+    text = (bundle / "graph.md").read_text()
+    assert text.startswith("---\n")
+    assert yaml.safe_load(text.split("---\n")[1])["type"]
 
 
 def test_reserved_index_carries_no_frontmatter(bundle: Path) -> None:

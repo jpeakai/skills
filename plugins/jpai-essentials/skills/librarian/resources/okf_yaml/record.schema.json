@@ -7,8 +7,8 @@
   "additionalProperties": false,
   "required": [
     "id", "slug", "title", "description", "status", "accepted_on",
-    "last_changed_on", "tags", "lens", "provenance", "enforced_in", "relates_to",
-    "problem", "decision", "consequences"
+    "last_changed_on", "tags", "provenance", "enforced_in", "relates_to",
+    "decision", "consequences"
   ],
   "properties": {
     "id": {
@@ -38,10 +38,6 @@
     "tags": {
       "type": "array", "minItems": 1, "uniqueItems": true,
       "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" }
-    },
-    "lens": {
-      "type": "string", "minLength": 20,
-      "description": "The reusable rule. Read this to apply the decision without opening the record."
     },
     "provenance": {
       "type": "string", "minLength": 10,
@@ -76,25 +72,10 @@
         }
       }
     },
-    "problem": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["symptom", "pain_point"],
-      "properties": {
-        "symptom": {
-          "type": "string", "minLength": 20,
-          "description": "What was observed. The behaviour, not the theory."
-        },
-        "pain_point": {
-          "type": "string", "minLength": 20,
-          "description": "What it cost, and why that cost matters."
-        }
-      }
-    },
     "decision": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["given", "we_prefer", "because", "unless", "in_practice"],
+      "required": ["given", "we_prefer", "because", "unless"],
       "properties": {
         "given": { "type": "string", "minLength": 10 },
         "we_prefer": {
@@ -105,9 +86,6 @@
         "unless": {
           "type": "string", "minLength": 5,
           "description": "The escape hatch, or 'never' when the decision is unconditional."
-        },
-        "in_practice": {
-          "type": "array", "minItems": 1, "items": { "type": "string" }
         }
       }
     },

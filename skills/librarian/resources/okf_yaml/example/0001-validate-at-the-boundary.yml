@@ -12,10 +12,6 @@ accepted_on: 2026-08-28
 last_changed_on: 2026-08-28
 tags: [correctness, boundaries]
 
-lens: |-
-  A value from outside the process is untyped until something checks it.
-  Check it where it enters, once, or every later reader re-checks it differently.
-
 provenance: Two incidents traced to a response field that changed shape upstream and was read as valid at three call sites
 enforced_in:
   - the request handler layer
@@ -27,18 +23,11 @@ relates_to:
     target: REC-0002
     note: the error taxonomy assumes payloads are already shaped
 
-problem:
-  symptom: A malformed upstream payload reaches business logic and fails as a type error three frames deep, naming a field the caller never mentioned.
-  pain_point: The stack trace points at the consumer rather than the boundary, so every incident costs a bisect to find where the bad value entered.
-
 decision:
   given: every value crossing a trust boundary is unknown until something checks it
   we_prefer: parsing each payload into a typed value at the boundary it enters, over defensive checks at each point of use
   because: one check produces one error naming the real source, while scattered checks disagree about what valid means
   unless: the boundary is provably internal and the producer is in the same deployable
-  in_practice:
-    - Every handler parses its request body before business logic sees it.
-    - A parse failure returns the boundary's own error, never a downstream type error.
 
 consequences:
   pros:

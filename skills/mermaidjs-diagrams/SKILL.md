@@ -1,6 +1,6 @@
 ---
 name: mermaidjs-diagrams
-description: "Render and analyze Mermaid.JS diagrams embedded in markdown files, and author whole diagram-led documents from named document types. Enforces visual complexity limits AND WCAG color-contrast requirements via automated analysis. Every diagram MUST derive its palette from `resources/color_theming.md` and pass `scripts/mermaid_contrast.ts` before being declared done. Use when creating or updating architecture diagrams, analyzing diagram complexity, improving documentation clarity, or exploring a codebase to produce dual-density architecture diagrams for a README. Also use when asked for an educational document, an illustrative guide, an explainer, or a visual one-pager that distils a topic's concepts and relationships."
+description: "Render and analyze Mermaid.JS diagrams embedded in markdown files, and author whole diagram-led documents from named document types. Enforces visual complexity limits AND WCAG color-contrast requirements via automated analysis. Every diagram MUST derive its palette from `resources/color_theming.md` and pass `scripts/mermaid_contrast.ts` before being declared done. Use when creating or updating architecture diagrams, analyzing diagram complexity, improving documentation clarity, or exploring a codebase to produce dual-density architecture diagrams for a README. Also use for PR review companions and implementation plans, or when asked for an educational document, an illustrative guide, an explainer, or a visual one-pager that distils a topic's concepts and relationships."
 argument-hint: "[markdown-file]"
 user-invocable: true
 ---
@@ -22,6 +22,8 @@ across them. Skip when the task is one diagram, a render, or an audit.
 
 | The request says | Read |
 |---|---|
+| "pr-review", "PR review document", "visual diff" | `resources/document-types/pr-review.md` |
+| "plan", "implementation plan", "proposed changes" | `resources/document-types/plan.md` |
 | "educational", "illustrative guide", "explainer", "one-pager on X", "distil X", "explain X visually", "teach me X" | `resources/document-types/educational.md` |
 | Unsure which, or adding a new type | `resources/document-types/README.md` |
 

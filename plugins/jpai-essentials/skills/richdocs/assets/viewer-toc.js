@@ -196,6 +196,61 @@ function rdTocStore(state) {
   try { localStorage.setItem(RD_TOC_STORAGE_KEY, state); } catch (e) {}
 }
 
+// Review is opt-in and lives only in this controller's closure. Sidebar buttons
+// toggle an entire heading subtree; article buttons toggle just that section.
+// Aggregate sidebar status is mixed until every heading in the subtree is done.
+function rdInitReview(entries, folds, links) {
+  var reviewed = new Set();
+  var controls = {};
+  function subtree(entry) {
+    var start = entries.indexOf(entry);
+    var end = start + 1;
+    while (end < entries.length && entries[end].level > entry.level) { end++; }
+    return entries.slice(start, end);
+  }
+  function button(label) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "rd-review";
+    b.setAttribute("aria-label", label);
+    return b;
+  }
+  function sync() {
+    entries.forEach(function (entry) {
+      var c = controls[entry.id];
+      var group = subtree(entry);
+      var count = group.filter(function (e) { return reviewed.has(e.id); }).length;
+      var state = count === group.length ? "true" : count ? "mixed" : "false";
+      c.nav.setAttribute("aria-pressed", state);
+      c.nav.textContent = state === "true" ? "Reviewed" : state === "mixed" ? "Partial" : "Review";
+      links[entry.id].setAttribute("data-rd-reviewed", state);
+      c.section.setAttribute("aria-pressed", reviewed.has(entry.id) ? "true" : "false");
+      c.section.textContent = reviewed.has(entry.id) ? "Reviewed" : "Mark reviewed";
+    });
+  }
+  function set(entry, value, recursive) {
+    (recursive ? subtree(entry) : [entry]).forEach(function (e) {
+      if (value) { reviewed.add(e.id); } else { reviewed.delete(e.id); }
+      if (folds[e.id]) { rdSetFold(folds[e.id], !value); }
+    });
+    sync();
+  }
+  entries.forEach(function (entry) {
+    var section = button("Reviewed section: " + entry.text);
+    var nav = button("Reviewed subtree: " + entry.text);
+    nav.classList.add("rd-review-nav");
+    // Keep the heading last in its fold head: rdFoldLevel relies on that.
+    if (folds[entry.id]) { entry.el.before(section); } else { entry.el.after(section); }
+    links[entry.id].parentElement.appendChild(nav);
+    controls[entry.id] = { section: section, nav: nav };
+    section.addEventListener("click", function () { set(entry, !reviewed.has(entry.id), false); });
+    nav.addEventListener("click", function () {
+      set(entry, nav.getAttribute("aria-pressed") !== "true", true);
+    });
+  });
+  sync();
+}
+
 // Build the sidebar and section folds for `article` and wire the toggles.
 // Returns a small controller (used by the tests), or null when the document has
 // too few headings.
@@ -211,7 +266,8 @@ function rdInitToc(article, opts) {
   var header = o.header || document.querySelector("header.rd-header");
   var root = document.documentElement;
   var headings = Array.prototype.slice.call(article.querySelectorAll(o.selector || RD_TOC_SELECTOR));
-  if (!nav || !toggle || headings.length < RD_TOC_MIN_HEADINGS) { return null; }
+  var review = article.querySelector('[data-rd-document-type="pr-review"], [data-rd-document-type="plan"]');
+  if (!nav || !toggle || headings.length < (review ? 1 : RD_TOC_MIN_HEADINGS)) { return null; }
 
   var entries = rdAssignHeadingIds(headings, document);
   var links = {};
@@ -246,6 +302,7 @@ function rdInitToc(article, opts) {
       rdSetFold(folds[id], folds[id].button.getAttribute("aria-expanded") !== "true");
     });
   });
+  if (review) { rdInitReview(entries, folds, links); }
 
   var mql = window.matchMedia ? window.matchMedia(RD_TOC_NARROW_QUERY) : null;
   function isNarrow() { return !!(mql && mql.matches); }

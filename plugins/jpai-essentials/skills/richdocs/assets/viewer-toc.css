@@ -136,9 +136,24 @@
 }
 
 /* ── Print ───────────────────────────────────────────────────────────── */
+.rd-review {
+  flex: 0 0 auto; padding: 0.25rem 0.45rem; font: inherit; font-size: 0.75rem;
+  color: var(--rd-fg); background: var(--rd-surface);
+  border: 1px solid var(--rd-border); border-radius: var(--rd-radius, 8px); cursor: pointer;
+}
+.rd-review[aria-pressed=true] { border-color: var(--rd-link, var(--rd-accent)); }
+.rd-review:focus-visible { outline: 2px solid var(--rd-link, var(--rd-accent)); outline-offset: 2px; }
+.rd-review-nav { margin-left: auto; }
+#rd-toc a[data-rd-reviewed=true]::after { content: " ✓"; }
+#rd-toc a[data-rd-reviewed=mixed]::after { content: " ◐"; }
+[data-rd-document-type] { display: none; }
+@media (max-width: 40rem) {
+  .rd-fold-head { flex-wrap: wrap; }
+  .rd-fold-head > :is(h1, h2, h3, h4) { flex-basis: 100%; }
+}
 /* The sidebar and folds are screen navigation. Paper gets every section, in the
    single-column layout it always had. */
 @media print {
-  #rd-toc, #rd-toc-toggle, .rd-fold { display: none !important; }
+  #rd-toc, #rd-toc-toggle, .rd-fold, .rd-review { display: none !important; }
   .rd-fold-body[hidden] { height: auto; overflow: visible; visibility: visible; }
 }

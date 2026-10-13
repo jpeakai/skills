@@ -1,7 +1,7 @@
 ---
 name: richdocs
-description: "Create code-backed discovery or systems-view architecture documents from repositories and source documents in Markdown, live HTML, or inline HTML. Also render existing Markdown as rich HTML with Mermaid, charts, and cloud stencils. Use for /richdocs discovery, systems view, or HTML companions."
-argument-hint: "[md|html+live|html+inline] [discovery|systems view] [repositories and documents] | [markdown-file]"
+description: "Create code-backed discovery or systems-view architecture documents from repositories and source documents in Markdown, live HTML, or inline HTML. Also render existing Markdown as rich HTML with Mermaid, charts, and cloud stencils. Use for /richdocs discovery, systems view, pr-review, plan, or HTML companions."
+argument-hint: "[md|html+live|html+inline] [discovery|systems view|pr-review|plan] [sources] | [markdown-file]"
 user-invocable: true
 ---
 
@@ -31,6 +31,7 @@ the conversion routes below.
 
 | Intent | Do this |
 |--------|---------|
+| "Create a pr-review / plan" | read `vendor/mermaidjs-diagrams/resources/document-types/pr-review.md` or `plan.md`; curate sources, author Markdown, then render in `md`, `html+live`, or `html+inline` mode. Read `resources/change-documents.md` for review controls. |
 | "Create a discovery / systems view" | read `resources/discovery.md`; research the named sources, author Markdown, then render according to `md`, `html+live`, or `html+inline` |
 | "Make an HTML version of DOC.md" | `md2html.py DOC.md` then `serve.py` (multi-file, live-editable) |
 | "One file I can open / attach" | `md2html.py DOC.md --inline` (self-contained, opens over `file://`) |

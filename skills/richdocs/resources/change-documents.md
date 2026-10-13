@@ -7,8 +7,9 @@ or [Plan](../vendor/mermaidjs-diagrams/resources/document-types/plan.md) contrac
 Curate evidence before writing. Conversion does not infer groups, produce
 diagrams, or detect keywords. `data-model` and `event-flow` select extra lenses.
 
-Coverage tables use **Section | Filepath**, ordered by section number, then
-filepath. Use language-tagged fences (`javascript`, `typescript`, `diff`,
+Each change section starts with its own **Related files** list, sorted by
+filepath. Keep those lists beside the behavior they explain, rather than in an
+upfront coverage table. Use language-tagged fences (`javascript`, `typescript`, `diff`,
 `json`, `yaml`, `markdown`) so both HTML modes apply syntax highlighting.
 Unknown languages stay as plain source; rich diagram blocks keep their own
 renderer.

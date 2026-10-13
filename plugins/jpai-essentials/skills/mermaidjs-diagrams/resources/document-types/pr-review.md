@@ -46,9 +46,10 @@ Build a dependency narrative: establish contracts and vocabulary first, then
 core behavior, callers/UI, packaging, and validation. Move dependent groups
 after prerequisites; explain cycles before splitting by responsibility. Each
 group reuses earlier concepts plus the new concept it introduces. Start with
-scope and a hunk-to-section coverage table. Put the section number before the
-filepath and sort rows by section number, then filepath within the section.
-Keep evidence inside its group.
+scope, then list related files within each change section, before its BEFORE
+and AFTER material. Sort filepaths within the section and attach hunk evidence
+there. Keep coverage complete across the section lists, including generated
+mirrors and mechanical changes. Do not collect files into one upfront table.
 
 ## 4. Diagram selection
 

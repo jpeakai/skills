@@ -19,6 +19,29 @@ in both the `default` and `dark` Mermaid themes. Those pairs carry `theme` and
 `row` (`odd`/`even`) in `--json` output. A missing `color:` is not a blocking
 gap there, because the theme label is scored in its place.
 
+`sequenceDiagram` fences resolve YAML frontmatter and JSON `init` directives
+through Mermaid's theme calculation. Both light and dark passes score actor
+labels/borders, lifelines, page-backed message labels/arrows, notes, loop labels
+and frames, activation boxes, numbering, and `rect` backgrounds when present.
+An explicitly pinned theme is kept on both canvases, so `theme: base` cannot
+hide a dark-mode failure. Invalid colors and unsupported CSS overrides block
+the gate instead of reporting a clean unaudited fence.
+
+Sequence SVGs are transparent. A `themeVariables.background` value does not
+paint the host background. Pass `--background-light COLOR` and
+`--background-dark COLOR` for a custom host or branded diagram surface. These
+flags affect sequence pairs only; other diagram models remain unchanged.
+For a Richdocs theme, take these colors from its `themes.light.surface` and
+`themes.dark.surface` tokens. Default canvases follow the selected profile.
+Sequence JSON pairs have `directive_kind: "themeVariables"`, a variable
+selector, source line, and `theme: "light"` or `"dark"`.
+
+Keep `signalColor`, `signalTextColor`, and `loopTextColor` theme-adaptive by
+default. An explicit color that reads on a white page can vanish on a dark
+surface even when actor and note labels pass. Custom actor text can also change
+inherited loop/label colors; the gate resolves those dependencies rather than
+assuming unset colors are safe. Inspect both rendered themes after the gate.
+
 ## Invocations
 
 ```bash

@@ -564,3 +564,144 @@ describe("CLI subprocess", () => {
     expect(await proc.exited).toBe(0);
   });
 });
+
+const BAD_SEQUENCE = `---
+config:
+  theme: base
+  themeVariables:
+    actorBkg: "#2563eb"
+    actorTextColor: "#ffffff"
+    actorBorder: "#1e40af"
+    signalColor: "#475569"
+    signalTextColor: "#475569"
+    noteBkgColor: "#475569"
+    noteTextColor: "#ffffff"
+---
+sequenceDiagram
+    actor R as Reviewer
+    participant V as Viewer
+    R->>V: Mark section reviewed
+    Note over R,V: In memory only
+`;
+
+const GOOD_SEQUENCE = `---
+config:
+  themeVariables:
+    actorBkg: "#dbeafe"
+    actorTextColor: "#1e3a8a"
+    actorBorder: "#1e3a8a"
+    labelBoxBkgColor: "#dbeafe"
+    labelTextColor: "#1e3a8a"
+    noteBkgColor: "#475569"
+    noteTextColor: "#ffffff"
+---
+sequenceDiagram
+    actor R as Reviewer
+    participant V as Viewer
+    R->>V: Mark section reviewed
+    loop Heading and descendants
+        V->>R: Synchronize status
+    end
+    Note over R,V: In memory only
+`;
+
+describe("sequence theme contrast", () => {
+  test("the shipped dark-mode regression gates message text and arrows", () => {
+    const report = auditContent(BAD_SEQUENCE);
+    expect(report.fail_count).toBeGreaterThan(0);
+    for (const selector of ["signalTextColor", "signalColor"]) {
+      const pair = report.pairs.find((p) => p.selector === selector && p.theme === "dark");
+      expect(pair?.passes).toBe(false);
+      expect(pair?.background).toBe("#0d1117");
+    }
+    expect(report.pairs.find((p) => p.selector === "noteTextColor")?.passes).toBe(true);
+  });
+
+  test("adaptive message colors and explicit box colors pass in both themes", () => {
+    const report = auditContent(GOOD_SEQUENCE);
+    expect(report.fail_count).toBe(0);
+    expect(report.pairs.filter((p) => p.selector === "signalTextColor").map((p) => p.theme)).toEqual(["light", "dark"]);
+    const arrows = report.pairs.filter((p) => p.selector === "signalColor");
+    expect(arrows.every((p) => p.passes)).toBe(true);
+    expect(report.pairs.some((p) => p.selector === "loopTextColor" && p.theme === "dark")).toBe(true);
+  });
+
+  test("init JSON directives are audited, not silently skipped", () => {
+    const report = auditContent(
+      '%%{init: {"themeVariables":{"signalTextColor":"#475569"}}}%%\nsequenceDiagram\nA->>B: Message',
+    );
+    expect(report.pairs.find((p) => p.selector === "signalTextColor" && p.theme === "dark")?.passes).toBe(false);
+  });
+
+  test("single-quoted init directives follow Mermaid's quote normalization", () => {
+    const report = auditContent(
+      "%%{init: {'themeVariables':{'signalTextColor':'#475569'}}}%%\nsequenceDiagram\nA->>B: Message",
+    );
+    expect(report.pairs.find((p) => p.selector === "signalTextColor" && p.theme === "dark")?.passes).toBe(false);
+    expect(report.skipped).toHaveLength(0);
+  });
+
+  test("translucent actors are composited against the host canvas", () => {
+    const report = auditContent(
+      '%%{init: {"themeVariables":{"actorBkg":"#ffffff80","actorTextColor":"#ffffff"}}}%%\nsequenceDiagram\nA->>B: Message',
+    );
+    expect(report.pairs.filter((p) => p.selector === "actorTextColor").every((p) => !p.passes)).toBe(true);
+  });
+
+  test("notes fail independently of readable actors and signals", () => {
+    const report = auditContent(GOOD_SEQUENCE.replace('noteTextColor: "#ffffff"', 'noteTextColor: "#475569"'));
+    expect(report.pairs.filter((p) => p.selector === "noteTextColor").every((p) => !p.passes)).toBe(true);
+  });
+
+  test("loop descriptions use page contrast instead of the label box", () => {
+    const report = auditContent(
+      GOOD_SEQUENCE.replace('labelTextColor: "#1e3a8a"', 'labelTextColor: "#1e3a8a"\n    loopTextColor: "#ffffff"'),
+    );
+    expect(report.pairs.find((p) => p.selector === "loopTextColor" && p.theme === "light")?.passes).toBe(false);
+    expect(report.pairs.filter((p) => p.selector === "labelTextColor").every((p) => p.passes)).toBe(true);
+  });
+
+  test("themeVariables.background does not paint a transparent SVG", () => {
+    const report = auditContent(
+      BAD_SEQUENCE.replace('actorBkg: "#2563eb"', 'background: "#ffffff"\n    actorBkg: "#2563eb"'),
+    );
+    expect(report.pairs.find((p) => p.selector === "signalTextColor" && p.theme === "dark")?.passes).toBe(false);
+  });
+
+  test("custom Richdocs surfaces override the profile canvas", () => {
+    const report = auditContent(BAD_SEQUENCE, "<inline>", "github", {
+      backgrounds: { light: "#ffffff", dark: "#1a1a1a" },
+    });
+    expect(report.pairs.find((p) => p.selector === "signalTextColor" && p.theme === "dark")?.background).toBe(
+      "#1a1a1a",
+    );
+    expect(report.fail_count).toBeGreaterThan(0);
+  });
+
+  test("unknown colors and unmodelled CSS fail closed", () => {
+    for (const content of [
+      GOOD_SEQUENCE.replace("#1e3a8a", "not-a-color"),
+      GOOD_SEQUENCE.replace("config:", 'config:\n  themeCss: "text { fill: black }"'),
+    ]) {
+      expect(auditContent(content).skipped.some((s) => s.blocking)).toBe(true);
+    }
+  });
+
+  test("file audit preserves absolute Markdown line numbers", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "sequence-contrast-"));
+    const path = join(dir, "review.md");
+    writeFileSync(path, "# Review\n\n```mermaid\n" + BAD_SEQUENCE + "\n```\n");
+    const [report] = await auditFile(path);
+    expect(report?.pairs.find((p) => p.selector === "signalTextColor")?.line).toBe(12);
+  });
+
+  test("CLI rejects the old sequence and accepts the adaptive fix", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "sequence-cli-"));
+    const bad = join(dir, "bad.mmd");
+    const good = join(dir, "good.mmd");
+    writeFileSync(bad, BAD_SEQUENCE);
+    writeFileSync(good, GOOD_SEQUENCE);
+    expect(await main([bad, "--summary"])).toBe(1);
+    expect(await main([good, "--summary", "--background-dark", "#1a1a1a"])).toBe(0);
+  });
+});

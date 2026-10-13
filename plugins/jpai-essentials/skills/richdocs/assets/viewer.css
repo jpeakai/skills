@@ -111,3 +111,23 @@ main th { background: var(--rd-surface); }
 #rd-article img,
 #rd-article svg { cursor: zoom-in; }
 #rd-article .rd-plotly svg { cursor: auto; }
+
+/* Syntax tokens retain the code surface and adapt when the page theme flips. */
+:root {
+  --rd-code-keyword: #5b21b6;
+  --rd-code-string: #065f46;
+  --rd-code-comment: #475569;
+  --rd-code-number: #9f1239;
+}
+:root[data-theme=dark] {
+  --rd-code-keyword: #c4b5fd;
+  --rd-code-string: #a7f3d0;
+  --rd-code-comment: #cbd5e1;
+  --rd-code-number: #fda4af;
+}
+.hljs-keyword, .hljs-selector-tag, .hljs-literal, .hljs-section, .hljs-title { color: var(--rd-code-keyword); }
+.hljs-string, .hljs-regexp, .hljs-addition, .hljs-quote { color: var(--rd-code-string); }
+.hljs-comment, .hljs-meta { color: var(--rd-code-comment); }
+.hljs-number, .hljs-deletion, .hljs-symbol, .hljs-bullet { color: var(--rd-code-number); }
+.hljs-strong { font-weight: bold; }
+.hljs-emphasis { font-style: italic; }

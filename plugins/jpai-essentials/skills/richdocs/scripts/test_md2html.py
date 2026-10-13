@@ -69,6 +69,7 @@ def test_build_config_carries_everything_the_viewer_needs() -> None:
     assert cfg["buildId"] == "B1"
     assert cfg["source"] == "doc.md"
     assert set(cfg["cdn"]) == {
+        "highlight",
         "cytoscape",
         "dagre",
         "cytoscapeDagre",

@@ -46,7 +46,9 @@ Build a dependency narrative: establish contracts and vocabulary first, then
 core behavior, callers/UI, packaging, and validation. Move dependent groups
 after prerequisites; explain cycles before splitting by responsibility. Each
 group reuses earlier concepts plus the new concept it introduces. Start with
-scope and a hunk-to-section coverage table. Keep evidence inside its group.
+scope and a hunk-to-section coverage table. Put the section number before the
+filepath and sort rows by section number, then filepath within the section.
+Keep evidence inside its group.
 
 ## 4. Diagram selection
 
@@ -85,6 +87,7 @@ dumps, and callers introduced before contracts. Reviewed does not mean approved.
 - Data and event cues have the applicable additional diagram pairs.
 - Earlier sections establish concepts needed by later sections.
 - Complexity and contrast gates pass on Markdown before HTML conversion.
+- Language-tagged code fences receive syntax highlighting in both HTML modes.
 - Inspect light and dark renders; code and collapsed diagrams still work.
 - HTML marks sections Reviewed and collapses them; sidebar shows partial and
   complete subtrees; subtree controls mark and undo the entire subtree.

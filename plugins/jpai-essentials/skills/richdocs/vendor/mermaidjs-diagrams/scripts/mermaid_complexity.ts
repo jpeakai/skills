@@ -55,7 +55,7 @@ function installDomShim(): void {
 
 // Lazy singleton for mermaid core — imported on first use, after the shim runs.
 let _mermaid: typeof import("mermaid").default | null = null;
-async function getMermaid(): Promise<typeof import("mermaid").default> {
+export async function getMermaid(): Promise<typeof import("mermaid").default> {
   if (_mermaid) return _mermaid;
   installDomShim();
   _mermaid = (await import("mermaid")).default;

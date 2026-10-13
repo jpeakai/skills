@@ -82,6 +82,14 @@ def test_build_config_carries_everything_the_viewer_needs() -> None:
     assert cfg["fallbackTokens"] == md2html.FALLBACK_TOKENS
 
 
+def test_sequence_audit_and_viewer_use_the_same_mermaid_version() -> None:
+    # Theme inheritance changes across versions. Source contrast assessments
+    # cannot stand for rendered colors when the gate and browser differ.
+    manifest = Path(__file__).parent.parent / "vendor/mermaidjs-diagrams/scripts/package.json"
+    version = json.loads(manifest.read_text())["dependencies"]["mermaid"]
+    assert md2html.CDN["mermaid"].endswith(f"mermaid@{version}/dist/mermaid.min.js")
+
+
 def test_deckgl_renderer_is_inlined_and_hoisted_before_viewer_js() -> None:
     """rdRenderDeckGL is called by viewer.js, so it must be DEFINED earlier in the page."""
     html = md2html.build_multi_html(build_id="B", title="T", source="doc.md")

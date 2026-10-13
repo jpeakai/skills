@@ -23,6 +23,8 @@ gap there, because the theme label is scored in its place.
 through Mermaid's theme calculation. Both light and dark passes score actor
 labels/borders, lifelines, page-backed message labels/arrows, notes, loop labels
 and frames, activation boxes, numbering, and `rect` backgrounds when present.
+Human actor names and stick figures are also checked against the host canvas;
+unlike participant-box labels, they sit outside the actor background fill.
 An explicitly pinned theme is kept on both canvases, so `theme: base` cannot
 hide a dark-mode failure. Invalid colors and unsupported CSS overrides block
 the gate instead of reporting a clean unaudited fence.

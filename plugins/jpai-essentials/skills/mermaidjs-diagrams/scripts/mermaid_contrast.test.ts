@@ -596,7 +596,7 @@ config:
     noteTextColor: "#ffffff"
 ---
 sequenceDiagram
-    actor R as Reviewer
+    participant R as Reviewer
     participant V as Viewer
     R->>V: Mark section reviewed
     loop Heading and descendants
@@ -606,6 +606,22 @@ sequenceDiagram
 `;
 
 describe("sequence theme contrast", () => {
+  test("human actor labels and glyphs must also contrast with the page", () => {
+    const report = auditContent(GOOD_SEQUENCE.replace("participant R as Reviewer", "actor R as Reviewer"));
+    expect(
+      report.pairs.find((p) => p.selector === "actorTextColor (human actor label)" && p.theme === "dark")?.passes,
+    ).toBe(false);
+    expect(
+      report.pairs.find((p) => p.selector === "actorBorder (human actor glyph)" && p.theme === "dark")?.passes,
+    ).toBe(false);
+    expect(report.pairs.filter((p) => p.selector === "actorTextColor").every((p) => p.passes)).toBe(true);
+  });
+
+  test("unmodified human actors retain theme-adaptive labels", () => {
+    const report = auditContent("sequenceDiagram\nactor A as Reviewer\nparticipant B as Viewer\nA->>B: Review");
+    expect(report.fail_count).toBe(0);
+    expect(report.pairs.filter((p) => p.selector === "actorTextColor (human actor label)")).toHaveLength(2);
+  });
   test("the shipped dark-mode regression gates message text and arrows", () => {
     const report = auditContent(BAD_SEQUENCE);
     expect(report.fail_count).toBeGreaterThan(0);

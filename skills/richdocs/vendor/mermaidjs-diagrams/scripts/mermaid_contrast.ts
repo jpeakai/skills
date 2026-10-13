@@ -495,6 +495,11 @@ export function scoreSequence(
       // Actor/participant labels and strokes are painted on their own boxes.
       pair("text", "actorTextColor", color("actorBkg"));
       pair("border", "actorBorder", color("actorBkg"));
+      // Human actor names and stick figures sit outside the head's fill.
+      if (/^\s*actor\s+\S+/m.test(content)) {
+        pair("text", "actorTextColor", page, " (human actor label)");
+        pair("border", "actorBorder", page, " (human actor glyph)");
+      }
       pair("border", "actorLineColor", page);
       // Signals and message text have NO box. themeVariables.background does
       // not paint an SVG background, so it cannot replace the host canvas.

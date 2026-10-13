@@ -52,7 +52,7 @@ bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_contrast.ts docs/ --qu
 bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_contrast.ts docs/ --json
 bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_contrast.ts docs/ --color    # ANSI colour (default is plain text: the output is usually read by an agent or captured into a log)
 
-# Force a render context (see SKILL.md "Required for every diagram")
+# Force a render context (see mermaidjs-diagrams.md "Required for every diagram")
 bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_contrast.ts docs/ --profile mkdocs-material
 bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_contrast.ts docs/ --profile github
 

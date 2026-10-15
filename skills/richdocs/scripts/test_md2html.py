@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from argparse import Namespace
@@ -82,14 +83,33 @@ def test_build_config_carries_everything_the_viewer_needs() -> None:
     assert cfg["fallbackTokens"] == md2html.FALLBACK_TOKENS
 
 
-def test_sequence_audit_and_viewer_use_the_same_mermaid_version() -> None:
-    # Theme inheritance changes across versions. Source contrast assessments
-    # cannot stand for rendered colors when the gate and browser differ.
-    manifest = (
-        Path(__file__).parent.parent / "vendor/mermaidjs-diagrams/scripts/package.json"
+def test_lint_and_viewer_use_the_same_mermaid_version() -> None:
+    # Theme inheritance changes across versions. The lint scores sequence
+    # colours with the Mermaid release it pins exactly, so its verdict stands
+    # for the rendered colours only when the viewer loads that same release
+    # (ADR-026). The lint version is pinned once, as a devDependency, and the
+    # lockfile records the Mermaid that version depends on.
+    scripts = Path(__file__).parent
+    lint = json.loads((scripts / "package.json").read_text())["devDependencies"][
+        "@jpeakai/mermaidjs-lint"
+    ]
+    locked = re.search(
+        r'^\s*"@jpeakai/mermaidjs-lint": \["@jpeakai/mermaidjs-lint@([^"]+)".*$',
+        (scripts / "bun.lock").read_text(),
+        re.MULTILINE,
     )
-    version = json.loads(manifest.read_text())["dependencies"]["mermaid"]
-    assert md2html.CDN["mermaid"].endswith(f"mermaid@{version}/dist/mermaid.min.js")
+    assert locked, "bun.lock has no @jpeakai/mermaidjs-lint entry: run bun install"
+    assert locked.group(1) == lint
+    mermaid = re.search(r'"mermaid": "([^"]+)"', locked.group(0))
+    assert mermaid, "the locked lint entry names no mermaid dependency"
+    assert md2html.CDN["mermaid"].endswith(
+        f"mermaid@{mermaid.group(1)}/dist/mermaid.min.js"
+    )
+    # The mandated gate runs that same lint version, so the check above is
+    # about the lint an agent actually runs.
+    skill = (scripts.parent / "SKILL.md").read_text()
+    assert f"bunx @jpeakai/mermaidjs-lint@{lint} SOURCE.md" in skill
+    assert not re.search(r"(bunx|npx -y) @jpeakai/mermaidjs-lint(?!@)", skill)
 
 
 def test_deckgl_renderer_is_inlined_and_hoisted_before_viewer_js() -> None:

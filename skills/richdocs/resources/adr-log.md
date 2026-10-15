@@ -10,6 +10,29 @@ This file holds ADR-014 onwards, newest first. The founding records, ADR-001 to
 ADR-013, are in [`adr-log-foundations.md`](adr-log-foundations.md).
 
 
+### ADR-026 — The lint is pinned, and the viewer loads the lint's Mermaid
+
+- **Status:** accepted (2026-10; refines ADR-025)
+- **Context:** the gate used to need a second, vendored sequence audit, because
+  the lint did not score `sequenceDiagram` theme colours. A test kept the
+  vendored audit's Mermaid pin equal to the viewer's, since inherited sequence
+  colours change between Mermaid releases. `@jpeakai/mermaidjs-lint` 0.5.0 now
+  scores sequence contrast itself, with a Mermaid version it pins exactly, and
+  upstream retired the audit, so the re-vendored copy no longer carries it.
+- **Decision:** the gate in `SKILL.md` and `change-documents.md` runs one exact
+  lint version, recorded once as the `@jpeakai/mermaidjs-lint` devDependency in
+  `scripts/package.json`. The viewer's Mermaid CDN pin is the Mermaid that lint
+  version pins. `test_md2html.py` reads both from `bun.lock` and checks that
+  `SKILL.md` runs that version. The lint scores page-backed sequence colours
+  against GitHub's page only, so for a theme's own `surface` colours the docs
+  use the vendored `color_contrast.ts`.
+- **Consequences:** bumping the lint is one devDependency change, after which the
+  test names the CDN pin to move. The viewer moved from Mermaid 11.14.0 to
+  11.17.2. A lint release does not reach richdocs until the pin moves.
+- **Lens:** when a gate's verdict depends on a library version the renderer also
+  loads, pin the gate and derive the renderer's pin from it, in one place a test
+  reads.
+
 ### ADR-025 — The mermaid gate is a published package, not a vendored script
 
 - **Status:** accepted (2026-10; refines ADR-007)

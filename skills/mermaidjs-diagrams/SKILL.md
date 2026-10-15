@@ -1,6 +1,6 @@
 ---
 name: mermaidjs-diagrams
-description: "Render and analyze Mermaid.JS diagrams embedded in markdown files, and author whole diagram-led documents from named document types. Enforces visual complexity limits AND WCAG color-contrast requirements via automated analysis. Every diagram MUST derive its palette from `resources/color_theming.md` and pass `bunx @jpeakai/mermaidjs-lint` (parse, complexity and WCAG contrast gates) before being declared done; the lint needs `bunx` or `npx` with access to registry.npmjs.org. A sequenceDiagram also passes `scripts/mermaid_contrast.ts`. Use when creating or updating architecture diagrams, analyzing diagram complexity, improving documentation clarity, or exploring a codebase to produce dual-density architecture diagrams for a README. Also use for PR review companions and implementation plans, or when asked for an educational document, an illustrative guide, an explainer, or a visual one-pager that distils a topic's concepts and relationships."
+description: "Render and analyze Mermaid.JS diagrams embedded in markdown files, and author whole diagram-led documents from named document types. Enforces visual complexity limits AND WCAG color-contrast requirements via automated analysis. Every diagram MUST derive its palette from `resources/color_theming.md` and pass `bunx @jpeakai/mermaidjs-lint` (parse, complexity and WCAG contrast gates) before being declared done; the lint needs `bunx` or `npx` with access to registry.npmjs.org. Use when creating or updating architecture diagrams, analyzing diagram complexity, improving documentation clarity, or exploring a codebase to produce dual-density architecture diagrams for a README. Also use for PR review companions and implementation plans, or when asked for an educational document, an illustrative guide, an explainer, or a visual one-pager that distils a topic's concepts and relationships."
 argument-hint: "[markdown-file]"
 user-invocable: true
 ---
@@ -100,20 +100,15 @@ default `auto` = mkdocs-material when an ancestor holds `mkdocs.yml`, else githu
   bunx @jpeakai/mermaidjs-lint docs/ --profile mkdocs-material
   ```
 
-**A `sequenceDiagram` also needs the skill's own sequence audit.** The lint does
-not resolve sequence theme variables, so `scripts/mermaid_contrast.ts` stays for
-that one job. It reads YAML frontmatter and JSON `init` theme variables, follows
-Mermaid's inherited colours, and scores message and loop labels, arrows,
-lifelines, actors, notes and frames in light and dark. Pass the host's surfaces
-when the page is not plain white or black:
-
-```bash
-bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_contrast.ts path/to/doc.md \
-  --background-light '#ffffff' --background-dark '#0d1117'
-```
-
-Run both gates on a document that holds sequence diagrams. Each exits non-zero
-on a failure, and either failure is a blocker. See
+**A `sequenceDiagram` is scored by its theme colours.** It has no style lines,
+so the lint reads YAML frontmatter and `%%{init}%%` theme variables, resolves
+the rest with Mermaid's own theme engine, and scores participants, human actors,
+lifelines, messages and arrows, notes, frames, activation bars, `autonumber`
+numbers and `rect` backgrounds in light and dark. A `themeCSS` override, or a
+colour Mermaid cannot read, is reported as `contrast-directive-unauditable`, a
+blocker like any other finding. The lint scores page-backed colours against
+GitHub's page (`#ffffff` and `#0d1117`); on a host with other page colours,
+check those pairs with `color_contrast.ts` below. See
 `resources/contrast_tooling.md` for the full sequence surface.
 
 For ad-hoc colour-pair checks (picking from a screenshot, validating a theme
@@ -502,7 +497,6 @@ when they display in browser previews. Stick to **ASCII-only text** in node labe
 | Tool | 0 | 1 | 2 |
 |------|---|---|---|
 | `@jpeakai/mermaidjs-lint` | No findings | Findings remain, or a plugin failed to load | Usage error (bad flag / missing file) |
-| `mermaid_contrast.ts` (sequence audit) | Every sequence pair passes in light and dark | Any pair fails, or a directive cannot be audited | Usage error |
 | `color_contrast.ts` | All pairs pass WCAG AA (>=4.5:1) | Any pair fails | Usage error |
 | `render_mermaid.sh` | Every variant rendered **and verified** as a real PNG | Render failure (stderr carries `class` / `evidence` / `remedy`) or usage error | — |
 | `mmdc` | All rendered | Render failure (see stderr) | — |

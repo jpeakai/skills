@@ -50,7 +50,7 @@ versions** — floating majors is how a working document breaks a month later.
 | Library | Pinned | URL pattern |
 |---------|--------|-------------|
 | marked (markdown) | 12.0.2 | `cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js` |
-| mermaid | 11.4.1 | `cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js` |
+| mermaid | 11.17.2 (the version `@jpeakai/mermaidjs-lint` pins, ADR-026) | `cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js` |
 | cytoscape | 3.30.2 | `cdn.jsdelivr.net/npm/cytoscape@3.30.2/dist/cytoscape.min.js` |
 | dagre + cytoscape-dagre | 0.8.5 / 2.5.0 | `…/npm/dagre@0.8.5/dist/dagre.min.js`, `…/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.js` |
 | plotly | 2.35.2 | `cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js` |

@@ -16,15 +16,12 @@ PY_SRC = $(addsuffix .py,$(PY_SCRIPTS)) $(addprefix test_,$(addsuffix .py,$(PY_S
 
 # ── TypeScript source ──────────────────────────────────────────────────────
 
-# The parse, complexity and node/edge/ER contrast gates now live in the
-# published package @jpeakai/mermaidjs-lint (ADR-004 in CLAUDE.md).
+# Every diagram gate, sequence-diagram contrast included, lives in the
+# published package @jpeakai/mermaidjs-lint (ADR-004 and ADR-006 in
+# CLAUDE.md), so mermaid_complexity and mermaid_contrast are retired.
 # color_contrast stays because the package has no ad-hoc colour-pair
-# calculator. mermaid_contrast stays only for sequence-diagram auditing, which
-# the package lacks (ADR-005); SKILL.md names it for sequenceDiagram fences
-# only. mermaid_complexity is DEPRECATED but still supplies the shared parsing
-# the sequence audit imports. All three are held to the same quality gates.
-# See .claude/rules/typescript/ for conventions.
-TS_SCRIPTS = color_contrast mermaid_complexity mermaid_contrast
+# calculator. See .claude/rules/typescript/ for conventions.
+TS_SCRIPTS = color_contrast
 
 # Private TS maintenance helpers (none today). Same quality gates, never in SKILL.md.
 PRIVATE_TS_SCRIPTS =
@@ -226,8 +223,8 @@ cli-demo:
 	@echo "=== @jpeakai/mermaidjs-lint: contrast fixtures ==="
 	-$(MERMAIDJS_LINT) $(EXAMPLES_DIR)/test_contrast.md
 	@echo ""
-	@echo "=== mermaid_contrast.ts: sequence-diagram audit (the package lacks it) ==="
-	-bun run $(THIS_DIR)mermaid_contrast.ts $(EXAMPLES_DIR)/test_gallery.md
+	@echo "=== @jpeakai/mermaidjs-lint: gallery, sequence diagrams included ==="
+	-$(MERMAIDJS_LINT) $(EXAMPLES_DIR)/test_gallery.md
 	@echo ""
 	@echo "=== color_contrast.ts: single pair (passes AA) ==="
 	-bun run $(THIS_DIR)color_contrast.ts "#ffffff" "#2563eb"

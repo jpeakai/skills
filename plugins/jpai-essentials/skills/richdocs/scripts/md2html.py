@@ -74,7 +74,7 @@ FALLBACK_TOKENS: dict[str, object] = json.loads(
 # light. deck.gl is the heaviest of the four (~1 MB) — hence never eager.
 CDN = {
     "marked": "https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js",
-    "mermaid": "https://cdn.jsdelivr.net/npm/mermaid@11.14.0/dist/mermaid.min.js",
+    "mermaid": "https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js",
     "highlight": "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js",
     "cytoscape": "https://cdn.jsdelivr.net/npm/cytoscape@3.30.2/dist/cytoscape.min.js",
     "dagre": "https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js",

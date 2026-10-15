@@ -78,30 +78,26 @@ Any doc containing ` ```mermaid ` fences MUST pass the published lint
 [`@jpeakai/mermaidjs-lint`](https://jpeakai.github.io/jpai-mermaidjs-lint/)
 **on the source markdown, before `md2html.py`**. One run checks that every
 fence parses with Mermaid's own parsers, that its visual complexity is within
-budget, and that every label reads in light and dark themes:
+budget, and that every label reads in light and dark themes, including a
+`sequenceDiagram`'s theme colours:
 
 ```bash
-bunx @jpeakai/mermaidjs-lint SOURCE.md        # or: npx -y @jpeakai/mermaidjs-lint SOURCE.md
+bunx @jpeakai/mermaidjs-lint@0.5.0 SOURCE.md        # or: npx -y @jpeakai/mermaidjs-lint@0.5.0 SOURCE.md
 ```
 
-It needs `bunx` or `npx` with access to registry.npmjs.org. Exit 0 is clean,
-1 means findings remain, 2 is a usage error.
+The version is pinned because the lint resolves sequence colours with the same
+Mermaid release the companion's viewer loads. It needs `bunx` or `npx` with
+access to registry.npmjs.org. Exit 0 is clean, 1 means findings remain, 2 is a
+usage error.
 
 Non-zero exit is a blocker. `parse-diagram-unparseable … yielded 0 nodes` means
 the fence is invalid mermaid and will render as a broken block in the companion.
 `md2html.py` passes fences through verbatim; it cannot catch this for you.
 
-The lint does not audit `sequenceDiagram` theme variables. When the source holds
-a sequence diagram, also run the vendored sequence audit, passing the theme's
-light and dark `surface` colours (see `resources/change-documents.md`):
-
-```bash
-bun install --cwd .claude/skills/richdocs/vendor/mermaidjs-diagrams/scripts --frozen-lockfile
-bun run .claude/skills/richdocs/vendor/mermaidjs-diagrams/scripts/mermaid_contrast.ts SOURCE.md \
-  --background-light COLOR --background-dark COLOR
-```
-
-A non-zero exit there is a blocker too.
+The lint scores sequence colours against GitHub's page, not the theme's own
+`surface` colours. When the source holds a sequence diagram, also check its
+page-backed colours against those surfaces with the vendored pair calculator
+(see `resources/change-documents.md`); a failing pair is a blocker too.
 The vendored `vendor/mermaidjs-diagrams/mermaidjs-diagrams.md` documents the
 lint's profiles and complexity presets, and authoring pitfalls like quoted
 mindmap labels and HTML entities. Prior adjudications on this class of failure live
@@ -275,7 +271,7 @@ Beyond standard markdown + ` ```mermaid `, the HTML companion renders:
 | `scripts/md2html.py` | Paired markdown → rich HTML generator |
 | `assets/stencils.json.zip` | Vendored draw.io icon library (see `assets/NOTICE`) |
 | `assets/design-tokens.json` | Default neutral brandpack |
-| `vendor/mermaidjs-diagrams/` | Vendored mermaid references: colour theming, complexity presets, lint usage, render script. The gates themselves run from `@jpeakai/mermaidjs-lint` |
+| `vendor/mermaidjs-diagrams/` | Vendored mermaid references: colour theming, complexity presets, lint usage, render script, colour-pair calculator. The gates themselves run from `@jpeakai/mermaidjs-lint` |
 | `resources/learned/` | Prior adjudications and self-taught facts — read before re-litigating |
 
 richdocs is self-contained: every tool and reference it operates with lives

@@ -240,6 +240,25 @@ function upgradeFences(article) {
   });
 }
 
+// Highlight ordinary language-tagged snippets. Rich blocks keep their own
+// renderer; unknown languages retain readable escaped source with no guessing.
+function highlightCode(article) {
+  var blocks = Array.prototype.slice.call(article.querySelectorAll("pre > code")).filter(function (code) {
+    var lang = (code.className.match(/language-([\w-]+)/) || [])[1];
+    return lang && ["mermaid", "cytoscape", "plotly", "deckgl"].indexOf(lang) === -1;
+  });
+  if (!blocks.length) return Promise.resolve();
+  return loadScript("highlight", CDN.highlight).then(function () {
+    blocks.forEach(function (code) {
+      var lang = (code.className.match(/language-([\w-]+)/) || [])[1];
+      if (window.hljs.getLanguage(lang)) window.hljs.highlightElement(code);
+    });
+  }).catch(function (err) {
+    // A CDN failure must not hide the source or stop diagram upgrades.
+    console.warn("Syntax highlighting unavailable", err);
+  });
+}
+
 function wrapTables(article) {
   article.querySelectorAll("table").forEach(function (table) {
     var wrap = document.createElement("div");
@@ -291,7 +310,7 @@ loadTokens().then(function (tokens) {
   wrapTables(article);
   // Before the fence upgrades, so only authored headings are indexed (ADR-021).
   rdInitToc(article);
-  return upgradeFences(article);
+  return Promise.all([upgradeFences(article), highlightCode(article)]);
 }).catch(function (err) {
   showError(document.getElementById("rd-article"), err);
 });

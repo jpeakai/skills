@@ -487,3 +487,67 @@ describe("options", () => {
     expect(ctl?.entries[0]?.id).toBe("overview");
   });
 });
+
+const REVIEW_DOC = '<div data-rd-document-type="pr-review"></div><h1>Change</h1><h2>Contract</h2><p>text</p><h3>Before</h3><pre>old code</pre><h3>After</h3><pre>new code</pre><h2>Delivery</h2><p>checks</p>';
+const reviewNav = (id: string): HTMLElement => $(`#rd-toc a[data-rd-toc-id="${id}"]`).parentElement?.querySelector('.rd-review') as HTMLElement;
+const reviewSection = (id: string): HTMLElement => $(`#${id}`).parentElement?.querySelector('.rd-review') as HTMLElement;
+
+describe("memory-only review", () => {
+  test("plain documents keep their existing behavior", () => {
+    render(LONG_DOC);
+    expect(document.querySelectorAll('.rd-review').length).toBe(0);
+  });
+
+  test("section review collapses, updates partial ancestors, and can be undone", () => {
+    const { ctl } = render(REVIEW_DOC);
+    reviewSection('before').click();
+    expect(ctl?.folds.before?.body.hidden).toBe(true);
+    expect(reviewNav('before').textContent).toBe('Reviewed');
+    expect(reviewNav('contract').getAttribute('aria-pressed')).toBe('mixed');
+    expect(reviewNav('change').textContent).toBe('Partial');
+    expect(reviewNav('after').getAttribute('aria-pressed')).toBe('false');
+    reviewSection('before').click();
+    expect(ctl?.folds.before?.body.hidden).toBe(false);
+    expect(reviewNav('change').getAttribute('aria-pressed')).toBe('false');
+  });
+
+  test("subtree review reaches all descendants and leaves siblings alone", () => {
+    const { ctl } = render(REVIEW_DOC);
+    reviewNav('contract').click();
+    for (const id of ['contract', 'before', 'after']) {
+      expect(reviewNav(id).getAttribute('aria-pressed')).toBe('true');
+      expect(ctl?.folds[id]?.body.hidden).toBe(true);
+    }
+    expect(reviewNav('delivery').getAttribute('aria-pressed')).toBe('false');
+    ctl?.go('after');
+    expect(ctl?.folds.contract?.body.hidden).toBe(false);
+    expect(ctl?.folds.after?.body.hidden).toBe(false);
+    expect(reviewNav('after').getAttribute('aria-pressed')).toBe('true');
+    reviewSection('after').click();
+    expect(reviewNav('contract').getAttribute('aria-pressed')).toBe('mixed');
+    reviewNav('contract').click();
+    expect(reviewNav('contract').getAttribute('aria-pressed')).toBe('true');
+    reviewNav('contract').click();
+    expect(reviewNav('contract').getAttribute('aria-pressed')).toBe('false');
+    expect(ctl?.folds.before?.body.hidden).toBe(false);
+  });
+
+  test("review never writes storage and a new page starts fresh", () => {
+    render(REVIEW_DOC);
+    reviewNav('change').click();
+    expect(localStorage.length).toBe(0);
+    expect(sessionStorage.length).toBe(0);
+    expect(document.cookie).toBe('');
+    expect(location.hash).toBe('');
+    render(REVIEW_DOC);
+    expect(reviewNav('change').getAttribute('aria-pressed')).toBe('false');
+  });
+
+  test("plan controls work even with only a title and one section", () => {
+    const { ctl } = render('<div data-rd-document-type="plan"></div><h1>Plan</h1><h2>Proposal</h2><p>future</p>');
+    expect(ctl).not.toBeNull();
+    reviewNav('plan').click();
+    expect(ctl?.folds.proposal?.body.hidden).toBe(true);
+    expect(reviewSection('proposal').textContent).toBe('Reviewed');
+  });
+});

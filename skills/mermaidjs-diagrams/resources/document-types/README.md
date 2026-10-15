@@ -22,9 +22,10 @@ be written as either type.
 
 | The request says | Type | File |
 |---|---|---|
+| "pr-review", "PR review document", "visual diff" | PR Review | [`pr-review.md`](pr-review.md) |
+| "plan", "implementation plan", "proposed changes" | Plan | [`plan.md`](plan.md) |
 | "educational", "illustrative guide", "explain X visually", "teach me X", "one-pager on X", "distil this topic", "explainer" | Educational | [`educational.md`](educational.md) |
 
-Educational is currently the only type.
 Fall back to `../diagram_organization.md`, which covers per-lens dual-density
 diagrams without claiming to govern a whole document.
 

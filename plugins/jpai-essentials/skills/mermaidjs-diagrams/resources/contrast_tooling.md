@@ -1,21 +1,24 @@
 # Contrast Tooling Surface
 
-The contrast surface of the two tools this skill uses: the published lint that
-gates every diagram, and the ad-hoc pair calculator the skill still ships. The
-*mandate* to run the lint lives in `SKILL.md` ("Required for every diagram");
-this file is the reference you open when the recipe there isn't enough. The
-conceptual palette rules live in `color_theming.md`.
+The contrast surface of the three tools this skill uses: the published lint that
+gates every diagram, the sequence-diagram audit the lint lacks, and the ad-hoc
+pair calculator. The *mandate* to run them lives in `SKILL.md` ("Required for
+every diagram"); this file is the reference you open when the recipe there
+isn't enough. The conceptual palette rules live in `color_theming.md`.
 
-## Two complementary tools
+## Three complementary tools
 
 | Tool | Scope | Use when |
 |------|-------|---------|
 | [`@jpeakai/mermaidjs-lint`](https://jpeakai.github.io/jpai-mermaidjs-lint/) | Audits every `classDef`/`style` directive inside `.mmd`/`.md` files: text on fill at AA 4.5:1 and border on fill at 3:1, read the way the host renders it | Gating every diagram before it lands in docs |
+| `scripts/mermaid_contrast.ts` | Resolves `sequenceDiagram` theme variables (YAML frontmatter and JSON `init`) through Mermaid's theme engine and scores labels, arrows, lifelines, actors, notes and frames in light and dark | Gating every document that holds a sequence diagram, alongside the lint |
 | `scripts/color_contrast.ts` | Generic WCAG + APCA calculator for any two CSS colours (hex, rgb, oklch, named, etc.), with alpha compositing | Ad-hoc pair checks, e.g. sampling colours from a screenshot or comparing theme tokens |
 
-The lint replaced the skill's own `mermaid_contrast.ts` and
-`mermaid_complexity.ts`, which are deprecated. The calculator stays because the
-lint scores directives inside diagrams and has no command for an arbitrary pair.
+The lint replaced the skill's own `mermaid_complexity.ts` and the node, edge and
+ER contrast checks in `mermaid_contrast.ts`, which are deprecated for those
+jobs. `mermaid_contrast.ts` remains only for sequence-diagram auditing, which
+the lint does not do. The calculator stays because the lint scores directives
+inside diagrams and has no command for an arbitrary pair.
 
 ## Contrast rules
 
@@ -42,6 +45,43 @@ else `github`.
 - **`erDiagram`** fences are scored against every row background an entity
   draws, in both themes. Mermaid paints a `fill` on even attribute rows only, and
   the odd rows keep a theme surface that flips with the reader.
+
+## Sequence diagrams (`scripts/mermaid_contrast.ts`)
+
+Run this audit on every document that holds a `sequenceDiagram`, in addition to
+the lint:
+
+```bash
+bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_contrast.ts docs/
+bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_contrast.ts docs/ --json
+bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_contrast.ts docs/ \
+  --background-light COLOR --background-dark COLOR
+```
+
+`sequenceDiagram` fences resolve YAML frontmatter and JSON `init` directives
+through Mermaid's theme calculation. Both light and dark passes score actor
+labels/borders, lifelines, page-backed message labels/arrows, notes, loop labels
+and frames, activation boxes, numbering, and `rect` backgrounds when present.
+Human actor names and stick figures are also checked against the host canvas;
+unlike participant-box labels, they sit outside the actor background fill.
+An explicitly pinned theme is kept on both canvases, so `theme: base` cannot
+hide a dark-mode failure. Invalid colors and unsupported CSS overrides block
+the gate instead of reporting a clean unaudited fence.
+
+Sequence SVGs are transparent. A `themeVariables.background` value does not
+paint the host background. Pass `--background-light COLOR` and
+`--background-dark COLOR` for a custom host or branded diagram surface. These
+flags affect sequence pairs only; other diagram models remain unchanged.
+For a Richdocs theme, take these colors from its `themes.light.surface` and
+`themes.dark.surface` tokens. Default canvases follow the selected profile.
+Sequence JSON pairs have `directive_kind: "themeVariables"`, a variable
+selector, source line, and `theme: "light"` or `"dark"`.
+
+Keep `signalColor`, `signalTextColor`, and `loopTextColor` theme-adaptive by
+default. An explicit color that reads on a white page can vanish on a dark
+surface even when actor and note labels pass. Custom actor text can also change
+inherited loop/label colors; the gate resolves those dependencies rather than
+assuming unset colors are safe. Inspect both rendered themes after the gate.
 
 ## Invocations
 
@@ -72,9 +112,10 @@ echo '[["#fff","#777"],["red","blue"]]' | bun run .claude/skills/mermaidjs-diagr
 ## Exit semantics
 
 The lint exits `0` with no findings, `1` when findings remain (or a plugin fails
-to load), and `2` on usage error. `color_contrast.ts` exits `0` if every pair
-passes its threshold, `1` if any pair fails, `2` on usage error. The non-zero
-exit makes both drop-in suitable for `make ci`-style gates.
+to load), and `2` on usage error. `mermaid_contrast.ts` and `color_contrast.ts`
+exit `0` if every pair passes its threshold, `1` if any pair fails (or, for the
+sequence audit, a directive cannot be audited), `2` on usage error. The non-zero
+exit makes all three drop-in suitable for `make ci`-style gates.
 
 Unlike the renderer, these tools need no browser and no special execution
 class. They keep working in the restricted environments described in

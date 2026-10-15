@@ -1,7 +1,7 @@
 ---
 name: richdocs
-description: "Create code-backed discovery or systems-view architecture documents from repositories and source documents in Markdown, live HTML, or inline HTML. Also render existing Markdown as rich HTML with Mermaid, charts, and cloud stencils. Use for /richdocs discovery, systems view, or HTML companions."
-argument-hint: "[md|html+live|html+inline] [discovery|systems view] [repositories and documents] | [markdown-file]"
+description: "Create code-backed discovery or systems-view architecture documents from repositories and source documents in Markdown, live HTML, or inline HTML. Also render existing Markdown as rich HTML with Mermaid, charts, and cloud stencils. Use for /richdocs discovery, systems view, pr-review, plan, or HTML companions."
+argument-hint: "[md|html+live|html+inline] [discovery|systems view|pr-review|plan] [sources] | [markdown-file]"
 user-invocable: true
 ---
 
@@ -31,6 +31,7 @@ the conversion routes below.
 
 | Intent | Do this |
 |--------|---------|
+| "Create a pr-review / plan" | read `vendor/mermaidjs-diagrams/resources/document-types/pr-review.md` or `plan.md`; curate sources, author Markdown, then render in `md`, `html+live`, or `html+inline` mode. Read `resources/change-documents.md` for review controls. |
 | "Create a discovery / systems view" | read `resources/discovery.md`; research the named sources, author Markdown, then render according to `md`, `html+live`, or `html+inline` |
 | "Make an HTML version of DOC.md" | `md2html.py DOC.md` then `serve.py` (multi-file, live-editable) |
 | "One file I can open / attach" | `md2html.py DOC.md --inline` (self-contained, opens over `file://`) |
@@ -89,6 +90,18 @@ It needs `bunx` or `npx` with access to registry.npmjs.org. Exit 0 is clean,
 Non-zero exit is a blocker. `parse-diagram-unparseable … yielded 0 nodes` means
 the fence is invalid mermaid and will render as a broken block in the companion.
 `md2html.py` passes fences through verbatim; it cannot catch this for you.
+
+The lint does not audit `sequenceDiagram` theme variables. When the source holds
+a sequence diagram, also run the vendored sequence audit, passing the theme's
+light and dark `surface` colours (see `resources/change-documents.md`):
+
+```bash
+bun install --cwd .claude/skills/richdocs/vendor/mermaidjs-diagrams/scripts --frozen-lockfile
+bun run .claude/skills/richdocs/vendor/mermaidjs-diagrams/scripts/mermaid_contrast.ts SOURCE.md \
+  --background-light COLOR --background-dark COLOR
+```
+
+A non-zero exit there is a blocker too.
 The vendored `vendor/mermaidjs-diagrams/mermaidjs-diagrams.md` documents the
 lint's profiles and complexity presets, and authoring pitfalls like quoted
 mindmap labels and HTML entities. Prior adjudications on this class of failure live

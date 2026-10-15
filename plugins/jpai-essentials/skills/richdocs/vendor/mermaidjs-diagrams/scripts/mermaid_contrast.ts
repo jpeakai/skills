@@ -1,9 +1,13 @@
 #!/usr/bin/env bun
-// DEPRECATED: superseded by the published package @jpeakai/mermaidjs-lint
+// PARTLY DEPRECATED: the node, edge and ER contrast checks are superseded by the
+// published package @jpeakai/mermaidjs-lint
 // (https://jpeakai.github.io/jpai-mermaidjs-lint/). Run
-// `bunx @jpeakai/mermaidjs-lint <files or dirs>` instead. This file is kept only
-// for audit history (see scripts/CLAUDE.md ADR-004); SKILL.md no longer
-// instructs anyone to run it, and it receives no new rules or fixes.
+// `bunx @jpeakai/mermaidjs-lint <files or dirs>` for those (scripts/CLAUDE.md
+// ADR-004). This script remains only for sequence-diagram auditing, which the
+// library lacks: theme variables from YAML/JSON config and inherited theme
+// colours, scored in light and dark (ADR-005). SKILL.md names it for
+// sequenceDiagram fences only. Do not add non-sequence rules or fixes here;
+// change the package instead.
 //
 // Mermaid Source Contrast Auditor.
 //
@@ -13,9 +17,9 @@
 //   text:    fill × color     (body text vs node background — must be >= 4.5)
 //   border:  fill × stroke    (node border vs fill — UI-component rule, >= 3)
 //
-// Only pairs where BOTH sides are explicitly declared are scored; unset
-// properties fall back to mermaid theme defaults that we can't statically
-// resolve without rendering. Those are flagged separately as "skipped".
+// Flowchart directives require explicit pairs. Sequence diagrams instead
+// resolve themeVariables and inherited colors through Mermaid's theme engine,
+// including text and arrows on a transparent host canvas in both modes.
 //
 // Companion to mermaid_complexity.ts — same CLI shape, same exit conventions.
 // For ad-hoc color comparison (e.g. colors eyedropped from a screenshot), use
@@ -32,7 +36,17 @@ import { parseArgs } from "node:util";
 import { existsSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 
-import { collectFiles as collectDiagramFiles, detectKeyword, extractMarkdownFences } from "./mermaid_complexity.ts";
+import {
+  collectFiles as collectDiagramFiles,
+  detectKeyword,
+  extractMarkdownFences,
+  getMermaid,
+} from "./mermaid_complexity.ts";
+import { parseDocument } from "yaml";
+
+// Resolve inherited sequence colors through Mermaid's own theme calculation,
+// after the shared DOM shim. Do not duplicate its default/base/dark palettes.
+const mermaid = await getMermaid();
 import {
   alphaOf,
   compositeOver,
@@ -91,11 +105,14 @@ const MERMAID_ER = {
 export type PairKind = "text" | "border";
 export type Theme = "light" | "dark";
 export type ErRow = "odd" | "even";
+export interface AuditOptions {
+  backgrounds?: Record<Theme, string>;
+}
 
 export interface ContrastPair {
   kind: PairKind; // text = fill×color, border = fill×stroke
   selector: string; // classDef/style name
-  directive_kind: StyleDirective["kind"];
+  directive_kind: StyleDirective["kind"] | "themeVariables";
   foreground: string; // text: color, border: stroke (composited under mkdocs)
   background: string; // fill (composited box under mkdocs)
   line: number; // where the directive appears
@@ -110,7 +127,7 @@ export interface ContrastPair {
 
 export interface SkippedDirective {
   selector: string;
-  directive_kind: StyleDirective["kind"];
+  directive_kind: StyleDirective["kind"] | "themeVariables";
   line: number;
   reason: string; // e.g. "no fill declared", "no color or stroke declared"
   // A directive the gate could not score but which the profile REQUIRES to be
@@ -421,6 +438,110 @@ export function scoreDirectivesEr(directives: StyleDirective[]): {
   return { pairs, skipped };
 }
 
+/** Audit painted sequence surfaces, including transparent page-backed labels. */
+export function scoreSequence(
+  content: string,
+  profile: Profile = "github",
+  options: AuditOptions = {},
+): { pairs: ContrastPair[]; skipped: SkippedDirective[] } {
+  const pairs: ContrastPair[] = [];
+  const skipped: SkippedDirective[] = [];
+  const sourceLines = content.split("\n");
+  const lineOf = (key: string): number => {
+    const found = sourceLines.findLastIndex((line) => new RegExp(`\\b${key}["']?\\s*:`).test(line));
+    return found < 0 ? sourceLines.findIndex((line) => /^\s*sequenceDiagram\b/.test(line)) + 1 : found + 1;
+  };
+  const block = (selector: string, reason: string): void => {
+    skipped.push({ selector, directive_kind: "themeVariables", line: lineOf(selector), reason, blocking: true });
+  };
+  let config: import("mermaid").MermaidConfig = {};
+  try {
+    const front = /^\s*---\s*\n([\s\S]*?)\n---(?:\s*\n|$)/.exec(content);
+    if (front) {
+      const doc = parseDocument(front[1] ?? "");
+      if (doc.errors.length) throw new Error(doc.errors.map((e) => e.message).join("; "));
+      const data = doc.toJS() as { config?: import("mermaid").MermaidConfig } | null;
+      config = data?.config ?? {};
+    }
+    for (const init of content.matchAll(/%%\{\s*(?:init|initialize)\s*:\s*([\s\S]*?)\s*\}%%/g)) {
+      // Mermaid accepts single-quoted init JSON by normalizing its quotes.
+      const directive = JSON.parse((init[1] ?? "").replace(/'/g, '"')) as import("mermaid").MermaidConfig;
+      config = { ...config, ...directive, themeVariables: { ...config.themeVariables, ...directive.themeVariables } };
+    }
+    if (typeof config !== "object" || config === null || Array.isArray(config))
+      throw new Error("config must be an object");
+    if (config.themeCSS || (config as Record<string, unknown>).themeCss)
+      throw new Error("themeCSS overrides require rendered contrast inspection");
+    if (config.theme && !["base", "default", "dark", "forest", "neutral"].includes(config.theme)) {
+      throw new Error(`unsupported theme: ${config.theme}`);
+    }
+  } catch (err) {
+    block("config", `sequence configuration unaudited: ${(err as Error).message}`);
+    return { pairs, skipped };
+  }
+
+  const prior = mermaid.mermaidAPI.getConfig();
+  try {
+    for (const theme of THEMES) {
+      const page =
+        options.backgrounds?.[theme] ?? (profile === "mkdocs-material" ? MKDOCS_MATERIAL[theme].bg : GITHUB[theme].bg);
+      mermaid.initialize({ ...config, theme: config.theme ?? (theme === "light" ? "default" : "dark") });
+      const variables = mermaid.mermaidAPI.getConfig().themeVariables as Record<string, unknown>;
+      const color = (key: string): string => {
+        const value = variables[key];
+        if (typeof value !== "string") throw new Error(`${key} is not a resolved color`);
+        return value;
+      };
+      const pair = (kind: PairKind, fgKey: string, bg: string, suffix = ""): void => {
+        try {
+          const box = compositeOver(bg, page);
+          const fg = compositeOver(color(fgKey), box);
+          const d: StyleDirective = { kind: "style", selector: fgKey + suffix, properties: {}, line: lineOf(fgKey) };
+          pairs.push({ ...scorePair(kind, d, fg, box), directive_kind: "themeVariables", theme });
+        } catch (err) {
+          block(fgKey, `${theme} sequence pair unaudited: ${(err as Error).message}`);
+        }
+      };
+      // Actor/participant labels and strokes are painted on their own boxes.
+      pair("text", "actorTextColor", color("actorBkg"));
+      pair("border", "actorBorder", color("actorBkg"));
+      // Human actor names and stick figures sit outside the head's fill.
+      if (/^\s*actor\s+\S+/m.test(content)) {
+        pair("text", "actorTextColor", page, " (human actor label)");
+        pair("border", "actorBorder", page, " (human actor glyph)");
+      }
+      pair("border", "actorLineColor", page);
+      // Signals and message text have NO box. themeVariables.background does
+      // not paint an SVG background, so it cannot replace the host canvas.
+      pair("text", "signalTextColor", page);
+      pair("border", "signalColor", page);
+      if (/^\s*note\s+(?:over|left|right)\b/im.test(content)) {
+        pair("text", "noteTextColor", color("noteBkgColor"));
+      }
+      if (/^\s*(?:loop|alt|opt|par|critical|break)\b/m.test(content)) {
+        pair("text", "labelTextColor", color("labelBoxBkgColor"));
+        pair("text", "loopTextColor", page);
+        pair("border", "labelBoxBorderColor", page, " (loop frame)");
+      }
+      if (/^\s*(?:activate|deactivate)\b|[-=]>[>x)]?[+-]/m.test(content)) {
+        pair("border", "activationBorderColor", color("activationBkgColor"));
+      }
+      if (/^\s*autonumber\b/m.test(content)) pair("text", "sequenceNumberColor", color("signalColor"));
+      for (const rect of content.matchAll(/^\s*rect\s+([^\n]+)$/gm)) {
+        pair("text", "signalTextColor", rect[1] ?? "", " (rect)");
+        pair("border", "signalColor", rect[1] ?? "", " (rect)");
+        if (/^\s*(?:loop|alt|opt|par|critical|break)\b/m.test(content))
+          pair("text", "loopTextColor", rect[1] ?? "", " (rect)");
+      }
+    }
+  } catch (err) {
+    block("config", `sequence theme resolution failed: ${(err as Error).message}`);
+  } finally {
+    mermaid.initialize(prior);
+  }
+  return { pairs, skipped };
+}
+
 /**
  * Dispatch scoring by profile. `keyword` is the fence's diagram keyword: an
  * `erDiagram` under the github profile gets the row-aware model, because its
@@ -430,7 +551,10 @@ export function scoreForProfile(
   directives: StyleDirective[],
   profile: Profile,
   keyword: string | null = null,
+  content = "",
+  options: AuditOptions = {},
 ): { pairs: ContrastPair[]; skipped: SkippedDirective[] } {
+  if (keyword === "sequenceDiagram") return scoreSequence(content, profile, options);
   if (profile === "mkdocs-material") return scoreDirectivesMkdocs(directives);
   return keyword === "erDiagram" ? scoreDirectivesEr(directives) : scoreDirectives(directives);
 }
@@ -475,13 +599,20 @@ async function readDiagrams(filePath: string): Promise<DiagramEntry[]> {
 export async function auditFile(
   filePath: string,
   profileArg: Profile | "auto" = "auto",
+  options: AuditOptions = {},
 ): Promise<DiagramContrastReport[]> {
   const profile = profileArg === "auto" ? detectProfile(filePath) : profileArg;
   const diagrams = await readDiagrams(filePath);
   const out: DiagramContrastReport[] = [];
   for (const entry of diagrams) {
     const directives = extractStyleDirectives(entry.content);
-    const { pairs, skipped } = scoreForProfile(directives, profile, detectKeyword(entry.content));
+    const { pairs, skipped } = scoreForProfile(
+      directives,
+      profile,
+      detectKeyword(entry.content),
+      entry.content,
+      options,
+    );
     // Fence-local line numbers → absolute markdown line numbers so users can
     // jump straight to the offending directive in their editor.
     const offset = entry.fence ? entry.fence.line_start : 0;
@@ -505,9 +636,10 @@ export function auditContent(
   content: string,
   filePath = "<inline>",
   profile: Profile = "github",
+  options: AuditOptions = {},
 ): DiagramContrastReport {
   const directives = extractStyleDirectives(content);
-  const { pairs, skipped } = scoreForProfile(directives, profile, detectKeyword(content));
+  const { pairs, skipped } = scoreForProfile(directives, profile, detectKeyword(content), content, options);
   return {
     file_path: filePath,
     profile,
@@ -601,6 +733,8 @@ Usage:
 
 Scores every classDef/style fill×color (text) and fill×stroke (border) pair
 against WCAG AA thresholds (4.5:1 for text, 3:1 for UI borders).
+Sequence diagrams resolve themeVariables and inherited Mermaid colors in both
+themes, including message text/arrows against the transparent SVG's host canvas.
 
 The audit is context-aware (see resources/color_theming.md §11):
   github          You control the text — score declared fill×color / fill×stroke.
@@ -611,6 +745,8 @@ The audit is context-aware (see resources/color_theming.md §11):
 
 Options:
   --profile P   auto | github | mkdocs-material  (default: auto)
+  --background-light COLOR  Sequence host canvas in light mode (default: profile)
+  --background-dark COLOR   Sequence host canvas in dark mode (default: profile)
   --json        Machine-readable output (array of DiagramContrastReport)
   --summary     Print only the per-file summary, not every pair
   --quiet, -q   Suppress non-failure lines
@@ -634,6 +770,8 @@ export async function main(argv: string[] = Bun.argv.slice(2)): Promise<number> 
         quiet: { type: "boolean", short: "q", default: false },
         color: { type: "boolean", default: false },
         profile: { type: "string", default: "auto" },
+        "background-light": { type: "string" },
+        "background-dark": { type: "string" },
         help: { type: "boolean", short: "h", default: false },
       },
       allowPositionals: true,
@@ -671,7 +809,16 @@ export async function main(argv: string[] = Bun.argv.slice(2)): Promise<number> 
 
   const reports: DiagramContrastReport[] = [];
   for (const f of files.sort()) {
-    reports.push(...(await auditFile(f, profileArg)));
+    const profile = profileArg === "auto" ? detectProfile(f) : profileArg;
+    const defaults = profile === "mkdocs-material" ? MKDOCS_MATERIAL : GITHUB;
+    reports.push(
+      ...(await auditFile(f, profile, {
+        backgrounds: {
+          light: String(values["background-light"] ?? defaults.light.bg),
+          dark: String(values["background-dark"] ?? defaults.dark.bg),
+        },
+      })),
+    );
   }
 
   if (values.json) {

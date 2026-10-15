@@ -4,6 +4,8 @@
 // `bunx @jpeakai/mermaidjs-lint <files or dirs>` instead. This file is kept only
 // for audit history (see scripts/CLAUDE.md ADR-004); SKILL.md no longer
 // instructs anyone to run it, and it receives no new rules or fixes.
+// mermaid_contrast.ts still imports its file collection, fence extraction and
+// getMermaid() for the sequence-diagram audit (ADR-005), so keep those exports.
 //
 // Mermaid Diagram Complexity Analyzer — TypeScript port.
 //
@@ -61,7 +63,7 @@ function installDomShim(): void {
 
 // Lazy singleton for mermaid core — imported on first use, after the shim runs.
 let _mermaid: typeof import("mermaid").default | null = null;
-async function getMermaid(): Promise<typeof import("mermaid").default> {
+export async function getMermaid(): Promise<typeof import("mermaid").default> {
   if (_mermaid) return _mermaid;
   installDomShim();
   _mermaid = (await import("mermaid")).default;

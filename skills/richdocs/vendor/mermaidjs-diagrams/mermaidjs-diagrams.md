@@ -1,6 +1,6 @@
 ---
 name: mermaidjs-diagrams
-description: "Render and analyze Mermaid.JS diagrams embedded in markdown files, and author whole diagram-led documents from named document types. Enforces visual complexity limits AND WCAG color-contrast requirements via automated analysis. Every diagram MUST derive its palette from `resources/color_theming.md` and pass `bunx @jpeakai/mermaidjs-lint` (parse, complexity and WCAG contrast gates) before being declared done; the lint needs `bunx` or `npx` with access to registry.npmjs.org. Use when creating or updating architecture diagrams, analyzing diagram complexity, improving documentation clarity, or exploring a codebase to produce dual-density architecture diagrams for a README. Also use when asked for an educational document, an illustrative guide, an explainer, or a visual one-pager that distils a topic's concepts and relationships."
+description: "Render and analyze Mermaid.JS diagrams embedded in markdown files, and author whole diagram-led documents from named document types. Enforces visual complexity limits AND WCAG color-contrast requirements via automated analysis. Every diagram MUST derive its palette from `resources/color_theming.md` and pass `bunx @jpeakai/mermaidjs-lint` (parse, complexity and WCAG contrast gates) before being declared done; the lint needs `bunx` or `npx` with access to registry.npmjs.org. A sequenceDiagram also passes `scripts/mermaid_contrast.ts`. Use when creating or updating architecture diagrams, analyzing diagram complexity, improving documentation clarity, or exploring a codebase to produce dual-density architecture diagrams for a README. Also use for PR review companions and implementation plans, or when asked for an educational document, an illustrative guide, an explainer, or a visual one-pager that distils a topic's concepts and relationships."
 argument-hint: "[markdown-file]"
 user-invocable: true
 ---
@@ -22,6 +22,8 @@ across them. Skip when the task is one diagram, a render, or an audit.
 
 | The request says | Read |
 |---|---|
+| "pr-review", "PR review document", "visual diff" | `resources/document-types/pr-review.md` |
+| "plan", "implementation plan", "proposed changes" | `resources/document-types/plan.md` |
 | "educational", "illustrative guide", "explainer", "one-pager on X", "distil X", "explain X visually", "teach me X" | `resources/document-types/educational.md` |
 | Unsure which, or adding a new type | `resources/document-types/README.md` |
 
@@ -97,6 +99,22 @@ default `auto` = mkdocs-material when an ancestor holds `mkdocs.yml`, else githu
   ```bash
   bunx @jpeakai/mermaidjs-lint docs/ --profile mkdocs-material
   ```
+
+**A `sequenceDiagram` also needs the skill's own sequence audit.** The lint does
+not resolve sequence theme variables, so `scripts/mermaid_contrast.ts` stays for
+that one job. It reads YAML frontmatter and JSON `init` theme variables, follows
+Mermaid's inherited colours, and scores message and loop labels, arrows,
+lifelines, actors, notes and frames in light and dark. Pass the host's surfaces
+when the page is not plain white or black:
+
+```bash
+bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_contrast.ts path/to/doc.md \
+  --background-light '#ffffff' --background-dark '#0d1117'
+```
+
+Run both gates on a document that holds sequence diagrams. Each exits non-zero
+on a failure, and either failure is a blocker. See
+`resources/contrast_tooling.md` for the full sequence surface.
 
 For ad-hoc colour-pair checks (picking from a screenshot, validating a theme
 token pair, compositing a translucent fill), the lint has no equivalent, so the
@@ -484,6 +502,7 @@ when they display in browser previews. Stick to **ASCII-only text** in node labe
 | Tool | 0 | 1 | 2 |
 |------|---|---|---|
 | `@jpeakai/mermaidjs-lint` | No findings | Findings remain, or a plugin failed to load | Usage error (bad flag / missing file) |
+| `mermaid_contrast.ts` (sequence audit) | Every sequence pair passes in light and dark | Any pair fails, or a directive cannot be audited | Usage error |
 | `color_contrast.ts` | All pairs pass WCAG AA (>=4.5:1) | Any pair fails | Usage error |
 | `render_mermaid.sh` | Every variant rendered **and verified** as a real PNG | Render failure (stderr carries `class` / `evidence` / `remedy`) or usage error | — |
 | `mmdc` | All rendered | Render failure (see stderr) | — |
@@ -499,6 +518,8 @@ means the diagram is at fault. See `resources/render_troubleshooting.md`.
 | File | Content |
 |------|---------|
 | `resources/document-types/README.md` | How to pick a document type; the invariants every type shares; how to add one |
+| `resources/document-types/pr-review.md` | PR review companion: a visual diff of a change, section by section |
+| `resources/document-types/plan.md` | Implementation plan: proposed changes, laid out before the code exists |
 | `resources/document-types/educational.md` | Educational / illustrative guide: concept beats, monotonic build, shared palette, one-pager contract |
 | `resources/gfm_beta_diagrams.md` | Why `-beta` types fail on GFM hosts; render-to-PNG/SVG with sibling `.mmd` pattern; non-beta alternatives |
 | `resources/color_theming.md` | Conceptual core: HSL encoding, dark/light mode safety, hierarchy, subgraph coloring |

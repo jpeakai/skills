@@ -137,7 +137,7 @@ classDef good fill:#1e40af,color:#fff,stroke:#1e3a8a
 > classDef output fill:#b4530966,stroke:#d97706,stroke-width:2px
 > ```
 >
-> `mermaid_contrast.ts` detects `erDiagram` fences and scores them against both
+> `@jpeakai/mermaidjs-lint` detects `erDiagram` fences and scores them against both
 > rows in Mermaid's `default` and `dark` themes, so it catches the opaque pairing.
 > See [host-themed renderers](color_host_themed_renderers.md#a-second-case-erdiagram-rows).
 
@@ -276,7 +276,7 @@ classDef sgTransparent fill:#3b82f620,stroke:#3b82f6
 > On its dark canvas the same pair measures 1.13:1.
 > No alpha value rescues it: dark-mode contrast peaks near 2.63:1 around `c0`.
 > Even a fully opaque fill reaches only 3.98:1, because the hue itself is too close.
-> `mermaid_contrast.ts` scores translucent fills on both canvases and gates on the worse.
+> `@jpeakai/mermaidjs-lint` scores translucent fills on both canvases and gates on the worse.
 >
 > Two ways to stay readable:
 >
@@ -377,7 +377,7 @@ in **[`color_palette_recipes.md`](color_palette_recipes.md#worked-example)**.
   `fill:` with `color:`" rule (§3) does **not** apply here; setting `color:` is a
   no-op. Use the translucent-fill technique in
   [`color_host_themed_renderers.md`](color_host_themed_renderers.md)
-  instead, and audit with `mermaid_contrast.ts --profile mkdocs-material`.
+  instead, and audit with `bunx @jpeakai/mermaidjs-lint --profile mkdocs-material`.
 - Material renders Mermaid as **inline SVG re-rendered on theme switch**, so the
   same diagram must read in both themes from one static source — exactly what the
   bleed-through palette guarantees.

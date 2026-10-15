@@ -21,7 +21,7 @@ has its own fix; fixing one never fixes another.
 
 **Only the fourth sends you back to edit the diagram.** The first rule of
 triage is refusing to "fix" a syntax-clean diagram because the browser could
-not start. A diagram that passed `mermaid_complexity.ts` has already been
+not start. A diagram that passed `@jpeakai/mermaidjs-lint` has already been
 through Mermaid's canonical parser — if that gate is green, a render failure is
 almost certainly environmental.
 
@@ -117,9 +117,8 @@ else
 fi
 
 # SANDBOX_DENIED — re-run ONLY the render in a browser-capable class.
-# The gates below need no such permission; keep them in the restricted class.
-bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_complexity.ts doc.md
-bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_contrast.ts   doc.md
+# The lint below needs no such permission; keep it in the restricted class.
+bunx @jpeakai/mermaidjs-lint doc.md
 ```
 
 Any browser you resolve is a candidate, not a contract. Prove it with one real

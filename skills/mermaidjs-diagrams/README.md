@@ -13,14 +13,17 @@ Render and maintain Mermaid.JS diagrams with **visual-clarity enforcement**.
   missing browser, sandbox denial, network, diagram syntax, or unknown), the
   two mechanically remediable classes are retried once, and only one class
   ever means "edit the diagram."
-- **Complexity lint**: ruff-style findings on node count, visual-complexity
-  score, and subgraph depth. Cognitive-load-calibrated thresholds (Huang
-  2020; 50 nodes at the default preset). Uses Mermaid's canonical parser.
-- **Contrast audit (required, not optional)**: every diagram with custom
-  colors MUST derive its palette from `resources/color_theming.md` and pass
-  `scripts/mermaid_contrast.ts` (WCAG 2.x gate; APCA Lc reported in `--json`).
-  `SKILL.md` "Why this is mandatory" carries the reasoning. An ad-hoc pair
-  checker also ships for sampling (hex, rgb, oklch, named).
+- **One published lint for every gate (required, not optional)**: every
+  diagram MUST derive its palette from `resources/color_theming.md` and pass
+  [`@jpeakai/mermaidjs-lint`](https://jpeakai.github.io/jpai-mermaidjs-lint/).
+  That one tested package guarantees every label reads in light and dark
+  themes, every diagram parses with Mermaid's own parsers, visual complexity
+  (node count, visual-complexity score, subgraph depth) is scored against
+  cognitive-load thresholds, and extra rules plug in. `SKILL.md` "Why this is
+  mandatory" carries the reasoning.
+- **Ad-hoc pair checker**: `scripts/color_contrast.ts` scores any two CSS
+  colours (hex, rgb, oklch, named), WCAG 2.x plus APCA Lc, and composites a
+  translucent fill over a backdrop. The lint has no equivalent, so it stays.
 - **Layout engines**: dagre, elk, tidy-tree and cose-bilkent (mindmap only),
   selectable per diagram via YAML frontmatter. `look: classic | handDrawn | neo`.
 - **Icon packs**: Iconify (logos, mdi, cloud, saas) for `architecture-beta`;
@@ -37,8 +40,8 @@ flowchart LR
 
     subgraph gates["Mandatory Quality Gates"]
         palette["Palette<br/>from reference"]:::computePrimary
-        complexity["mermaid_complexity.ts<br/>nodes / VCS / depth"]:::computePrimary
-        contrast["mermaid_contrast.ts<br/>WCAG AA fill+text+stroke"]:::computePrimary
+        complexity["mermaidjs-lint complexity<br/>nodes / VCS / depth"]:::computePrimary
+        contrast["mermaidjs-lint contrast<br/>WCAG AA, light and dark"]:::computePrimary
     end
 
     subgraph optional["Optional Tooling"]
@@ -85,14 +88,16 @@ flowchart LR
 ```
 
 *Mermaid source flows left-to-right through two mandatory gates, structural
-complexity and color contrast, before rendering. Reference docs (dotted)
+complexity and color contrast, both run by `@jpeakai/mermaidjs-lint`, before
+rendering. Reference docs (dotted)
 supply the rules each stage enforces.*
 
 ## Quick start
 
 ```bash
-make -C .claude/skills/mermaidjs-diagrams/scripts install-ts      # once: bun deps for the gate scripts
+bunx @jpeakai/mermaidjs-lint path/to/doc.md                       # the gates: parse, complexity, contrast
 bash .claude/skills/mermaidjs-diagrams/scripts/render_mermaid.sh path/to/doc.md
+make -C .claude/skills/mermaidjs-diagrams/scripts install-ts      # once: bun deps for color_contrast.ts
 make -C .claude/skills/mermaidjs-diagrams/scripts cli-demo
 ```
 

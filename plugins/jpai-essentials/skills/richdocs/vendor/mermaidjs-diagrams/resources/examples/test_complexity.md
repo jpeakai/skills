@@ -1,11 +1,11 @@
 # Mermaid Complexity — Lint Test Fixtures
 
 Each ```mermaid fence below is a named scenario designed to exercise one
-specific `LintCode` produced by `scripts/mermaid_complexity.ts`. Run with the
+specific rule of `@jpeakai/mermaidjs-lint`. Run with the
 **high-density preset** (the default) to see the expected findings:
 
 ```bash
-bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_complexity.ts \
+bunx @jpeakai/mermaidjs-lint \
   .claude/skills/mermaidjs-diagrams/resources/examples/test_complexity.md
 ```
 
@@ -19,17 +19,17 @@ Under the default (high-density) preset — `node_acceptable=35`,
 |-------------------------------------|----------------------------------------|----------|
 | Clean flowchart                     | *(no finding)*                         | —        |
 | Clean architecture-beta             | *(no finding)*                         | —        |
-| Nodes just over acceptable (36)     | `NodeCountExceedsAcceptable`           | warning  |
-| Nodes at cognitive limit (51)       | `NodeCountExceedsCognitiveLimit`       | error    |
-| Nodes beyond hard limit (120)       | `NodeCountExceedsHardLimit`            | error    |
-| VCS over acceptable (edge-heavy)    | `VisualComplexityExceedsAcceptable`    | warning  |
-| VCS beyond critical (very dense)    | `VisualComplexityExceedsCritical`      | error    |
-| Subgraph nested 3 deep              | `SubgraphNestingTooDeep`               | warning  |
-| JISON diagram with no DOM (block)   | `ParserFailure`                        | error    |
-| Subdivision with named boundaries   | `NodeCountExceedsCognitiveLimit` +     | error    |
+| Nodes just over acceptable (36)     | `complexity-node-count-acceptable-exceeded`           | warning  |
+| Nodes at cognitive limit (51)       | `complexity-node-count-cognitive-limit`       | error    |
+| Nodes beyond hard limit (120)       | `complexity-node-count-hard-limit`            | error    |
+| VCS over acceptable (edge-heavy)    | `complexity-visual-score-acceptable-exceeded`    | warning  |
+| VCS beyond critical (very dense)    | `complexity-visual-score-critical`      | error    |
+| Subgraph nested 3 deep              | `complexity-subgraph-nesting-too-deep`               | warning  |
+| JISON diagram with no DOM (block)   | `parse-diagram-unparseable`                        | error    |
+| Subdivision with named boundaries   | `complexity-node-count-cognitive-limit` +     | error    |
 |                                     | boundaries populated                   |          |
 
-Short-circuit rule: when `ParserFailure` fires on a diagram, no other codes
+Short-circuit rule: when `parse-diagram-unparseable` fires on a diagram, no other codes
 are emitted for that diagram — the parser couldn't read it, so threshold
 checks against garbage metrics would be misleading.
 
@@ -99,10 +99,10 @@ architecture-beta
   web:R -- L:api
 ```
 
-## 3. NodeCountExceedsAcceptable — 36 nodes, loosely connected
+## 3. complexity-node-count-acceptable-exceeded — 36 nodes, loosely connected
 
 Just above the `node_acceptable=35` threshold. Expected: one
-`NodeCountExceedsAcceptable` (warning). No VCS finding because edges are
+`complexity-node-count-acceptable-exceeded` (warning). No VCS finding because edges are
 sparse enough to keep VCS under `vcs_acceptable=60`.
 
 ```mermaid
@@ -144,11 +144,11 @@ flowchart LR
   N36[n36]
 ```
 
-## 4. NodeCountExceedsCognitiveLimit — 51 nodes
+## 4. complexity-node-count-cognitive-limit — 51 nodes
 
 Just above the 50-node Huang 2020 cognitive limit. Expected: one
-`NodeCountExceedsCognitiveLimit` (error). Note the waterfall rule —
-`NodeCountExceedsAcceptable` is NOT also emitted.
+`complexity-node-count-cognitive-limit` (error). Note the waterfall rule —
+`complexity-node-count-acceptable-exceeded` is NOT also emitted.
 
 ```mermaid
 flowchart LR
@@ -205,11 +205,11 @@ flowchart LR
   N51[n51]
 ```
 
-## 5. NodeCountExceedsHardLimit — 120 nodes
+## 5. complexity-node-count-hard-limit — 120 nodes
 
 Beyond any comprehensible diagram size. Expected:
-`NodeCountExceedsHardLimit` (error) with remediation "split immediately".
-Also fires `VisualComplexityExceedsCritical` because VCS = 120 > 100.
+`complexity-node-count-hard-limit` (error) with remediation "split immediately".
+Also fires `complexity-visual-score-critical` because VCS = 120 > 100.
 
 ```mermaid
 flowchart TD
@@ -335,10 +335,10 @@ flowchart TD
   N120[n120]
 ```
 
-## 6. VisualComplexityExceedsAcceptable — edge-heavy, node-light
+## 6. complexity-visual-score-acceptable-exceeded — edge-heavy, node-light
 
 Node count (10) is fine, but 40 interconnecting edges push VCS past 60.
-Expected: one `VisualComplexityExceedsAcceptable` (warning). No node-count
+Expected: one `complexity-visual-score-acceptable-exceeded` (warning). No node-count
 finding.
 
 ```mermaid
@@ -385,11 +385,11 @@ flowchart LR
   J --> E
 ```
 
-## 7. VisualComplexityExceedsCritical — very dense graph
+## 7. complexity-visual-score-critical — very dense graph
 
-Many nodes plus many edges. Expected: `VisualComplexityExceedsCritical`
-(error), probably alongside `NodeCountExceedsCognitiveLimit` and
-`NodeCountExceedsHardLimit` depending on size.
+Many nodes plus many edges. Expected: `complexity-visual-score-critical`
+(error), probably alongside `complexity-node-count-cognitive-limit` and
+`complexity-node-count-hard-limit` depending on size.
 
 ```mermaid
 flowchart LR
@@ -422,10 +422,10 @@ flowchart LR
   F10 --> A1
 ```
 
-## 8. SubgraphNestingTooDeep — 3 levels deep
+## 8. complexity-subgraph-nesting-too-deep — 3 levels deep
 
 Structure is small (node count under any threshold) but subgraphs are
-nested 3 deep. Expected: one `SubgraphNestingTooDeep` (warning).
+nested 3 deep. Expected: one `complexity-subgraph-nesting-too-deep` (warning).
 
 ```mermaid
 flowchart TB
@@ -438,11 +438,11 @@ flowchart TB
   end
 ```
 
-## 9. ParserFailure — JISON block diagram without DOM
+## 9. parse-diagram-unparseable — JISON block diagram without DOM
 
 `block` is a JISON-parsed diagram type that needs a real DOM to extract
-structure. Headless Bun + happy-dom can't parse it → 0 nodes → ParserFailure.
-Expected: one `ParserFailure` (error) and **no other codes** for this fence
+structure. Headless Bun + happy-dom can't parse it → 0 nodes → parse-diagram-unparseable.
+Expected: one `parse-diagram-unparseable` (error) and **no other codes** for this fence
 (short-circuit rule).
 
 ```mermaid
@@ -459,10 +459,10 @@ columns 3
   c --> f
 ```
 
-## 10. Subdivision with named boundaries — NodeCountExceedsCognitiveLimit + boundaries[]
+## 10. Subdivision with named boundaries — complexity-node-count-cognitive-limit + boundaries[]
 
 Large flowchart with 4 named subgraphs. Expected:
-`NodeCountExceedsCognitiveLimit` (error) where `boundaries` contains
+`complexity-node-count-cognitive-limit` (error) where `boundaries` contains
 ["Ingress", "Web", "App", "Data"] so an LLM receiving the JSON can pick
 split anchors by name, not by guesswork.
 

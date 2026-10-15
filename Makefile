@@ -57,25 +57,19 @@ skills-ci:
 # finding twice, or report one this repo cannot fix.
 DOCS := README.md plugins/README.md hooks/README.md $(wildcard rules/*.md)
 
-# The prose gate is the published @jpeakai/prose-gates package, deliberately
-# unpinned: the maintainer of this repo also authors that package, so taking
-# its latest release on every run is a managed risk rather than an unknown one.
-# The diagram gates still run with this repo's own mermaidjs-diagrams skill.
-#
-# That script directory carries its own package.json and lockfile (the
-# complexity gate parses with mermaid's canonical parser, which needs a DOM),
-# so its dependencies are installed in place rather than hoisted to a root
-# package.json this repo deliberately does not have. A gate ships inside a
-# pack and must resolve on a machine that has never seen this repo, which is
-# also why pyproject.toml covers only the repo's own tooling and no skill.
+# The prose gate and the diagram gate are both published packages,
+# @jpeakai/prose-gates and @jpeakai/mermaidjs-lint, deliberately unpinned: the
+# maintainer of this repo also authors both, so taking their latest release on
+# every run is a managed risk rather than an unknown one. The diagram gate
+# parses every mermaid fence, scores its complexity and audits its contrast;
+# it replaced the mermaidjs-diagrams skill's own gate scripts, so docs-ci no
+# longer installs that skill's dependencies.
 PROSE_GATES := @jpeakai/prose-gates@latest
-GATES := skills/mermaidjs-diagrams/scripts
+MERMAID_GATES := @jpeakai/mermaidjs-lint@latest
 
 docs-ci:
-	@for d in $(GATES); do bun install --cwd $$d --silent || exit 1; done
 	bunx $(PROSE_GATES) $(DOCS)
-	bun run skills/mermaidjs-diagrams/scripts/mermaid_complexity.ts $(DOCS)
-	bun run skills/mermaidjs-diagrams/scripts/mermaid_contrast.ts $(DOCS)
+	bunx $(MERMAID_GATES) $(DOCS)
 
 # The real install test: clones HEAD and installs both packs into throwaway
 # Claude and Codex sandboxes. Kept out of `ci` because it drives two external

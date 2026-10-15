@@ -1,6 +1,6 @@
 ---
 name: mermaidjs-diagrams
-description: "Render and analyze Mermaid.JS diagrams embedded in markdown files, and author whole diagram-led documents from named document types. Enforces visual complexity limits AND WCAG color-contrast requirements via automated analysis. Every diagram MUST derive its palette from `resources/color_theming.md` and pass `scripts/mermaid_contrast.ts` before being declared done. Use when creating or updating architecture diagrams, analyzing diagram complexity, improving documentation clarity, or exploring a codebase to produce dual-density architecture diagrams for a README. Also use when asked for an educational document, an illustrative guide, an explainer, or a visual one-pager that distils a topic's concepts and relationships."
+description: "Render and analyze Mermaid.JS diagrams embedded in markdown files, and author whole diagram-led documents from named document types. Enforces visual complexity limits AND WCAG color-contrast requirements via automated analysis. Every diagram MUST derive its palette from `resources/color_theming.md` and pass `bunx @jpeakai/mermaidjs-lint` (parse, complexity and WCAG contrast gates) before being declared done; the lint needs `bunx` or `npx` with access to registry.npmjs.org. Use when creating or updating architecture diagrams, analyzing diagram complexity, improving documentation clarity, or exploring a codebase to produce dual-density architecture diagrams for a README. Also use when asked for an educational document, an illustrative guide, an explainer, or a visual one-pager that distils a topic's concepts and relationships."
 argument-hint: "[markdown-file]"
 user-invocable: true
 ---
@@ -53,44 +53,54 @@ Do not ad-hoc pick `#random` hex values. If the palette you need isn't in
 shape as existing entries), then use it — don't fork the convention per
 diagram.
 
-## 2. Run `mermaid_contrast.ts` before declaring the diagram done
+## 2. Run `@jpeakai/mermaidjs-lint` before declaring the diagram done
 
-Every diagram that defines style directives MUST pass a WCAG contrast
-audit. The skill ships the tool; use it:
+Every diagram MUST pass the published lint,
+[`@jpeakai/mermaidjs-lint`](https://jpeakai.github.io/jpai-mermaidjs-lint/).
+It is one tested package that carries all three gates this skill used to ship
+as scripts, and it guarantees four things:
+
+1. **Every label is readable in light and dark themes** (the contrast rules).
+2. **Every diagram renders**: each fence parses with Mermaid's own parsers.
+3. **Visual complexity is scored**, so an over-budget diagram gets simplified.
+4. **Extra rules plug in** from `.mermaidjs-lint/rules` or a
+   `mermaidjs-lint-plugin-*` dependency.
 
 ```bash
-bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_contrast.ts path/to/doc.md
+bunx @jpeakai/mermaidjs-lint path/to/doc.md        # or: npx -y @jpeakai/mermaidjs-lint path/to/doc.md
+bunx @jpeakai/mermaidjs-lint docs/                 # a directory is walked for .md and .mmd files
 ```
 
-Exit code 0 means every `fill × color` pair passes WCAG AA (≥ 4.5:1 for
-text) and every `fill × stroke` pair passes AA (≥ 3:1 for borders). Any
-non-zero exit is a **blocker** — fix the palette or drop the custom
-styling.
+Exit code 0 means no findings. Exit 1 means findings remain and is a
+**blocker**: fix the palette, split the diagram, or drop the custom styling.
+Exit 2 is a usage error. Never relax a budget or skip the run to get to 0.
 
-**The gate is context-aware** (`--profile auto|github|mkdocs-material`, default
-`auto` = detect by an ancestor `mkdocs.yml`):
+`--fix` applies only the fixes it can prove safe (an unterminated fence, a label
+colour below AA) and reports what remains. Review its edit like any other diff.
 
-- **github** (plain markdown / `mmdc`): you control the text — the `fill × color`
-  rule above applies. Pair every `fill:` with a `color:` (see `color_theming.md` §3).
-  **Except in an `erDiagram`**, where Mermaid paints the fill on even attribute rows
-  only and the odd rows keep a theme surface that flips with the reader. The gate
-  detects `erDiagram` fences and scores the label on both rows in Mermaid's
-  `default` and `dark` themes, strokes advisory. An opaque `fill` + `color:` pairing
-  fails there by design; use the translucent recipe (no `color:`, see
+**The contrast rules are context-aware** (`--profile auto|github|mkdocs-material`,
+default `auto` = mkdocs-material when an ancestor holds `mkdocs.yml`, else github):
+
+- **github** (plain markdown / `mmdc`): you control the text, so every `fill`
+  needs a `color:` at 4.5:1 and every `stroke` 3:1 against its fill
+  (see `color_theming.md` §3). **Except in an `erDiagram`**, where Mermaid paints
+  the fill on even attribute rows only and the odd rows keep a theme surface that
+  flips with the reader. The lint scores an entity against every row background
+  it draws, in both themes. An opaque `fill` + `color:` pairing fails there by
+  design; use the translucent recipe (no `color:`, see
   `resources/color_host_themed_renderers.md`).
 - **mkdocs-material**: the host theme **forces** the label text and ignores your
-  `color:`. Here the correct pattern is the **opposite** — *no* `color:`, a
-  **translucent** fill, and the diagram must read in both light and dark. The gate
-  composites each fill over both theme backgrounds and scores the forced text in
-  each; borders are advisory (a saturated stroke can't clear 3:1 on a faint fill in
-  both themes). See `resources/color_host_themed_renderers.md` and use:
+  `color:`. Here the correct pattern is the **opposite**: *no* `color:`, a
+  **translucent** fill, and the diagram must read in both light and dark. See
+  `resources/color_host_themed_renderers.md` and force the profile with:
 
   ```bash
-  bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_contrast.ts docs/ --profile mkdocs-material
+  bunx @jpeakai/mermaidjs-lint docs/ --profile mkdocs-material
   ```
 
-For ad-hoc color-pair checks (picking from a screenshot, validating a
-theme token pair before committing):
+For ad-hoc colour-pair checks (picking from a screenshot, validating a theme
+token pair, compositing a translucent fill), the lint has no equivalent, so the
+skill keeps its own calculator for that one job:
 
 ```bash
 bun run .claude/skills/mermaidjs-diagrams/scripts/color_contrast.ts "<fg>" "<bg>"
@@ -108,13 +118,15 @@ the same Type-2-silent-failure pattern the complexity linter was built to
 prevent — the contrast check is its twin, gating the **color** axis of
 visual clarity the way complexity checks gate the **structural** axis.
 
-Wire both into any `make ci` / pre-commit pipeline that touches docs.
+Wire `bunx @jpeakai/mermaidjs-lint` into any `make ci` / pre-commit pipeline
+that touches docs. One command gates both axes.
 
 > Deep-dive references:
 > - `resources/color_theming.md` — conceptual core: HSL encoding, dark/light mode safety, hierarchy, subgraph coloring
 > - `resources/color_palette_recipes.md` — the four palette recipes, a worked example for each, and the Tailwind hex lookup
 > - `resources/color_host_themed_renderers.md` — translucent dual-theme fills for host-themed renderers (MkDocs Material)
-> - `scripts/mermaid_contrast.ts` — diagram-aware WCAG audit (scans `classDef`/`style` directives in `.md` / `.mmd`)
+> - `resources/contrast_tooling.md`: the lint's contrast profiles and rules, and the ad-hoc pair calculator
+> - [`@jpeakai/mermaidjs-lint` rules](https://jpeakai.github.io/jpai-mermaidjs-lint/): every rule with failing and fixed examples
 > - `scripts/color_contrast.ts` — generic WCAG + APCA calculator for ad-hoc pairs
 
 ---
@@ -193,45 +205,49 @@ Flowchart diagrams with Font Awesome (`fa:fa-icon`) need no `--iconPacks` flag.
 
 # Complexity Analysis
 
-Analyze diagrams to ensure they stay within cognitive load thresholds. Runs
-against `.mmd` and `.md` files (and directories of either) via Mermaid's
-canonical parser — `architecture-beta`, nested subgraphs, and edge decorators
-all parse correctly.
+Analyze diagrams to ensure they stay within cognitive load thresholds. The
+same lint run carries the complexity rules; it reads `.mmd` and `.md` files
+(and directories of either) through Mermaid's canonical parsers, so
+`architecture-beta`, nested subgraphs, and edge decorators all parse correctly.
 
 ```bash
-bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_complexity.ts path/to/docs/
-bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_complexity.ts path/to/diagram.mmd --preset low
-bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_complexity.ts path/to/docs/ --json
+bunx @jpeakai/mermaidjs-lint path/to/docs/
+bunx @jpeakai/mermaidjs-lint path/to/diagram.mmd --preset low
+bunx @jpeakai/mermaidjs-lint path/to/docs/ --json
+bunx @jpeakai/mermaidjs-lint --list-rules        # every active rule, by category
 ```
 
 ## Output format
 
-Ruff-style: one finding per line, **silent on clean runs**:
+One finding per line, `file:lines rule-id message`, then a count (here under
+`--preset low`):
 
 ```
-path/to/file.md:100-108: NodeCountExceedsAcceptable nodes=24 preset=high
+path/to/file.md:1-17 complexity-node-count-acceptable-exceeded 15 nodes > 12 acceptable threshold
+1 finding(s) in 1 file(s)
 ```
 
-| Code | Severity | Meaning |
-|------|----------|---------|
-| `ParserFailure` | error | Multi-line diagram yielded 0 nodes |
-| `NodeCountExceedsHardLimit` | error | Nodes above absolute cap |
-| `NodeCountExceedsCognitiveLimit` | error | Nodes > 50 (Yoghourdjian 2020, path-tracing threshold) |
-| `NodeCountExceedsAcceptable` | warn | Nodes above readability threshold for preset |
-| `VisualComplexityExceedsCritical` | error | VCS above critical threshold |
-| `VisualComplexityExceedsAcceptable` | warn | VCS above readability threshold |
-| `SubgraphNestingTooDeep` | warn | Subgraph depth >= 3 |
+| Rule | Meaning |
+|------|---------|
+| `parse-diagram-unparseable` | A multi-line diagram Mermaid's parser reads as zero nodes |
+| `parse-fence-unterminated` | A mermaid fence that is never closed (`--fix` closes it) |
+| `complexity-node-count-hard-limit` | Nodes above the absolute cap |
+| `complexity-node-count-cognitive-limit` | Nodes above the cognitive limit (Yoghourdjian 2020, path-tracing threshold) |
+| `complexity-node-count-acceptable-exceeded` | Nodes above the preset's readable threshold |
+| `complexity-visual-score-critical` | VCS above the critical threshold |
+| `complexity-visual-score-acceptable-exceeded` | VCS above the preset's readable threshold |
+| `complexity-subgraph-nesting-too-deep` | Subgraphs nested three or more levels deep |
 
-**Short-circuit behavior:** `ParserFailure` suppresses all other codes for that
-diagram — complexity is not evaluated against unparseable input.
+A diagram that does not parse is not scored for complexity: complexity is never
+evaluated against unparseable input.
 
 ## Density presets
 
 | Preset | Nodes | VCS | Typical Use |
 |--------|-------|-----|-------------|
-| Low (`low` / `l`) | <=12 | <=25 | Overview diagrams |
-| Medium (`med` / `m`) | <=20 | <=40 | README diagrams |
-| High (`high` / `h`) | <=35 | <=60 | Detail diagrams (default) |
+| Low (`--preset low`) | <=12 | <=25 | Overview diagrams |
+| Medium (`--preset medium`) | <=20 | <=40 | README diagrams |
+| High (`--preset high`) | <=35 | <=60 | Detail diagrams (default) |
 
 ## Complexity formula
 
@@ -249,18 +265,25 @@ approach and naming conventions.
 
 # Contrast Analysis
 
-Contrast checking is **mandatory**, not optional — see "Required for every
-diagram" above, which carries the mandate and the two commands you need.
+Contrast checking is **mandatory**, not optional. See "Required for every
+diagram" above, which carries the mandate and the commands you need.
 
-Two complementary tools back it: `scripts/mermaid_contrast.ts` audits every
-`classDef`/`style` directive inside `.mmd`/`.md` files, and
-`scripts/color_contrast.ts` scores any two CSS colors ad hoc (hex, rgb, oklch,
-named). Both exit `0` when every pair passes AA, `1` on any failure, `2` on
-usage error — drop-in suitable for `make ci`-style gates. Neither needs a
-browser, so both keep working when rendering is blocked.
+The lint's contrast rules audit every `classDef`/`style` directive inside
+`.mmd`/`.md` files:
 
-> Full flag surface, output fields (`ratio` / `rating` / `apca_lc`), and
-> profile behaviour: `resources/contrast_tooling.md`
+| Rule | Meaning |
+|------|---------|
+| `contrast-text-below-aa` | Label text below 4.5:1 against its fill (`--fix` can repair it) |
+| `contrast-border-below-ui-minimum` | A border below 3:1 against its fill |
+| `contrast-directive-unauditable` | A style directive whose contrast cannot be audited |
+
+`scripts/color_contrast.ts` scores any two CSS colours ad hoc (hex, rgb, oklch,
+named), and exits `0` when every pair passes AA, `1` on any failure, `2` on
+usage error. Neither tool needs a browser, so both keep working when rendering
+is blocked.
+
+> Full profile behaviour, the calculator's flags and its output fields
+> (`ratio` / `rating` / `apca_lc`): `resources/contrast_tooling.md`
 
 ---
 
@@ -363,15 +386,12 @@ context to reason in. Loop per lens:
 3. **Collapse to the simplified fence** — replace each subgraph with a single
    node, drop internal wiring, keep the top-level narrative.
 
-4. **Validate — both gates are mandatory**, neither may be skipped:
+4. **Validate: the lint is mandatory** and may not be skipped. One run covers
+   parsing, complexity (structural clarity) and contrast (colour clarity):
    ```bash
-   # Complexity gate (structural clarity)
-   bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_complexity.ts README.md
-
-   # Contrast gate (color clarity) — REQUIRED; see "Required for every diagram"
-   bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_contrast.ts README.md
+   bunx @jpeakai/mermaidjs-lint README.md
    ```
-   Non-zero exit from either is a **blocker**. Fix by shrinking,
+   A non-zero exit is a **blocker**. Fix by shrinking,
    splitting, or recoloring — do not relax the budget, do not skip the
    audit. If you added custom colors, their palette must come from
    `resources/color_theming.md`, not from ad-hoc hex picks.
@@ -463,8 +483,7 @@ when they display in browser previews. Stick to **ASCII-only text** in node labe
 
 | Tool | 0 | 1 | 2 |
 |------|---|---|---|
-| `mermaid_complexity.ts` | No findings above threshold | Any warn or error finding | Usage error (bad flag / missing file) |
-| `mermaid_contrast.ts` | All pairs pass WCAG AA | Any pair fails | Usage error |
+| `@jpeakai/mermaidjs-lint` | No findings | Findings remain, or a plugin failed to load | Usage error (bad flag / missing file) |
 | `color_contrast.ts` | All pairs pass WCAG AA (>=4.5:1) | Any pair fails | Usage error |
 | `render_mermaid.sh` | Every variant rendered **and verified** as a real PNG | Render failure (stderr carries `class` / `evidence` / `remedy`) or usage error | — |
 | `mmdc` | All rendered | Render failure (see stderr) | — |
@@ -485,7 +504,7 @@ means the diagram is at fault. See `resources/render_troubleshooting.md`.
 | `resources/color_theming.md` | Conceptual core: HSL encoding, dark/light mode safety, hierarchy, subgraph coloring |
 | `resources/color_palette_recipes.md` | Four palette recipes, a worked example for each, and the Tailwind v3 hex lookup |
 | `resources/color_host_themed_renderers.md` | Translucent dual-theme fills for host-themed renderers (MkDocs Material) |
-| `resources/contrast_tooling.md` | Full CLI surface of both contrast tools: flags, profiles, output fields, exit codes |
+| `resources/contrast_tooling.md` | Contrast profiles and rules of `@jpeakai/mermaidjs-lint`, and the full CLI surface of the ad-hoc pair calculator |
 | `resources/render_troubleshooting.md` | Render failure triage: signature → class → remedy, artifact verification, escalation, when to stop |
 | `resources/diagram_organization.md` | Lens naming, dual-density approach, README sync |
 | `resources/layout_algorithms.md` | `layout` + `look` config for dagre / elk / tidy-tree / cose-bilkent, ELK tuning keys, per-diagram-type support |
@@ -498,7 +517,5 @@ means the diagram is at fault. See `resources/render_troubleshooting.md`.
 | `resources/iconify/iconify_cloud.md` | Cloud-provider icon catalogue |
 | `resources/iconify/iconify_saas.md` | SaaS / product icon catalogue |
 | `scripts/render_mermaid.sh` | Render both default variants for a markdown file; also `--doctor` (probe the host), `--verify` (is this a real PNG?), `--classify` (stderr → failure class) |
-| `scripts/mermaid_complexity.ts` | Complexity analyzer — canonical parser, `.mmd` + `.md`, ruff-style output |
-| `scripts/mermaid_contrast.ts` | WCAG contrast audit for `classDef` / `style` directives inside diagrams |
 | `scripts/color_contrast.ts` | WCAG + APCA contrast calculator for arbitrary CSS color pairs (ad-hoc / stdin batch) |
-| `scripts/Makefile` | `make fix` + `make ci` SDLC loop plus `cli-demo` target showing every analyzer |
+| `scripts/Makefile` | `make fix` + `make ci` SDLC loop plus `cli-demo` target showing the lint and the pair calculator |

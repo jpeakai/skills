@@ -16,7 +16,11 @@ PY_SRC = $(addsuffix .py,$(PY_SCRIPTS)) $(addprefix test_,$(addsuffix .py,$(PY_S
 
 # ── TypeScript source ──────────────────────────────────────────────────────
 
-# TS is now the authoritative implementation for complexity + contrast.
+# The parse, complexity and contrast gates now live in the published package
+# @jpeakai/mermaidjs-lint (ADR-004 in CLAUDE.md). color_contrast stays because
+# the package has no ad-hoc colour-pair calculator. mermaid_complexity and
+# mermaid_contrast are DEPRECATED: kept for audit history, still held to the
+# same quality gates until they are archived, and never named in SKILL.md.
 # See .claude/rules/typescript/ for conventions.
 TS_SCRIPTS = color_contrast mermaid_complexity mermaid_contrast
 
@@ -205,17 +209,20 @@ ci: format-check lint typecheck test-cov docs
 # Run all auto-fixers (local development)
 fix: format lint-fix
 
-# End-to-end CLI demo of every public TS analyzer against fixture inputs.
-# Non-zero exits are tolerated (demo showcases both pass and fail cases), so
-# each command is prefixed with `-` to keep `make cli-demo` running to the end.
-# Paths use $(THIS_DIR) / $(EXAMPLES_DIR) so the target works regardless of
-# where `make -C` was invoked from.
+# End-to-end demo of the diagram gates and the ad-hoc pair calculator against
+# fixture inputs. The gates run from the published @jpeakai/mermaidjs-lint
+# package. Non-zero exits are tolerated (the demo showcases both pass and fail
+# cases), so each command is prefixed with `-` to keep `make cli-demo` running
+# to the end. Paths use $(THIS_DIR) / $(EXAMPLES_DIR) so the target works
+# regardless of where `make -C` was invoked from.
+MERMAIDJS_LINT = bunx @jpeakai/mermaidjs-lint
+
 cli-demo:
-	@echo "=== mermaid_complexity.ts ==="
-	-bun run $(THIS_DIR)mermaid_complexity.ts $(EXAMPLES_DIR)/test_complexity.md
+	@echo "=== @jpeakai/mermaidjs-lint: complexity fixtures ==="
+	-$(MERMAIDJS_LINT) $(EXAMPLES_DIR)/test_complexity.md
 	@echo ""
-	@echo "=== mermaid_contrast.ts ==="
-	-bun run $(THIS_DIR)mermaid_contrast.ts $(EXAMPLES_DIR)/test_contrast.md
+	@echo "=== @jpeakai/mermaidjs-lint: contrast fixtures ==="
+	-$(MERMAIDJS_LINT) $(EXAMPLES_DIR)/test_contrast.md
 	@echo ""
 	@echo "=== color_contrast.ts: single pair (passes AA) ==="
 	-bun run $(THIS_DIR)color_contrast.ts "#ffffff" "#2563eb"
@@ -260,5 +267,5 @@ help:
 	@echo ""
 	@echo "Misc:"
 	@echo "  docs         - Regenerate examples README from .mmd files"
-	@echo "  cli-demo     - Run every public TS analyzer against fixture inputs"
+	@echo "  cli-demo     - Run the mermaidjs-lint gates and color_contrast.ts against fixture inputs"
 	@echo "  clean        - Remove temp files and caches"

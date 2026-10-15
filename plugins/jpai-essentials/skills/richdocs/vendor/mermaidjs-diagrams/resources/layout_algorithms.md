@@ -222,8 +222,8 @@ flowchart LR
   compatibility.
 - **Theme and look compose, not conflict.** `theme` (dark/default/forest/etc.)
   chooses colors; `look` chooses stroke style. Both can be set together.
-- **Complexity analysis is layout-independent.** The
-  [`mermaid_complexity.py`](../scripts/mermaid_complexity.py) script scores
+- **Complexity analysis is layout-independent.** The complexity rules of
+  [`@jpeakai/mermaidjs-lint`](https://jpeakai.github.io/jpai-mermaidjs-lint/) score
   structural complexity (node count, edge count, VCS) regardless of which
   layout engine renders the diagram. Switching to ELK does not change the
   score; it changes how readable the rendered image is at that score.

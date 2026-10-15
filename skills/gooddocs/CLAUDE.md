@@ -10,8 +10,7 @@ The prose gate is the external [`@jpeakai/prose-gates`](https://www.npmjs.com/pa
 Doc gates before handoff, run from repo root:
 
 ```sh
-bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_contrast.ts   .claude/skills/gooddocs/README.md
-bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_complexity.ts .claude/skills/gooddocs/README.md
+bunx @jpeakai/mermaidjs-lint .claude/skills/gooddocs/README.md
 uvx --from md-toc md_toc --in-place --no-list-coherence github --header-levels 4 .claude/skills/gooddocs/README.md
 ```
 

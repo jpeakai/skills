@@ -14,11 +14,13 @@
 - **The check (deterministic, free):**
 
   ```bash
-  bun run .claude/skills/richdocs/vendor/mermaidjs-diagrams/scripts/mermaid_complexity.ts SOURCE.md
+  bunx @jpeakai/mermaidjs-lint SOURCE.md
   ```
 
-  `ParserFailure … yielded 0 nodes` = the fence is invalid mermaid, exit 1,
-  blocker. Run it on the *source* markdown before `md2html.py`, and treat a
+  `parse-diagram-unparseable … yielded 0 nodes` = the fence is invalid
+  mermaid, exit 1, blocker. (Until 2026-10 this check ran the vendored
+  `mermaid_complexity.ts`; ADR-025 moved it to the published lint, which reads
+  the same parsers and reports this case under the new rule id.) Run it on the *source* markdown before `md2html.py`, and treat a
   non-zero exit as not-done (escalators-not-stairs).
 - **Mindmap-specific traps** (all confirmed in this case): quoted labels,
   leading `(`/`)` in plain text (parses as a shape delimiter), HTML entities

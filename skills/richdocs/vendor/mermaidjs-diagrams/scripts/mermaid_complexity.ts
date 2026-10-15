@@ -1,4 +1,10 @@
 #!/usr/bin/env bun
+// DEPRECATED: superseded by the published package @jpeakai/mermaidjs-lint
+// (https://jpeakai.github.io/jpai-mermaidjs-lint/). Run
+// `bunx @jpeakai/mermaidjs-lint <files or dirs>` instead. This file is kept only
+// for audit history (see scripts/CLAUDE.md ADR-004); SKILL.md no longer
+// instructs anyone to run it, and it receives no new rules or fixes.
+//
 // Mermaid Diagram Complexity Analyzer — TypeScript port.
 //
 // Deterministically scores Mermaid diagrams using cognitive load research

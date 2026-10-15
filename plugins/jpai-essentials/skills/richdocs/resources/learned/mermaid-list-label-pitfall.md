@@ -25,11 +25,10 @@
   an HTML entity: `"1&#46; Renumber ADRs"` (entities render fine in
   flowchart htmlLabels — the mindmap entity trap in
   `mermaid-syntax-gate.md` is mindmap-specific).
-- **Gate note:** the vendored parse gate
-  (`vendor/mermaidjs-diagrams/scripts/mermaid_complexity.ts`) does NOT catch
-  this — the fence parses fine; only label *rendering* fails. The vendored
-  copy is refreshed wholesale (ADR-007, never cherry-pick), so the check was
-  not patched locally; if the upstream `mermaidjs-diagrams` skill grows a
-  list-marker label lint, it arrives here on the next re-vendor. Until then
-  this file and the CLAUDE.md gotcha are the guard: grep the source fences
+- **Gate note:** the parse gate (`bunx @jpeakai/mermaidjs-lint`, which
+  replaced the vendored `mermaid_complexity.ts` under ADR-025) does NOT catch
+  this. The fence parses fine; only label *rendering* fails. The check belongs
+  in the lint, not patched locally: a list-marker label rule would arrive as a
+  new lint release or a plugin rule (`.mermaidjs-lint/rules`). Until then this
+  file and the CLAUDE.md gotcha are the guard: grep the source fences
   for `["'\`]\s*(\d+\.|[-*+]) ` before handoff.

@@ -13,7 +13,7 @@ documentation markdown file** (typically `README.md` or a dedicated
 2. For each lens, author **two** mermaid fences: a **simplified** overview
    (<=12 nodes, VCS <=25) that stays inline, and a **detailed** technical
    reference (<=35 nodes, VCS <=60) wrapped in `<details>` collapsible.
-3. Validate both fences with `mermaid_complexity.ts path/to/readme.md` —
+3. Validate both fences with `bunx @jpeakai/mermaidjs-lint path/to/readme.md`, and
    treat any finding above the density budget as a split-the-lens signal.
 4. GitHub and GitLab render mermaid fences natively — no PNG pre-render step
    is needed for the markdown-hosted case. Rendered PNGs are an optional
@@ -105,8 +105,8 @@ flowchart LR
 - **Graceful disclosure.** The simplified fence is the narrative; the detailed
   fence is the reference. Readers self-select depth via the `<details>`
   toggle.
-- **Skill tooling just works.** `mermaid_complexity.ts` and `mermaid_contrast.ts`
-  both accept `.md` files and report per-fence line ranges.
+- **Skill tooling just works.** `@jpeakai/mermaidjs-lint` accepts `.md` files
+  and reports per-fence line ranges.
 
 ### Section template
 
@@ -221,11 +221,9 @@ Drop from ~35 nodes to <=12 by:
 From project root:
 
 ```bash
-# Complexity — both fences must stay within their density budget
-bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_complexity.ts README.md
-
-# If you used custom classDef/style color schemes, audit WCAG contrast
-bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_contrast.ts README.md
+# One run: every fence parses, stays within its density budget, and
+# every custom classDef/style colour passes WCAG contrast
+bunx @jpeakai/mermaidjs-lint README.md
 ```
 
 Either command exiting non-zero means "stop and fix" — either shrink the
@@ -270,7 +268,7 @@ subsection.
   README when the README is already long.
 - **Avoid**: splitting diagrams across many tiny files under `docs/diagrams/`
   (the old pattern — see "Legacy" below). It fragments the narrative and
-  makes `mermaid_complexity.ts` less useful as a single-file gate.
+  makes the lint less useful as a single-file gate.
 
 ## Legacy: File-per-Diagram Pattern
 
@@ -303,5 +301,5 @@ files:
 *High-level components* | [Source](docs/diagrams/architecture--overview.md)
 ```
 
-This pattern still interoperates with `mermaid_complexity.ts` (point it at
+This pattern still interoperates with `@jpeakai/mermaidjs-lint` (point it at
 `docs/diagrams/`). It's just noisier to maintain than the inline approach.

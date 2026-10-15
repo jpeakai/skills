@@ -18,8 +18,7 @@ make -C skills/librarian/scripts ci    # the gate: format-check, lint, typecheck
 Doc gates before handoff, also from repo root:
 
 ```sh
-bun run skills/mermaidjs-diagrams/scripts/mermaid_contrast.ts   skills/librarian/README.md skills/librarian/ARCHITECTURE.md
-bun run skills/mermaidjs-diagrams/scripts/mermaid_complexity.ts skills/librarian/README.md skills/librarian/ARCHITECTURE.md
+bunx @jpeakai/mermaidjs-lint skills/librarian/README.md skills/librarian/ARCHITECTURE.md
 uvx --from md-toc md_toc --in-place --no-list-coherence github --header-levels 4 skills/librarian/README.md
 ```
 

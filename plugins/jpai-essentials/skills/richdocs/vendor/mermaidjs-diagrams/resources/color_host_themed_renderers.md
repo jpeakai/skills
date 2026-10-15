@@ -65,9 +65,9 @@ Mermaid's measured row anchors (mermaid-cli 11.x):
 | `default` | `#ffffff` | `#f1f1ff` | `#333333` |
 | `dark` | `#2c2d2d` | `#060606` | `#cccccc` |
 
-`mermaid_contrast.ts` applies these automatically to `erDiagram` fences under the
-`github` profile. It gates text on both rows in both themes, and reports strokes
-as advisory.
+`@jpeakai/mermaidjs-lint` applies these automatically to `erDiagram` fences under
+the `github` profile. It gates text on both rows in both themes, and does not
+report a border finding there.
 
 ## The compositing math
 
@@ -100,7 +100,7 @@ the site open in a browser, read the CSS variables off `document.body` in each t
 
 Material's stock theme resolves to roughly **light**: text `#36464e` on `#ffffff`; **dark**:
 a ~86%-light grey at `α0.82` over a `~rgb(30,33,41)` slate. Treat these as the anchored `T`
-and `B` per theme, then solve `a` per hue. (`scripts/mermaid_contrast.ts --profile
+and `B` per theme, then solve `a` per hue. (`bunx @jpeakai/mermaidjs-lint --profile
 mkdocs-material` bakes these in and runs the both-theme check for you.)
 
 ## Verifying — gotchas that cost time

@@ -54,7 +54,7 @@ skill.
 
 - [ ] `SKILL.md` and every resource ≤ 500 lines (`rules/claude_skills/index.md`)
 - [ ] No reference to any sibling skill or consumer concept in `SKILL.md` / `resources/**`
-- [ ] README diagrams pass `mermaid_contrast.ts` and `mermaid_complexity.ts` (exit 0)
+- [ ] README diagrams pass `bunx @jpeakai/mermaidjs-lint` (exit 0)
 - [ ] Known consumers re-vendored and their overlays reconciled (plan-gap: `vendor/discovery/`)
 
 ## Known gotchas

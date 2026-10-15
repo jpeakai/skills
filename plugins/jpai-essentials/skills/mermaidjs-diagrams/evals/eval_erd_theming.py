@@ -18,16 +18,16 @@ exception -- or being stopped by the contrast gate that now models it -- gets it
 and attributes are the fixture's, and a styling task must not change them. It deliberately
 does not fix the colours. Whether a palette reads on both row surfaces in both themes is a
 contrast question with many right answers, and the skill ships the verifier for exactly
-that question, so the colour verdict comes from ``mermaid_contrast.ts`` rather than a
+that question, so the colour verdict comes from ``@jpeakai/mermaidjs-lint`` rather than a
 hex-level facet.
 """
 
 from __future__ import annotations
 
 import re
-import subprocess
 from pathlib import Path
 
+from _lint import check_lint_ran, lint
 from _render import RENDER_SCRATCH, render_both_variants
 from pytest_xharness_eval import CaseOutput, evalcase
 from pytest_xharness_eval.verify import (
@@ -40,7 +40,6 @@ from pytest_xharness_eval.verify import (
     check_files_written,
     check_no_files_added,
     check_rollout,
-    check_skill_scripts_ran,
     facets,
 )
 
@@ -49,7 +48,6 @@ SKILL_DIR = EVALS.parent
 SKILL = re.search(r"^name:\s*(\S+)", (SKILL_DIR / "SKILL.md").read_text(encoding="utf-8"), re.MULTILINE)[1]
 FIXTURE = "unstyled_erd"  # evals/fixtures/unstyled_erd/
 TARGET = "DATA_MODEL.md"
-SCRIPTS = SKILL_DIR / "scripts"
 
 # The same sentence eval_palette_mandate uses, pointed at a different diagram type.
 TASK = "DATA_MODEL.md -- apply the mandatory colour theming to its diagram, editing the file in place."
@@ -166,7 +164,7 @@ GOLDEN = GoldenCase.at(
 )
 
 
-# -- The skill's own gate, as the colour verifier ---------------------------------------
+# -- The skill's mandated lint, as the colour verifier ---------------------------------------
 
 
 def check_contrast_gate_passes(output: CaseOutput) -> None:
@@ -175,12 +173,7 @@ def check_contrast_gate_passes(output: CaseOutput) -> None:
     This is the assertion the case exists for. An opaque ``fill:`` + ``color:`` pairing
     fails it on one theme's odd rows, however well it reads on the fill itself.
     """
-    result = subprocess.run(
-        ["bun", "run", str(SCRIPTS / "mermaid_contrast.ts"), str(output.path(TARGET)), "--profile", "github"],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    result = lint(str(output.path(TARGET)), "--profile", "github")
     assert result.returncode == 0, (
         "the erDiagram fails the contrast gate -- text is unreadable on an attribute row in one theme "
         f"(see color_theming.md §3, the erDiagram exception):\n{result.stdout}{result.stderr}"
@@ -200,4 +193,4 @@ def eval_erd_theming(output: CaseOutput) -> None:
     check_contrast_gate_passes(output)
     render_both_variants(output, TARGET)
     # Right by luck is a different outcome from right and checked; the skill mandates the check.
-    check_skill_scripts_ran(output, "scripts/mermaid_contrast.ts")
+    check_lint_ran(output)

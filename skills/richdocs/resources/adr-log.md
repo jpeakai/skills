@@ -10,6 +10,30 @@ This file holds ADR-014 onwards, newest first. The founding records, ADR-001 to
 ADR-013, are in [`adr-log-foundations.md`](adr-log-foundations.md).
 
 
+### ADR-025 — The mermaid gate is a published package, not a vendored script
+
+- **Status:** accepted (2026-10; refines ADR-007)
+- **Context:** the vendored `mermaid_complexity.ts` and `mermaid_contrast.ts`
+  were extracted upstream into `@jpeakai/mermaidjs-lint`, a published npm
+  package with its own tests and rules reference. Upstream marked the scripts
+  deprecated. ADR-007 forbids relying on a *sibling skill's* files; a published
+  package is not one, in the same way the CDN libraries the companion loads are
+  not.
+- **Decision:** `SKILL.md` mandates `bunx @jpeakai/mermaidjs-lint SOURCE.md`
+  before `md2html.py`; a non-zero exit is still a blocker. One run covers parse,
+  complexity and contrast. `vendor/mermaidjs-diagrams/` stays, re-vendored
+  wholesale per ADR-007, for the theming references and the render script.
+- **Consequences:** the gate needs `bunx` or `npx` and registry access, which
+  makes it Tier A; the old vendored gate needed `bun install` once, so the
+  network cost moves rather than appears. The parse failure is now reported as
+  `parse-diagram-unparseable` instead of `ParserFailure`. The vendored copy still
+  carries the deprecated scripts, because ADR-007 forbids cherry-picking; no
+  richdocs surface runs them.
+- **Lens:** self-containment means not depending on another skill's files. A
+  versioned, published package is a dependency like a pinned CDN library, and
+  is preferred over a vendored copy of the same logic that has stopped being
+  maintained.
+
 ### ADR-024 — Every diagram opens full screen and zooms deep
 
 - **Status:** accepted (replaces the click-to-expand lightbox in `viewer.js`)

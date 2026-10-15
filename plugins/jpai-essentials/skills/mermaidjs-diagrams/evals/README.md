@@ -10,15 +10,16 @@ The plugin is a dev dependency of this repository, so `uv run pytest` picks it u
 | Path | What it checks |
 |------|----------------|
 | `eval_palette_mandate.py` | Theming a four-node flowchart, compared facet by facet against a golden |
-| `eval_erd_theming.py` | Theming an `erDiagram`, where the flowchart recipe fails, graded against a golden and the contrast gate |
-| `eval_dual_density.py` | Splitting a 46-node diagram into overview and detail, graded by the skill's own gates |
+| `eval_erd_theming.py` | Theming an `erDiagram`, where the flowchart recipe fails, graded against a golden and the lint's contrast rules |
+| `eval_dual_density.py` | Splitting a 46-node diagram into overview and detail, graded by the lint the skill mandates |
 | `fixtures/<name>/` | The seed workspace each cell starts from |
 | `goldens/<name>/` | Known-good output. See [`goldens/README.md`](goldens/README.md) |
 
 ## Prerequisites
 
 - `claude` and `codex` on your `PATH`, each logged in.
-- The gate scripts' Bun dependencies: `make -C skills/mermaidjs-diagrams/scripts install-ts`.
+- `bunx` with registry access, so graders can run `@jpeakai/mermaidjs-lint`, the lint the skill mandates.
+- `npx` and a Chromium for `scripts/render_mermaid.sh`, which every case uses to render the result.
 
 ## Run
 

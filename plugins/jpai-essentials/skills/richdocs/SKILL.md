@@ -73,23 +73,25 @@ Run everything from the repo root. Never `cd`.
 
 ## Mermaid gate (mandatory before rendering)
 
-Any doc containing ` ```mermaid ` fences MUST pass this skill's **vendored**
-parse + contrast gates **on the source markdown, before `md2html.py`**:
+Any doc containing ` ```mermaid ` fences MUST pass the published lint
+[`@jpeakai/mermaidjs-lint`](https://jpeakai.github.io/jpai-mermaidjs-lint/)
+**on the source markdown, before `md2html.py`**. One run checks that every
+fence parses with Mermaid's own parsers, that its visual complexity is within
+budget, and that every label reads in light and dark themes:
 
 ```bash
-bun run .claude/skills/richdocs/vendor/mermaidjs-diagrams/scripts/mermaid_complexity.ts SOURCE.md
-bun run .claude/skills/richdocs/vendor/mermaidjs-diagrams/scripts/mermaid_contrast.ts SOURCE.md
+bunx @jpeakai/mermaidjs-lint SOURCE.md        # or: npx -y @jpeakai/mermaidjs-lint SOURCE.md
 ```
 
-First run only: `bun install --cwd
-.claude/skills/richdocs/vendor/mermaidjs-diagrams/scripts --frozen-lockfile`.
+It needs `bunx` or `npx` with access to registry.npmjs.org. Exit 0 is clean,
+1 means findings remain, 2 is a usage error.
 
-Non-zero exit is a blocker — `ParserFailure … yielded 0 nodes` means the
-fence is invalid mermaid and will render as a broken block in the companion.
+Non-zero exit is a blocker. `parse-diagram-unparseable … yielded 0 nodes` means
+the fence is invalid mermaid and will render as a broken block in the companion.
 `md2html.py` passes fences through verbatim; it cannot catch this for you.
-The vendored `vendor/mermaidjs-diagrams/mermaidjs-diagrams.md` documents both tools in
-full (profiles, complexity presets, authoring pitfalls like quoted mindmap
-labels and HTML entities). Prior adjudications on this class of failure live
+The vendored `vendor/mermaidjs-diagrams/mermaidjs-diagrams.md` documents the
+lint's profiles and complexity presets, and authoring pitfalls like quoted
+mindmap labels and HTML entities. Prior adjudications on this class of failure live
 in `resources/learned/` — treat them as already-decided, don't re-litigate.
 
 ## Command reference
@@ -260,7 +262,7 @@ Beyond standard markdown + ` ```mermaid `, the HTML companion renders:
 | `scripts/md2html.py` | Paired markdown → rich HTML generator |
 | `assets/stencils.json.zip` | Vendored draw.io icon library (see `assets/NOTICE`) |
 | `assets/design-tokens.json` | Default neutral brandpack |
-| `vendor/mermaidjs-diagrams/` | Vendored mermaid toolchain: parse/complexity gate, WCAG contrast gate, color-theming references, render script |
+| `vendor/mermaidjs-diagrams/` | Vendored mermaid references: colour theming, complexity presets, lint usage, render script. The gates themselves run from `@jpeakai/mermaidjs-lint` |
 | `resources/learned/` | Prior adjudications and self-taught facts — read before re-litigating |
 
 richdocs is self-contained: every tool and reference it operates with lives

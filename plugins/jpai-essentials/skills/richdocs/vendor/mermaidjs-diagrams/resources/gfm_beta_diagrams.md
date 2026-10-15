@@ -89,12 +89,11 @@ Both analyzers read `.mmd` files directly, so a diagram does not escape the
 density and contrast budgets by moving out of markdown:
 
 ```bash
-bun run scripts/mermaid_complexity.ts docs/diagrams/
-bun run scripts/mermaid_contrast.ts   docs/diagrams/
+bunx @jpeakai/mermaidjs-lint docs/diagrams/
 ```
 
-`mermaid_complexity.ts` counts nodes in `-beta` types correctly — a 16-node
-`treemap-beta` trips `NodeCountExceedsAcceptable` under `--preset low` exactly
+The lint counts nodes in `-beta` types correctly — a 16-node
+`treemap-beta` trips `complexity-node-count-acceptable-exceeded` under `--preset low` exactly
 as a flowchart would. Moving a diagram to a `.mmd` sibling changes where it
 lives, never what it must satisfy.
 

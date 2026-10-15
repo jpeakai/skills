@@ -8,7 +8,7 @@ each one, and the Tailwind v3 hex lookup that backs them all.
 
 All palettes below use Tailwind v3 hex values. Each includes primary (dark fill,
 white text, light stroke), secondary (light fill, dark text, dark stroke), and
-subgraph variants. Every `classDef` passes both gates in `mermaid_contrast.ts`:
+subgraph variants. Every `classDef` passes both contrast rules of `@jpeakai/mermaidjs-lint`:
 text on fill at 4.5:1 or better and stroke on fill at 3:1 or better. The rules
 that make that hold are in "Stroke and fill rules" at the end of this file.
 
@@ -438,7 +438,7 @@ Standard text colors used in all palettes:
 
 ## Stroke and fill rules
 
-`mermaid_contrast.ts` scores two pairs per class: text on fill (4.5:1) and
+The lint scores two pairs per class: text on fill (4.5:1) and
 stroke on fill (3:1). A dark fill with a *darker same-family stroke* cannot
 reach 3:1, so the recipes follow three rules:
 
@@ -448,7 +448,7 @@ reach 3:1, so the recipes follow three rules:
 | Secondary | family 200/300 | family 700 (slate, zinc use 600) | `#1e293b` |
 | Subgraph | family 100 | family 700 (slate uses 600) | `#1e293b` |
 
-Every recipe above was run through `mermaid_contrast.ts` after the last edit.
+Every recipe above passes `bunx @jpeakai/mermaidjs-lint` as of the last edit.
 Re-run it when you change a hex; a 600 fill that passes for one hue fails for
 the next.
 

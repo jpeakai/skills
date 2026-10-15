@@ -1,37 +1,62 @@
 # Contrast Tooling Surface
 
-The full CLI surface of the two contrast tools — flags, output fields, and the
-exit-code contract. The *mandate* to run them lives in `mermaidjs-diagrams.md` ("Required
-for every diagram"); this file is the reference you open when the recipe there
-isn't enough. The conceptual palette rules live in `color_theming.md`.
+The contrast surface of the two tools this skill uses: the published lint that
+gates every diagram, and the ad-hoc pair calculator the skill still ships. The
+*mandate* to run the lint lives in `mermaidjs-diagrams.md` ("Required for every diagram");
+this file is the reference you open when the recipe there isn't enough. The
+conceptual palette rules live in `color_theming.md`.
 
 ## Two complementary tools
 
-| Script | Scope | Use when |
-|--------|-------|---------|
-| `scripts/mermaid_contrast.ts` | Audits every `classDef`/`style` directive inside `.mmd`/`.md` files — scores `fill × color` (text on fill) at AA ≥ 4.5:1 and `fill × stroke` (border on fill) at AA ≥ 3:1 | Catching low-contrast custom color palettes before they land in docs |
-| `scripts/color_contrast.ts` | Generic WCAG + APCA calculator for any two CSS colors (hex, rgb, oklch, named, etc.) | Ad-hoc pair checks — e.g. sampling colors from a screenshot or comparing theme tokens |
+| Tool | Scope | Use when |
+|------|-------|---------|
+| [`@jpeakai/mermaidjs-lint`](https://jpeakai.github.io/jpai-mermaidjs-lint/) | Audits every `classDef`/`style` directive inside `.mmd`/`.md` files: text on fill at AA 4.5:1 and border on fill at 3:1, read the way the host renders it | Gating every diagram before it lands in docs |
+| `scripts/color_contrast.ts` | Generic WCAG + APCA calculator for any two CSS colours (hex, rgb, oklch, named, etc.), with alpha compositing | Ad-hoc pair checks, e.g. sampling colours from a screenshot or comparing theme tokens |
 
-Under the `github` profile an `erDiagram` fence is scored differently. Mermaid
-paints its `fill` on even attribute rows only, so each label is scored against
-the theme's odd row and against the fill composited over the theme's even row,
-in both the `default` and `dark` Mermaid themes. Those pairs carry `theme` and
-`row` (`odd`/`even`) in `--json` output. A missing `color:` is not a blocking
-gap there, because the theme label is scored in its place.
+The lint replaced the skill's own `mermaid_contrast.ts` and
+`mermaid_complexity.ts`, which are deprecated. The calculator stays because the
+lint scores directives inside diagrams and has no command for an arbitrary pair.
+
+## Contrast rules
+
+| Rule | Fires when | `--fix` |
+|------|-----------|---------|
+| `contrast-text-below-aa` | Label text is below 4.5:1 against its fill | Yes, when a safe colour exists |
+| `contrast-border-below-ui-minimum` | A border is below 3:1 against its fill | No |
+| `contrast-directive-unauditable` | A style directive's contrast cannot be audited | No |
+
+Every rule, with a failing and a fixed example, is in the package's
+[rules reference](https://jpeakai.github.io/jpai-mermaidjs-lint/).
+
+## Profiles
+
+`--profile auto|github|mkdocs-material` sets how contrast is read. `auto`, the
+default, reads `mkdocs-material` when an ancestor directory holds `mkdocs.yml`,
+else `github`.
+
+- **github**: the author controls the text, so the declared `fill × color` and
+  `fill × stroke` pairs are scored.
+- **mkdocs-material**: the host theme forces the label text and ignores
+  `color:`, so each fill is scored against the text the host renders, in both
+  light and dark.
+- **`erDiagram`** fences are scored against every row background an entity
+  draws, in both themes. Mermaid paints a `fill` on even attribute rows only, and
+  the odd rows keep a theme surface that flips with the reader.
 
 ## Invocations
 
 ```bash
 # Audit every diagram in a directory tree (auto-detects mkdocs vs github)
-bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_contrast.ts docs/
-bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_contrast.ts docs/ --summary
-bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_contrast.ts docs/ --quiet     # failures only
-bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_contrast.ts docs/ --json
-bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_contrast.ts docs/ --color    # ANSI colour (default is plain text: the output is usually read by an agent or captured into a log)
+bunx @jpeakai/mermaidjs-lint docs/
+bunx @jpeakai/mermaidjs-lint docs/ --json
+npx -y @jpeakai/mermaidjs-lint docs/                 # where bun is not installed
 
 # Force a render context (see mermaidjs-diagrams.md "Required for every diagram")
-bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_contrast.ts docs/ --profile mkdocs-material
-bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_contrast.ts docs/ --profile github
+bunx @jpeakai/mermaidjs-lint docs/ --profile mkdocs-material
+bunx @jpeakai/mermaidjs-lint docs/ --profile github
+
+# Apply the fixes the lint can prove safe, then report what remains
+bunx @jpeakai/mermaidjs-lint docs/ --fix
 
 # Ad-hoc pair
 bun run .claude/skills/mermaidjs-diagrams/scripts/color_contrast.ts "#ffffff" "#2563eb"
@@ -46,22 +71,20 @@ echo '[["#fff","#777"],["red","blue"]]' | bun run .claude/skills/mermaidjs-diagr
 
 ## Exit semantics
 
-Both scripts: `0` if every pair passes its threshold (4.5:1 text, 3:1 border;
-advisory border pairs under the `mkdocs-material` profile and in `erDiagram`
-fences never fail), `1` if
-any pair fails, `2` on usage error. The non-zero exit makes both tools drop-in
-suitable for `make ci`-style gates.
+The lint exits `0` with no findings, `1` when findings remain (or a plugin fails
+to load), and `2` on usage error. `color_contrast.ts` exits `0` if every pair
+passes its threshold, `1` if any pair fails, `2` on usage error. The non-zero
+exit makes both drop-in suitable for `make ci`-style gates.
 
-Unlike the renderer, these tools need no browser, no package registry, and no
-special execution class — they keep working in the restricted environments
-described in `render_troubleshooting.md`. When a render is blocked, these gates
-are still the proof that the diagram itself is sound.
+Unlike the renderer, these tools need no browser and no special execution
+class. They keep working in the restricted environments described in
+`render_troubleshooting.md`; the lint needs registry access the first time
+`bunx` or `npx` fetches it. When a render is blocked, the lint is still the
+proof that the diagram itself is sound.
 
-## Output fields
+## Calculator output fields
 
-Per pair in `color_contrast.ts --json`; per directive under `assessment` in
-`mermaid_contrast.ts --json`, where the sibling `passes` (and `advisory`, when
-set) are the fields that gate the exit code:
+Per pair in `color_contrast.ts --json`:
 
 - `ratio` — WCAG 2.x contrast ratio, 1.0 – 21.0, rounded to 2dp
 - `rating` — pass tier (`AAA`, `AA`, `AA Large`, or `Fail`)

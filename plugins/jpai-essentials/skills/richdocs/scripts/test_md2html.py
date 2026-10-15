@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import re
+import shlex
 import subprocess
 import sys
 from argparse import Namespace
@@ -39,6 +40,7 @@ def _args(doc: Path, out: Path, **overrides: object) -> Namespace:
         "title": None,
         "serve_hint": False,
         "theme": None,
+        "lint_flags": False,
     }
     base.update(overrides)
     return Namespace(**base)
@@ -110,6 +112,65 @@ def test_lint_and_viewer_use_the_same_mermaid_version() -> None:
     skill = (scripts.parent / "SKILL.md").read_text()
     assert f"bunx @jpeakai/mermaidjs-lint@{lint} SOURCE.md" in skill
     assert not re.search(r"(bunx|npx -y) @jpeakai/mermaidjs-lint(?!@)", skill)
+
+
+# ── Lint canvas: page-backed colours are scored on the brand's page (ADR-027) ──
+def test_the_viewer_draws_mermaid_on_the_surface_token() -> None:
+    # lint_canvas_flags scores on `surface` because this is where the viewer
+    # draws a diagram. If the canvas background moves, the flags must move too.
+    css = (md2html.ASSETS_DIR / "viewer.css").read_text(encoding="utf-8")
+    canvas = re.search(r"\.rd-canvas \{([^}]*)\}", css)
+    assert canvas, "viewer.css has no .rd-canvas rule"
+    assert "background: var(--rd-surface)" in canvas.group(1)
+    js = md2html.VIEWER_JS.read_text(encoding="utf-8")
+    assert '"rd-canvas rd-" + lang' in js
+    assert '"--rd-surface:" + t.surface' in js
+
+
+@pytest.mark.parametrize("name", md2html.available_themes())
+def test_lint_flags_name_each_brand_surface(name: str) -> None:
+    theme = md2html.load_theme(name)
+    tokens = json.loads(theme.tokens_path.read_text(encoding="utf-8"))
+    assert md2html.lint_canvas_flags(theme.tokens_path) == [
+        "--profile",
+        "github",
+        "--canvas-light",
+        tokens["themes"]["light"]["surface"],
+        "--canvas-dark",
+        tokens["themes"]["dark"]["surface"],
+    ]
+
+
+def test_lint_flags_crash_on_a_brandpack_without_a_surface(tmp_path: Path) -> None:
+    tokens = tmp_path / "design-tokens.json"
+    tokens.write_text(json.dumps({"themes": {"light": {"bg": "#ffffff"}, "dark": {}}}))
+    with pytest.raises(KeyError, match="surface"):
+        md2html.lint_canvas_flags(tokens)
+
+
+def test_main_lint_flags_prints_the_flags_and_renders_nothing(
+    doc: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    md2html.main(_args(doc, tmp_path, theme="osakanights", lint_flags=True))
+    out = capsys.readouterr().out.strip()
+    theme = md2html.load_theme("osakanights")
+    assert out == " ".join(md2html.lint_canvas_flags(theme.tokens_path))
+    assert not (tmp_path / "mydoc.html").exists()
+
+
+def test_skill_gate_runs_the_default_brand_canvas() -> None:
+    # The mandated gate spells out the default theme's flags, so an agent that
+    # renders with no --theme scores on the page the reader sees.
+    scripts = Path(__file__).parent
+    lint = json.loads((scripts / "package.json").read_text())["devDependencies"][
+        "@jpeakai/mermaidjs-lint"
+    ]
+    default = md2html.load_theme(md2html.DEFAULT_THEME)
+    flags = shlex.join(md2html.lint_canvas_flags(default.tokens_path))
+    skill = (scripts.parent / "SKILL.md").read_text()
+    assert f"bunx @jpeakai/mermaidjs-lint@{lint} SOURCE.md {flags}" in skill
+    change = (scripts.parent / "resources" / "change-documents.md").read_text()
+    assert "--lint-flags" in change
 
 
 def test_deckgl_renderer_is_inlined_and_hoisted_before_viewer_js() -> None:

@@ -10,9 +10,33 @@ This file holds ADR-014 onwards, newest first. The founding records, ADR-001 to
 ADR-013, are in [`adr-log-foundations.md`](adr-log-foundations.md).
 
 
+### ADR-027 — The gate scores a diagram on the theme's surface
+
+- **Status:** accepted (2026-10; refines ADR-026)
+- **Context:** the viewer draws every diagram inside `.rd-canvas`, whose
+  background is the theme's `surface`. The lint scored page-backed colours on
+  GitHub's page, so ADR-026 sent agents to `color_contrast.ts` to check the
+  page-backed sequence variables against `surface` by hand.
+  `@jpeakai/mermaidjs-lint` 0.6.0 takes `--canvas-light` and `--canvas-dark`.
+- **Decision:** the gate runs lint 0.6.0 with `--profile github` and the
+  rendered theme's light and dark `surface` as the canvas. `md2html.py
+  --lint-flags` prints those flags for the theme it would render, project
+  overrides included, and `SKILL.md` spells out the default `osakanights`
+  flags. `--profile github` is explicit, because the viewer honours declared
+  label colours and the lint refuses a canvas under `mkdocs-material`. The
+  manual `color_contrast.ts` check for page-backed sequence colours is gone.
+- **Consequences:** translucent fills, edge label boxes and every page-backed
+  sequence pair are gated on the page a reader sees, in one run.
+  `test_md2html.py` checks that `.rd-canvas` still sits on `surface`, that each
+  installed theme yields its `surface` flags, and that `SKILL.md` runs the
+  default theme's flags. A brandpack with no `surface` crashes `--lint-flags`.
+- **Lens:** score a gate against the surface the renderer actually paints,
+  read from the same tokens the renderer reads, never a copied colour.
+
 ### ADR-026 — The lint is pinned, and the viewer loads the lint's Mermaid
 
-- **Status:** accepted (2026-10; refines ADR-025)
+- **Status:** accepted (2026-10; refines ADR-025); its `color_contrast.ts`
+  workaround for a theme's `surface` is superseded by ADR-027
 - **Context:** the gate used to need a second, vendored sequence audit, because
   the lint did not score `sequenceDiagram` theme colours. A test kept the
   vendored audit's Mermaid pin equal to the viewer's, since inherited sequence

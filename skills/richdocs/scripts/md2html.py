@@ -192,6 +192,28 @@ def resolve_default_theme(tokens: dict[str, object] | None) -> str:
     return value if value in ("light", "dark") else ""
 
 
+def lint_canvas_flags(tokens_path: Path) -> list[str]:
+    """The mermaid lint flags that score a brand's diagrams on the page it draws.
+
+    The viewer draws every diagram inside `.rd-canvas`, whose background is the
+    brand's `surface` (viewer.css), so page-backed colours (translucent fills, edge
+    label boxes, sequence message text and lifelines) sit on `surface`, not on
+    GitHub's page. `--profile github` is explicit because the viewer honours declared
+    label colours, and the lint refuses a canvas under mkdocs-material (ADR-027).
+    A brandpack with no `themes.<mode>.surface` crashes: there is no page to score on.
+    """
+    tokens = json.loads(tokens_path.read_text(encoding="utf-8"))
+    themes = tokens["themes"]
+    return [
+        "--profile",
+        "github",
+        "--canvas-light",
+        themes["light"]["surface"],
+        "--canvas-dark",
+        themes["dark"]["surface"],
+    ]
+
+
 def _embed_json(value: object) -> str:
     """json.dumps with `</` escaped as `<\\/` so embedded payloads can't close the script tag."""
     return json.dumps(value).replace("</", "<\\/")
@@ -488,6 +510,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--title", help="Page title (default: doc stem)")
     parser.add_argument(
+        "--lint-flags",
+        action="store_true",
+        help=(
+            "Print the @jpeakai/mermaidjs-lint flags that score this brand's page "
+            "(--profile github --canvas-light SURFACE --canvas-dark SURFACE) and exit "
+            "without rendering"
+        ),
+    )
+    parser.add_argument(
         "--serve-hint",
         action="store_true",
         help="Deprecated no-op; serve commands now always print in the output report",
@@ -509,6 +540,12 @@ def main(args: argparse.Namespace) -> None:
     if not tokens_path.is_file():
         print(f"error: design tokens file not found: {tokens_path}", file=sys.stderr)
         raise SystemExit(1)
+
+    if args.lint_flags:
+        # Unquoted on purpose: the line is piped to `xargs bunx ...`, which splits
+        # it on whitespace. Brand colours hold no spaces.
+        print(" ".join(lint_canvas_flags(tokens_path)))
+        return
 
     out_dir = Path(args.out)
     title = args.title or doc.stem

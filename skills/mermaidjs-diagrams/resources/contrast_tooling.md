@@ -11,7 +11,7 @@ isn't enough. The conceptual palette rules live in `color_theming.md`.
 | Tool | Scope | Use when |
 |------|-------|---------|
 | [`@jpeakai/mermaidjs-lint`](https://jpeakai.github.io/jpai-mermaidjs-lint/) | Audits every `classDef`/`style` directive inside `.mmd`/`.md` files (text on fill at AA 4.5:1, border on fill at 3:1, read the way the host renders it), and every `sequenceDiagram`'s theme colours in light and dark | Gating every diagram before it lands in docs |
-| `scripts/color_contrast.ts` | Generic WCAG + APCA calculator for any two CSS colours (hex, rgb, oklch, named, etc.), with alpha compositing | Ad-hoc pair checks, e.g. sampling colours from a screenshot, comparing theme tokens, or scoring a sequence colour against a host page the lint does not model |
+| `scripts/color_contrast.ts` | Generic WCAG + APCA calculator for any two CSS colours (hex, rgb, oklch, named, etc.), with alpha compositing | Ad-hoc pair checks, e.g. sampling colours from a screenshot or comparing theme tokens |
 
 The lint replaced the skill's own complexity and contrast scripts, the
 sequence-diagram audit last of all. The calculator stays because the lint
@@ -57,11 +57,13 @@ failure. Under `mkdocs-material` only lifelines, arrowheads and activation bars
 keep the diagram's colours, so only those are scored, as advisory borders.
 
 Sequence SVGs are transparent, and a `themeVariables.background` paints
-nothing. Page-backed colours are scored against GitHub's page, `#ffffff` in
-light and `#0d1117` in dark. The lint has no flag for another host's page
-colours, so on a branded surface score the page-backed variables
-(`signalTextColor`, `signalColor`, `loopTextColor`, `actorLineColor`, and
-`actorTextColor` for a human `actor`) against each surface with the calculator.
+nothing. Page-backed colours are scored against GitHub's page by default,
+`#ffffff` in light and `#0d1117` in dark. On a host that draws its own page,
+pass that page as the canvas with `--canvas-light` and `--canvas-dark`, under
+the `github` profile. The lint then scores page-backed message text and arrows,
+lifelines, loop text and human `actor` labels on it, and composites translucent
+fills and edge label boxes over it. A file the lint scores under
+`mkdocs-material` refuses a canvas, because Material draws its own page.
 
 A config the lint cannot model is reported as `contrast-directive-unauditable`,
 which blocks like any finding: a `themeCSS` override, a theme other than
@@ -86,6 +88,9 @@ npx -y @jpeakai/mermaidjs-lint docs/                 # where bun is not installe
 # Force a render context (see SKILL.md "Required for every diagram")
 bunx @jpeakai/mermaidjs-lint docs/ --profile mkdocs-material
 bunx @jpeakai/mermaidjs-lint docs/ --profile github
+
+# Score page-backed colours on a host's own page (github profile only)
+bunx @jpeakai/mermaidjs-lint docs/ --profile github --canvas-light '#faf8f9' --canvas-dark '#101010'
 
 # Apply the fixes the lint can prove safe, then report what remains
 bunx @jpeakai/mermaidjs-lint docs/ --fix

@@ -16,6 +16,7 @@ import {
   isTranslucent,
   extractStyleDirectives,
   main,
+  readStdin,
   wcagAssess,
   wcagRating,
   wcagRatio,
@@ -333,16 +334,27 @@ describe("main() CLI", () => {
     expect(await main(["not-a-color", "#000"])).toBe(2);
   });
 
+  // Empty input arrives as a real, already-closed in-memory stream rather than
+  // the runner's own stdin: an interactive terminal or an open pipe on stdin
+  // would otherwise block the read until the test times out.
+  const emptyStdin = () => readStdin(new Blob([]).stream());
+
   test("--stdin with empty stdin yields JSON parse error (returns 2)", async () => {
-    // Within bun:test, Bun.stdin is an empty stream at EOF, so readStdin returns ""
-    // and JSON.parse("") throws. Exercises lines 226-229 (readStdin) and 261-267
-    // (stdin read + JSON parse error branch) in-process (coverage-traced).
-    expect(await main(["--stdin"])).toBe(2);
+    // readStdin drains the empty stream to "" and JSON.parse("") throws, so the
+    // stdin read and the JSON parse error branch both run in-process.
+    expect(await main(["--stdin"], emptyStdin)).toBe(2);
   });
 
   test("--stdin --json with empty stdin yields JSON parse error (returns 2)", async () => {
     // Same path as above but with --json; both set values.stdin before values.json.
-    expect(await main(["--stdin", "--json"])).toBe(2);
+    expect(await main(["--stdin", "--json"], emptyStdin)).toBe(2);
+  });
+});
+
+describe("readStdin", () => {
+  test("joins every chunk of a multi-chunk stream into one string", async () => {
+    const stream = new Blob(['[["#fff",', '"#000"]]']).stream();
+    expect(await readStdin(stream)).toBe('[["#fff","#000"]]');
   });
 });
 

@@ -273,15 +273,19 @@ function formatAssessment(a: ContrastAssessment, color = false): string {
   ].join("\n");
 }
 
-async function readStdin(): Promise<string> {
+// Drains a byte stream to text. The stream is only opened by the caller, so the
+// process's stdin is never touched unless --stdin asks for it; tests pass a
+// real in-memory stream so they never depend on whatever stdin the runner has.
+export async function readStdin(stream: ReadableStream<Uint8Array> = Bun.stdin.stream()): Promise<string> {
   const chunks: Uint8Array[] = [];
   const decoder = new TextDecoder();
-  for await (const chunk of Bun.stdin.stream()) chunks.push(chunk);
+  for await (const chunk of stream) chunks.push(chunk);
   return chunks.map((c) => decoder.decode(c)).join("");
 }
 
-// `readInput` is the --stdin source. The CLI reads the process's stdin; tests
-// pass the text in directly so the batch path runs in-process, under coverage.
+// `readInput` is the --stdin source, called only when --stdin is given. The CLI
+// reads the process's stdin; tests always inject their input so the batch path
+// runs in-process, under coverage, independent of the test runner's own stdin.
 export async function main(
   argv: string[] = Bun.argv.slice(2),
   readInput: () => Promise<string> = readStdin,

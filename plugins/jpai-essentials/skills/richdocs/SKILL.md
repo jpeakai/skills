@@ -79,25 +79,32 @@ Any doc containing ` ```mermaid ` fences MUST pass the published lint
 **on the source markdown, before `md2html.py`**. One run checks that every
 fence parses with Mermaid's own parsers, that its visual complexity is within
 budget, and that every label reads in light and dark themes, including a
-`sequenceDiagram`'s theme colours:
+`sequenceDiagram`'s theme colours. The canvas flags score page-backed colours
+(translucent fills, edge label boxes, sequence messages and lifelines) on the
+`surface` the viewer draws diagrams on, here the default `osakanights` theme's:
 
 ```bash
-bunx @jpeakai/mermaidjs-lint@0.5.0 SOURCE.md        # or: npx -y @jpeakai/mermaidjs-lint@0.5.0 SOURCE.md
+bunx @jpeakai/mermaidjs-lint@0.6.0 SOURCE.md --profile github --canvas-light '#ffffff' --canvas-dark '#1a1a1c'
 ```
 
-The version is pinned because the lint resolves sequence colours with the same
-Mermaid release the companion's viewer loads. It needs `bunx` or `npx` with
-access to registry.npmjs.org. Exit 0 is clean, 1 means findings remain, 2 is a
-usage error.
+For another theme, take its flags from `md2html.py --lint-flags`, which prints
+them for the theme it would render and renders nothing:
+
+```bash
+uv run --no-project .claude/skills/richdocs/scripts/md2html.py SOURCE.md --theme NAME --lint-flags \
+  | xargs bunx @jpeakai/mermaidjs-lint@0.6.0 SOURCE.md
+```
+
+Swap `bunx` for `npx -y` where Bun is absent. The version is pinned because
+the lint resolves sequence colours with the same Mermaid release the
+companion's viewer loads. It needs `bunx` or `npx` with access to
+registry.npmjs.org. Exit 0 is clean, 1 means findings remain, 2 is a usage
+error. Through `xargs`, any non-zero lint exit shows as 123, a blocker too.
 
 Non-zero exit is a blocker. `parse-diagram-unparseable … yielded 0 nodes` means
 the fence is invalid mermaid and will render as a broken block in the companion.
 `md2html.py` passes fences through verbatim; it cannot catch this for you.
 
-The lint scores sequence colours against GitHub's page, not the theme's own
-`surface` colours. When the source holds a sequence diagram, also check its
-page-backed colours against those surfaces with the vendored pair calculator
-(see `resources/change-documents.md`); a failing pair is a blocker too.
 The vendored `vendor/mermaidjs-diagrams/mermaidjs-diagrams.md` documents the
 lint's profiles and complexity presets, and authoring pitfalls like quoted
 mindmap labels and HTML entities. Prior adjudications on this class of failure live
@@ -125,7 +132,7 @@ uv run --no-project .claude/skills/richdocs/scripts/showcase.py                 
 uv run --no-project .claude/skills/richdocs/scripts/showcase.py --theme osakanights # one brand
 ```
 
-### `md2html.py DOC.md [--out DIR] [--inline] [--theme NAME] [--tokens FILE] [--title T]`
+### `md2html.py DOC.md [--out DIR] [--inline] [--theme NAME] [--tokens FILE] [--title T] [--lint-flags]`
 
 - **`--theme NAME`** — a named brand theme. Supplies both the brandpack
   (`design-tokens.json`) *and* its `theme.css` — which is the only place a webfont
@@ -171,6 +178,10 @@ uv run --no-project .claude/skills/richdocs/scripts/showcase.py --theme osakanig
 - **`--tokens FILE`** — raw-brandpack escape hatch (see schema in
   `resources/rich-blocks.md`). Applies only when passed **and** `--theme` is not;
   otherwise the default `osakanights` theme wins.
+- **`--lint-flags`** — prints `--profile github --canvas-light SURFACE
+  --canvas-dark SURFACE` for the brand it would render, and renders nothing. The
+  viewer draws every diagram on the brand's `surface`, so these are the flags the
+  Mermaid gate needs for that brand (ADR-027).
 
 #### Reporting a generated doc (worktree-aware)
 

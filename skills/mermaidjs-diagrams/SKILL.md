@@ -106,10 +106,19 @@ the rest with Mermaid's own theme engine, and scores participants, human actors,
 lifelines, messages and arrows, notes, frames, activation bars, `autonumber`
 numbers and `rect` backgrounds in light and dark. A `themeCSS` override, or a
 colour Mermaid cannot read, is reported as `contrast-directive-unauditable`, a
-blocker like any other finding. The lint scores page-backed colours against
-GitHub's page (`#ffffff` and `#0d1117`); on a host with other page colours,
-check those pairs with `color_contrast.ts` below. See
-`resources/contrast_tooling.md` for the full sequence surface.
+blocker like any other finding. See `resources/contrast_tooling.md` for the
+full sequence surface.
+
+**A host with its own page colours passes them as the canvas.** Page-backed
+colours (translucent fills, edge label boxes, sequence messages, lifelines and
+loop text) are scored on GitHub's page (`#ffffff` and `#0d1117`) by default.
+When the diagram is drawn on another page, such as a documentation viewer with
+its own light and dark surface, pass that page so the lint scores what the
+reader sees. The canvas applies under the `github` profile only:
+
+```bash
+bunx @jpeakai/mermaidjs-lint docs/ --profile github --canvas-light '#faf8f9' --canvas-dark '#101010'
+```
 
 For ad-hoc colour-pair checks (picking from a screenshot, validating a theme
 token pair, compositing a translucent fill), the lint has no equivalent, so the

@@ -518,7 +518,8 @@ moves to the package, and what it cannot yet do stays local and named.*
 
 ### ADR-006 — Sequence-diagram contrast moves to the package
 
-**Status:** accepted (2026-10). Supersedes ADR-005.
+**Status:** accepted (2026-10). Supersedes ADR-005. Its custom host page
+workaround is superseded by ADR-007.
 
 **Context.** `@jpeakai/mermaidjs-lint` 0.5.0 scores `sequenceDiagram` contrast
 in light and dark under its existing contrast rules. It reads frontmatter and
@@ -551,6 +552,31 @@ until the package takes page colours.
 **Lens.** *ADR-005's lens, carried to its end: once the package covers the last
 capability a local gate held, retire the gate whole, and write down what the
 package still does differently so the gap is a known one.*
+
+### ADR-007 — A host page is scored by the package's canvas flags
+
+**Status:** accepted (2026-10). Supersedes the custom host page clause of ADR-006.
+
+**Context.** ADR-006 left one known gap: the package scored page-backed colours
+on GitHub's page only, while the retired script took `--background-light` and
+`--background-dark`. So `SKILL.md` and `resources/contrast_tooling.md` told
+agents to score each page-backed sequence variable against a branded page by
+hand with `color_contrast.ts`. `@jpeakai/mermaidjs-lint` 0.6.0 takes
+`--canvas-light` and `--canvas-dark` under the `github` profile. It scores
+translucent fills, edge label boxes and every page-backed sequence pair on that
+canvas, and refuses a canvas for a file it scores under `mkdocs-material`.
+
+**Decision.** `SKILL.md` and `resources/contrast_tooling.md` tell agents to pass
+the host's page colours as the canvas flags, and drop the manual pair check for
+page-backed sequence colours. `color_contrast.ts` stays, for ad-hoc pairs the
+lint does not read, such as colours sampled from a screenshot.
+
+**Consequences.** A branded host page is gated in the same run as every other
+check, with the same exit codes. The calculator no longer has a mandated use
+in the sequence workflow.
+
+**Lens.** *When the package closes a gap a doc wrote down, the workaround goes
+in the same change, and the record names which clause it replaces.*
 
 ## Related
 

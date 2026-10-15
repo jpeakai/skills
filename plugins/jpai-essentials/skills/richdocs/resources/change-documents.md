@@ -28,25 +28,24 @@ start unreviewed. Theme changes and navigation retain state in the current page.
 Print includes folded content and hides controls. Sidebar-layout preferences
 are separate from review state.
 
-Run `bunx @jpeakai/mermaidjs-lint@0.5.0` (parse, complexity and contrast,
+Run `bunx @jpeakai/mermaidjs-lint@0.6.0` (parse, complexity and contrast,
 sequence diagrams included) before `md2html.py`, as shown in the SKILL.md
-Mermaid gate. Render live and
+Mermaid gate. Pass the canvas flags of the theme you render with, so
+page-backed colours (sequence messages, lifelines, loop text and human `actor`
+labels) are scored on that theme's light and dark `surface`, the page the
+viewer draws diagrams on:
+
+```bash
+uv run --no-project .claude/skills/richdocs/scripts/md2html.py SOURCE.md --theme NAME --lint-flags \
+  | xargs bunx @jpeakai/mermaidjs-lint@0.6.0 SOURCE.md
+```
+
+Render live and
 inline into separate directories so the HTML filenames do not collide. Inline
 embeds Markdown/tokens but still needs network for pinned CDN libraries. Serve
 both locally for verification.
 
-For sequence diagrams, the lint scores page-backed colors against GitHub's page
-(`#ffffff` and `#0d1117`), not the chosen theme's `surface` colors. Check the
-page-backed variables you set (`signalTextColor`, `signalColor`,
-`loopTextColor`, `actorLineColor`, and `actorTextColor` for a human `actor`)
-against the theme's light and dark `surface` with the vendored calculator:
-
-```bash
-bun install --cwd .claude/skills/richdocs/vendor/mermaidjs-diagrams/scripts --frozen-lockfile
-bun run .claude/skills/richdocs/vendor/mermaidjs-diagrams/scripts/color_contrast.ts COLOR SURFACE
-```
-
-A failing pair is a blocker. Do not pin
+A finding is a blocker. Do not pin
 `theme: base` merely to customize actor boxes: leave the host theme adaptive
 and set only the box-specific colors needed. Syntax highlighting loads its
 pinned CDN library alongside the existing renderer libraries.

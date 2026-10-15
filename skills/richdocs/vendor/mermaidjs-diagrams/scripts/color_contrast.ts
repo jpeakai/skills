@@ -4,9 +4,10 @@
 // Two use cases:
 //   1. Standalone CLI — LLM extracts colors from a screenshot (any CSS syntax)
 //      and pipes them to this tool to get ratings.
-//   2. Shared library — mermaid_contrast.ts imports extractStyleDirectives()
-//      and wcagAssess() to audit classDef/style/linkStyle directives in
-//      mermaid sources.
+//   2. Library — extractStyleDirectives() and wcagAssess() are exported for
+//      scoring classDef/style/linkStyle directives in mermaid sources. The
+//      diagram gates themselves run from @jpeakai/mermaidjs-lint (ADR-004,
+//      ADR-006 in CLAUDE.md).
 //
 // Universal parsing is delegated to colorjs.io, which accepts every CSS Color
 // Level 4 syntax: hex, rgb(), hsl(), hwb(), lab(), lch(), oklab(), oklch(),
@@ -279,7 +280,12 @@ async function readStdin(): Promise<string> {
   return chunks.map((c) => decoder.decode(c)).join("");
 }
 
-export async function main(argv: string[] = Bun.argv.slice(2)): Promise<number> {
+// `readInput` is the --stdin source. The CLI reads the process's stdin; tests
+// pass the text in directly so the batch path runs in-process, under coverage.
+export async function main(
+  argv: string[] = Bun.argv.slice(2),
+  readInput: () => Promise<string> = readStdin,
+): Promise<number> {
   let parsed: ReturnType<typeof parseArgs>;
   try {
     parsed = parseArgs({
@@ -309,7 +315,7 @@ export async function main(argv: string[] = Bun.argv.slice(2)): Promise<number> 
 
   // ── stdin mode: JSON array of [fg, bg] pairs in, array of assessments out ──
   if (values.stdin) {
-    const raw = await readStdin();
+    const raw = await readInput();
     let pairs: unknown;
     try {
       pairs = JSON.parse(raw);
@@ -387,12 +393,13 @@ export async function main(argv: string[] = Bun.argv.slice(2)): Promise<number> 
 }
 
 // Only run main() when executed directly, not when imported as a library.
+// Top-level await rather than .then/.catch callbacks: the bootstrap runs only in
+// a subprocess, where coverage cannot see it, so it adds no functions to miss.
 if (import.meta.main) {
-  main()
-    .then((code) => process.exit(code))
-    .catch((err: unknown) => {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error(`fatal: ${msg}`);
-      process.exit(1);
-    });
+  try {
+    process.exit(await main());
+  } catch (err: unknown) {
+    console.error(`fatal: ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
+  }
 }

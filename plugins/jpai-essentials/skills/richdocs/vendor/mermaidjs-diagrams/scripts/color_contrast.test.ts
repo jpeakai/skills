@@ -10,8 +10,10 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  alphaOf,
   apcaLc,
   compositeOver,
+  isTranslucent,
   extractStyleDirectives,
   main,
   wcagAssess,
@@ -150,6 +152,52 @@ describe("compositeOver", () => {
     // #1d4ed8 at ~21% over white → a pale blue with AAA dark text on it.
     const box = compositeOver("#1d4ed836", "#ffffff");
     expect(wcagRatio("#36464e", box)).toBeGreaterThan(7);
+  });
+});
+
+// ─── alphaOf / isTranslucent ─────────────────────────────────────────────────
+
+describe("alphaOf and isTranslucent", () => {
+  test("an opaque colour has alpha 1 and is not translucent", () => {
+    expect(alphaOf("#2563eb")).toBe(1);
+    expect(isTranslucent("#2563eb")).toBe(false);
+  });
+
+  test("an 8-digit hex carries its alpha and is translucent", () => {
+    expect(alphaOf("#1d4ed880")).toBeCloseTo(0.5, 2);
+    expect(isTranslucent("#1d4ed880")).toBe(true);
+  });
+
+  test("a fully transparent colour has alpha 0", () => {
+    expect(alphaOf("rgb(0 0 0 / 0)")).toBe(0);
+    expect(isTranslucent("transparent")).toBe(true);
+  });
+});
+
+// ─── --stdin batch mode, in-process ──────────────────────────────────────────
+
+describe("main() --stdin batch mode", () => {
+  const input = (text: string) => async (): Promise<string> => text;
+
+  test("every pair passing returns 0 and prints a JSON array", async () => {
+    expect(await main(["--stdin", "--json"], input('[["#ffffff","#000000"],["#ffffff","#2563eb"]]'))).toBe(0);
+  });
+
+  test("a failing pair returns 1, in plain text output", async () => {
+    // A sequence message colour on a branded dark surface, as the docs suggest.
+    expect(await main(["--stdin"], input('[["#475569","#1a1a1a"],["#ffffff","#000000"]]'))).toBe(1);
+  });
+
+  test("a non-array payload is a usage error", async () => {
+    expect(await main(["--stdin"], input('{"not":"an array"}'))).toBe(2);
+  });
+
+  test("a malformed tuple is a usage error", async () => {
+    expect(await main(["--stdin"], input('[["#fff"]]'))).toBe(2);
+  });
+
+  test("an unparseable colour is a usage error", async () => {
+    expect(await main(["--stdin"], input('[["not-a-color","#000"]]'))).toBe(2);
   });
 });
 

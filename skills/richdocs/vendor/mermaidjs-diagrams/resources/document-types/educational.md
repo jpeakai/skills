@@ -232,7 +232,7 @@ Two mandatory mechanics:
   (`-->|text|`).** `textColor:#ffffff` colours edge label text as well as node
   text, and an edge label sits on the page background, not on a node — so in the
   light theme it renders white on near-white and disappears completely.
-  `mermaid_contrast.ts` cannot catch this: it audits `classDef` fill×color pairs
+  `@jpeakai/mermaidjs-lint` cannot catch this: it audits `classDef` fill×color pairs
   and never sees edge labels. Verified by render — the gate reported 4 pass / 0
   fail on a diagram whose every edge label was invisible. **Look at the light
   render before declaring any diagram with edge labels done.**
@@ -314,9 +314,8 @@ Structural — verify by reading:
 Mechanical — verify by running, from the skill directory:
 
 ```bash
-bun run scripts/mermaid_complexity.ts path/to/document.md   # every fence within budget
-bun run scripts/mermaid_contrast.ts   path/to/document.md   # every classDef WCAG AA
-bash  scripts/render_mermaid.sh       path/to/document.md   # both themes, syntax + layout
+bunx @jpeakai/mermaidjs-lint            path/to/document.md   # every fence parses, within budget, WCAG AA
+bash scripts/render_mermaid.sh         path/to/document.md   # both themes, syntax + layout
 ```
 
 All three must exit 0. A `DIAGRAM_SYNTAX` render failure is the only class that
@@ -338,8 +337,8 @@ Use verbatim when commissioning one:
 > at most one per three beats. Close with a comparison table (only after stating
 > the invariant), a symptom→stage diagnosis table, a two-or-three-sentence
 > compact rule, and dated authoritative references. Headings state claims, not
-> nouns. ASCII labels, `<br/>` for breaks. Both `mermaid_complexity.ts` and
-> `mermaid_contrast.ts` must exit 0.
+> nouns. ASCII labels, `<br/>` for breaks. `bunx @jpeakai/mermaidjs-lint` must
+> exit 0.
 
 ## 10. Reference implementation
 

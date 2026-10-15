@@ -14,9 +14,8 @@ documentation gates, run from the repo root (never `cd`):
 # regenerate the README TOC after editing headings
 uvx --from md-toc md_toc --in-place --no-list-coherence github --header-levels 4 \
   .claude/skills/cli/README.md
-# both must exit 0 (README diagrams)
-bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_contrast.ts   .claude/skills/cli/README.md
-bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_complexity.ts .claude/skills/cli/README.md
+# must exit 0 (README diagrams: parse, complexity, contrast)
+bunx @jpeakai/mermaidjs-lint .claude/skills/cli/README.md
 ```
 
 Every file must stay **≤ 500 lines** (the `claude_skills/index.md` invariant) and
@@ -104,7 +103,7 @@ Every file must stay **≤ 500 lines** (the `claude_skills/index.md` invariant) 
 - [ ] Generic names only; placeholder hex/identifiers; no project nouns.
 - [ ] Every touched file ≤ 500 lines; split at a seam if it would exceed.
 - [ ] README headings changed → regenerate the TOC (mdtoc).
-- [ ] README diagrams → `mermaid_contrast.ts` and `mermaid_complexity.ts` both exit 0.
+- [ ] README diagrams → `bunx @jpeakai/mermaidjs-lint` exits 0.
 - [ ] Any skeleton that claims to run was sanity-checked, not invented.
 
 ## Known gotchas

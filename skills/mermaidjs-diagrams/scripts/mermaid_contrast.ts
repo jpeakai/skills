@@ -1,4 +1,14 @@
 #!/usr/bin/env bun
+// PARTLY DEPRECATED: the node, edge and ER contrast checks are superseded by the
+// published package @jpeakai/mermaidjs-lint
+// (https://jpeakai.github.io/jpai-mermaidjs-lint/). Run
+// `bunx @jpeakai/mermaidjs-lint <files or dirs>` for those (scripts/CLAUDE.md
+// ADR-004). This script remains only for sequence-diagram auditing, which the
+// library lacks: theme variables from YAML/JSON config and inherited theme
+// colours, scored in light and dark (ADR-005). SKILL.md names it for
+// sequenceDiagram fences only. Do not add non-sequence rules or fixes here;
+// change the package instead.
+//
 // Mermaid Source Contrast Auditor.
 //
 // Extracts every classDef/style/linkStyle color directive from a mermaid .mmd

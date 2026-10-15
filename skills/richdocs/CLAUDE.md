@@ -47,7 +47,7 @@ make -C .claude/skills/richdocs/scripts ci    # gate: must exit 0 before handoff
 | `resources/adr-log.md` | the **ADR log**, ADR-014 onwards, newest first — decision lenses; split out of this file for the 500-line invariant |
 | `resources/adr-log-foundations.md` | the founding records, ADR-001…013, moved unedited when `adr-log.md` reached 500 lines |
 | `resources/learned/` | self-curated adjudications/facts (statefulness Pathway 2) — read before re-litigating a past failure |
-| `vendor/mermaidjs-diagrams/` | wholesale vendored mermaid toolchain (parse/complexity + contrast gates, theming references) — refresh per ADR-007, never cherry-pick; its entrypoint is `mermaidjs-diagrams.md`, never a second `SKILL.md` |
+| `vendor/mermaidjs-diagrams/` | wholesale vendored mermaid references (theming, lint usage, render script); the gates themselves run from the published `@jpeakai/mermaidjs-lint` (ADR-025). Refresh per ADR-007, never cherry-pick; its entrypoint is `mermaidjs-diagrams.md`, never a second `SKILL.md` |
 
 ## Invariants
 
@@ -56,7 +56,8 @@ make -C .claude/skills/richdocs/scripts ci    # gate: must exit 0 before handoff
   is only consumed by the *browser* loading pinned CDN libs, never by the
   Python. Missing inputs crash loudly (escalators-not-stairs).
   Exception: `vendor/mermaidjs-diagrams/` is Tier A (bun + frozen lockfile)
-  — it is vendored wholesale, not authored here (ADR-007). The gate's own
+  — it is vendored wholesale, not authored here (ADR-007). The mermaid gate is
+  Tier A too: `bunx @jpeakai/mermaidjs-lint` needs registry access (ADR-025). The gate's own
   DOM tests also run on bun (`scripts/package.json`), but only at test time;
   no shipped script depends on it (ADR-021).
 - Self-contained: no file under this skill instructs the agent to run or
@@ -67,7 +68,7 @@ make -C .claude/skills/richdocs/scripts ci    # gate: must exit 0 before handoff
 
 ## ADR log
 
-The full decision log (ADR-001 … ADR-024), each entry carrying its **Lens**, lives in
+The full decision log (ADR-001 … ADR-025), each entry carrying its **Lens**, lives in
 [`resources/adr-log.md`](resources/adr-log.md) (ADR-014 onwards) and
 [`resources/adr-log-foundations.md`](resources/adr-log-foundations.md) (ADR-001 … 013).
 Read both before changing anything and apply each ADR's Lens to the next related

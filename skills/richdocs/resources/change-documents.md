@@ -28,7 +28,10 @@ start unreviewed. Theme changes and navigation retain state in the current page.
 Print includes folded content and hides controls. Sidebar-layout preferences
 are separate from review state.
 
-Run vendored complexity and contrast gates before `md2html.py`. Render live and
+Run `bunx @jpeakai/mermaidjs-lint` (parse, complexity and contrast) before
+`md2html.py`. When the document holds a `sequenceDiagram`, also run the vendored
+sequence audit, which the lint lacks, as shown in the SKILL.md Mermaid gate.
+Render live and
 inline into separate directories so the HTML filenames do not collide. Inline
 embeds Markdown/tokens but still needs network for pinned CDN libraries. Serve
 both locally for verification.

@@ -32,13 +32,11 @@ about what the skill guarantees, so they belong where a reviewer reads them.
 ### `unstyled_diagram/ARCHITECTURE.md`
 
 The four-node ingest flowchart of `fixtures/unstyled_diagram/`, with the mandatory colour
-theming applied. It passes both of the skill's own gates — which is what makes it a
-golden rather than a plausible file:
+theming applied. It passes the lint the skill mandates, which is what makes it a
+golden rather than a plausible file. From the repository root:
 
 ```sh
-cd ../../scripts
-bun run mermaid_contrast.ts   ../evals/goldens/unstyled_diagram/ARCHITECTURE.md   # 8 pass, 0 fail
-bun run mermaid_complexity.ts ../evals/goldens/unstyled_diagram/ARCHITECTURE.md   # exit 0
+bunx @jpeakai/mermaidjs-lint skills/mermaidjs-diagrams/evals/goldens/unstyled_diagram/ARCHITECTURE.md   # 0 findings, exit 0
 ```
 
 Its palette is deliberately *not* copied from the examples in
@@ -51,12 +49,10 @@ lighter tint as the stroke, which passes at 4.4–5.0.
 The five-entity data model of `fixtures/unstyled_erd/`, themed with the translucent
 recipe that an `erDiagram` needs. Mermaid paints `fill:` on even attribute rows only,
 so the golden declares no `color:`. It uses translucent fills and carries each hue in
-an opaque stroke. It passes both gates:
+an opaque stroke. It passes the lint, rows and themes included:
 
 ```sh
-cd ../../scripts
-bun run mermaid_contrast.ts   ../evals/goldens/unstyled_erd/DATA_MODEL.md   # 14 pass, 0 fail
-bun run mermaid_complexity.ts ../evals/goldens/unstyled_erd/DATA_MODEL.md   # exit 0
+bunx @jpeakai/mermaidjs-lint skills/mermaidjs-diagrams/evals/goldens/unstyled_erd/DATA_MODEL.md   # 0 findings, exit 0
 ```
 
 `eval_erd_theming.py` compares only its structure facet by facet: entities,

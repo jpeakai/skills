@@ -14,7 +14,7 @@ styling a fixed four-node diagram is very nearly determined. This is the opposit
 *Which* twelve of forty-six concepts belong in an overview, and where the detail splits,
 are genuine design judgements with many defensible answers -- there is no artifact we
 could commit that a correct run should resemble facet by facet (ADR 0046). So the verdict
-comes from the skill's own gate scripts, run the way a CI pipeline would run them, plus
+comes from the lint the skill mandates, run the way a CI pipeline would run it, plus
 the structural properties the doctrine actually names.
 
 The last check is the interesting one: getting the structure right *by luck* without ever
@@ -25,16 +25,15 @@ only the second is the behaviour the skill mandates.
 from __future__ import annotations
 
 import re
-import subprocess
 from pathlib import Path
 
+from _lint import check_lint_ran, lint
 from _render import RENDER_SCRATCH, render_both_variants
 from pytest_xharness_eval import CaseOutput, evalcase
 from pytest_xharness_eval.verify import (
     check_files_written,
     check_no_files_added,
     check_rollout,
-    check_skill_scripts_ran,
     facets,
 )
 
@@ -42,7 +41,6 @@ SKILL_DIR = Path(__file__).resolve().parent.parent
 SKILL = re.search(r"^name:\s*(\S+)", (SKILL_DIR / "SKILL.md").read_text(encoding="utf-8"), re.MULTILINE)[1]
 FIXTURE = "complex_diagram"  # evals/fixtures/complex_diagram/
 TARGET = "ARCHITECTURE.md"
-SCRIPTS = SKILL_DIR / "scripts"
 
 # What a user types after naming the skill.
 TASK = (
@@ -51,16 +49,10 @@ TASK = (
 )
 
 
-# -- The skill's own gates, used as verifiers -----------------------------------------
-
-
-def gate(script: str, *args: str) -> subprocess.CompletedProcess[str]:
-    """Run one of the skill's gate scripts; the caller judges the exit code.
-
-    A local verifier, which is exactly what ADR 0013 keeps room for: it is specific to
-    this skill's toolchain and belongs beside the case, not in the plugin.
-    """
-    return subprocess.run(["bun", "run", str(SCRIPTS / script), *args], capture_output=True, text=True, check=False)
+# -- The skill's mandated lint, used as the verifier ----------------------------------
+#
+# ``_lint.lint`` is a local verifier, which is exactly what ADR 0013 keeps room for: it is
+# specific to this skill's toolchain and belongs beside the case, not in the plugin.
 
 
 def check_dual_density_structure(output: CaseOutput) -> None:
@@ -76,9 +68,9 @@ def check_dual_density_structure(output: CaseOutput) -> None:
 
 
 def check_the_skills_gates_pass(output: CaseOutput) -> None:
-    """The overview fences fit the low preset, and the whole file passes both gates.
+    """The overview fences fit the low preset, and the whole file passes the lint.
 
-    The overview budget is asserted per fence because the gate's default preset only sees
+    The overview budget is asserted per fence because the lint's default preset only sees
     the file: a document whose overview is 30 nodes passes the default and still fails the
     doctrine that says an overview is at most 12.
     """
@@ -88,15 +80,17 @@ def check_the_skills_gates_pass(output: CaseOutput) -> None:
     for i, fence in enumerate(facets.visible_fences(doc)):
         single = scratch / f"overview_{i}.mmd"
         single.write_text(fence, encoding="utf-8")
-        low = gate("mermaid_complexity.ts", str(single), "--preset", "low")
+        low = lint(str(single), "--preset", "low", "--profile", "github")
         assert low.returncode == 0, (
             f"visible fence {i} is over the overview budget (<=12 nodes, VCS <=25):\n{low.stdout}"
         )
 
-    detailed = gate("mermaid_complexity.ts", str(output.path(TARGET)))
-    assert detailed.returncode == 0, f"a fence is over the detailed budget (<=35 nodes, VCS <=60):\n{detailed.stdout}"
-    contrast = gate("mermaid_contrast.ts", str(output.path(TARGET)))
-    assert contrast.returncode == 0, f"the contrast gate failed:\n{contrast.stdout}"
+    # One run: parse, the detailed budget (the default high preset), and contrast.
+    whole = lint(str(output.path(TARGET)), "--profile", "github")
+    assert whole.returncode == 0, (
+        f"the file fails the lint (a fence unparseable, over the detailed budget of <=35 nodes and "
+        f"VCS <=60, or below contrast):\n{whole.stdout}{whole.stderr}"
+    )
 
 
 # -- The case -------------------------------------------------------------------------
@@ -104,7 +98,7 @@ def check_the_skills_gates_pass(output: CaseOutput) -> None:
 
 @evalcase(task=TASK, skill=SKILL, fixture=FIXTURE)
 def eval_dual_density(output: CaseOutput) -> None:
-    """Evidence, then the structure, then the skill's own gates, then whether it ran them."""
+    """Evidence, then the structure, then the mandated lint, then whether the run invoked it."""
     check_rollout(output)
     check_files_written(output, TARGET)
     # The scratch directory this grader writes is its own, and is created after the run.
@@ -112,4 +106,4 @@ def eval_dual_density(output: CaseOutput) -> None:
     check_dual_density_structure(output)
     check_the_skills_gates_pass(output)
     render_both_variants(output, TARGET)
-    check_skill_scripts_ran(output, "scripts/mermaid_complexity.ts", "scripts/mermaid_contrast.ts")
+    check_lint_ran(output)

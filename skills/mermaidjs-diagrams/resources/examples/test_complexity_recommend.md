@@ -1,7 +1,7 @@
 # Mermaid Complexity — Failures & Recommended Fixes
 
 Companion to `test_complexity.md`. Each section pairs a **❌ failing diagram**
-(triggering one specific `LintCode`) with the **recommended remediation** and
+(triggering one specific rule) with the **recommended remediation** and
 a **✅ fixed diagram** that passes under the default `high` preset. Every
 example uses realistic system content so the failure mode is recognizable
 from real projects, not abstract `n1, n2, n3` stand-ins.
@@ -9,7 +9,7 @@ from real projects, not abstract `n1, n2, n3` stand-ins.
 Run with:
 
 ```bash
-bun run .claude/skills/mermaidjs-diagrams/scripts/mermaid_complexity.ts \
+bunx @jpeakai/mermaidjs-lint \
   .claude/skills/mermaidjs-diagrams/resources/examples/test_complexity_recommend.md
 ```
 
@@ -21,17 +21,16 @@ updating.
 
 | Finding | First-line fix |
 |---------|----------------|
-| `NodeCountExceedsAcceptable` | Group related nodes into a `subgraph` block, or collapse leaf clusters into one representative node. |
-| `NodeCountExceedsCognitiveLimit` | Split into an **overview** (<=12 nodes) plus **per-subsystem detail** diagrams — see `resources/diagram_organization.md` dual-density pattern. |
-| `NodeCountExceedsHardLimit` | Stop drawing. This is a dump, not a diagram. Redesign: pick a lens, pick a level of abstraction, start from scratch. |
-| `VisualComplexityExceedsAcceptable` | Delete redundant edges. Introduce a mediating node (API gateway, event bus, service mesh). Enable `elk.mergeEdges: true`. |
-| `VisualComplexityExceedsCritical` | Split by **lens** (architecture vs data-flow vs sequence), not just by component. Same nodes, different edge set per diagram. |
-| `SubgraphNestingTooDeep` | Flatten to depth <=2. Replace the innermost subgraph with a separate diagram referenced by link, or compound labels on the parent level. |
-| `ParserFailure` | Fix the syntax error. Cross-reference `test_complexity.md` §1–§2 and §11–§30 for the canonical syntax of each supported diagram kind. |
-| `ParserDegraded` | Warn that the canonical parser fell back to regex and metrics are approximate. Same fixes as `ParserFailure`; rewrite in a canonical form the parser handles. |
+| `complexity-node-count-acceptable-exceeded` | Group related nodes into a `subgraph` block, or collapse leaf clusters into one representative node. |
+| `complexity-node-count-cognitive-limit` | Split into an **overview** (<=12 nodes) plus **per-subsystem detail** diagrams — see `resources/diagram_organization.md` dual-density pattern. |
+| `complexity-node-count-hard-limit` | Stop drawing. This is a dump, not a diagram. Redesign: pick a lens, pick a level of abstraction, start from scratch. |
+| `complexity-visual-score-acceptable-exceeded` | Delete redundant edges. Introduce a mediating node (API gateway, event bus, service mesh). Enable `elk.mergeEdges: true`. |
+| `complexity-visual-score-critical` | Split by **lens** (architecture vs data-flow vs sequence), not just by component. Same nodes, different edge set per diagram. |
+| `complexity-subgraph-nesting-too-deep` | Flatten to depth <=2. Replace the innermost subgraph with a separate diagram referenced by link, or compound labels on the parent level. |
+| `parse-diagram-unparseable` | Fix the syntax error. Cross-reference `test_complexity.md` §1–§2 and §11–§30 for the canonical syntax of each supported diagram kind. |
 
-> **Alternative fix pattern** for `NodeCountExceedsCognitiveLimit` and
-> `NodeCountExceedsHardLimit` when you have multiple semi-independent
+> **Alternative fix pattern** for `complexity-node-count-cognitive-limit` and
+> `complexity-node-count-hard-limit` when you have multiple semi-independent
 > subsystems: **hierarchical decomposition with compound "See Sub-Diagram
 > X" pointers**. See [§8](#8-hierarchical-decomposition--see-sub-diagram-pointers)
 > below.
@@ -59,7 +58,7 @@ they're asked to carry relational semantics.
 
 ---
 
-## 1. NodeCountExceedsAcceptable — flat microservices catalogue
+## 1. complexity-node-count-acceptable-exceeded — flat microservices catalogue
 
 ### ❌ Negative example
 
@@ -93,7 +92,7 @@ flowchart LR
 ### Expected finding
 
 ```text
-test_complexity_recommend.md:N-M: NodeCountExceedsAcceptable 36 nodes > 35 acceptable threshold
+test_complexity_recommend.md:N-M complexity-node-count-acceptable-exceeded 36 nodes > 35 acceptable threshold
 ```
 
 ### Recommendation
@@ -150,7 +149,7 @@ flowchart LR
 
 ---
 
-## 2. NodeCountExceedsCognitiveLimit — per-source pipeline stages
+## 2. complexity-node-count-cognitive-limit — per-source pipeline stages
 
 ### ❌ Negative example
 
@@ -211,8 +210,8 @@ flowchart LR
 ### Expected findings
 
 ```text
-test_complexity_recommend.md:N-M: NodeCountExceedsCognitiveLimit 51 nodes > 50 (Huang 2020 cognitive limit)
-test_complexity_recommend.md:N-M: VisualComplexityExceedsAcceptable VCS 76.0 > 60 acceptable threshold
+test_complexity_recommend.md:N-M complexity-node-count-cognitive-limit 51 nodes > 50 (Huang 2020 cognitive limit)
+test_complexity_recommend.md:N-M complexity-visual-score-acceptable-exceeded VCS 76.0 > 60 acceptable threshold
 ```
 
 Two codes co-fire: VCS codes do **not** waterfall under node-count codes
@@ -253,7 +252,7 @@ flowchart LR
 
 ---
 
-## 3. NodeCountExceedsHardLimit — full AWS footprint dump
+## 3. complexity-node-count-hard-limit — full AWS footprint dump
 
 ### ❌ Negative example
 
@@ -293,8 +292,8 @@ flowchart TD
 ### Expected findings
 
 ```text
-test_complexity_recommend.md:N-M: NodeCountExceedsHardLimit 101 nodes > 100 hard limit
-test_complexity_recommend.md:N-M: VisualComplexityExceedsCritical VCS ~105 > 100 critical threshold
+test_complexity_recommend.md:N-M complexity-node-count-hard-limit 101 nodes > 100 hard limit
+test_complexity_recommend.md:N-M complexity-visual-score-critical VCS ~105 > 100 critical threshold
 ```
 
 ### Recommendation
@@ -335,7 +334,7 @@ flowchart LR
 
 ---
 
-## 4. VisualComplexityExceedsAcceptable — no-gateway microservice mesh
+## 4. complexity-visual-score-acceptable-exceeded — no-gateway microservice mesh
 
 ### ❌ Negative example
 
@@ -364,7 +363,7 @@ flowchart LR
 ### Expected finding
 
 ```text
-test_complexity_recommend.md:N-M: VisualComplexityExceedsAcceptable VCS ~67.5 > 60 acceptable threshold
+test_complexity_recommend.md:N-M complexity-visual-score-acceptable-exceeded VCS ~67.5 > 60 acceptable threshold
 ```
 
 ### Recommendation
@@ -404,7 +403,7 @@ flowchart LR
 
 ---
 
-## 5. VisualComplexityExceedsCritical — full-mesh monolith-in-progress
+## 5. complexity-visual-score-critical — full-mesh monolith-in-progress
 
 ### ❌ Negative example
 
@@ -438,7 +437,7 @@ flowchart LR
 ### Expected finding
 
 ```text
-test_complexity_recommend.md:N-M: VisualComplexityExceedsCritical VCS ~115 > 100 critical threshold
+test_complexity_recommend.md:N-M complexity-visual-score-critical VCS ~115 > 100 critical threshold
 ```
 
 ### Recommendation
@@ -534,7 +533,7 @@ sequenceDiagram
 
 ---
 
-## 6. SubgraphNestingTooDeep — AWS org / account / region nesting
+## 6. complexity-subgraph-nesting-too-deep — AWS org / account / region nesting
 
 ### ❌ Negative example
 
@@ -562,7 +561,7 @@ flowchart TB
 ### Expected finding
 
 ```text
-test_complexity_recommend.md:N-M: SubgraphNestingTooDeep subgraph nesting depth 3 (≥3) hinders readability
+test_complexity_recommend.md:N-M complexity-subgraph-nesting-too-deep subgraph nesting depth 3 (≥3) hinders readability
 ```
 
 ### Recommendation
@@ -596,12 +595,12 @@ flowchart TB
 
 ---
 
-## 7. ParserFailure — genuinely unparseable fence
+## 7. parse-diagram-unparseable — genuinely unparseable fence
 
 ### ❌ Negative example — unknown diagram keyword
 
 The canonical `@mermaid-js/parser` doesn't recognise the diagram kind and
-the fence yields 0 nodes, firing `ParserFailure` (error).
+the fence yields 0 nodes, firing `parse-diagram-unparseable` (error).
 
 ```mermaid
 not_a_known_diagram_type
@@ -612,10 +611,10 @@ not_a_known_diagram_type
 ### Expected finding
 
 ```text
-test_complexity_recommend.md:N-M: ParserFailure not_a_known_diagram_type yielded 0 nodes from multi-line source (parser: mermaid-core)
+test_complexity_recommend.md:N-M parse-diagram-unparseable not_a_known_diagram_type yielded 0 nodes from multi-line source (parser: mermaid-core)
 ```
 
-`ParserFailure` short-circuits every other check for the fence — when the
+`parse-diagram-unparseable` short-circuits every other check for the fence — when the
 parser returns 0 nodes, node-count and VCS metrics would be meaningless, so
 the linter suppresses all other codes for that block.
 
@@ -632,7 +631,7 @@ of each (`flowchart`, `architecture-beta`, `classDiagram`, `sequenceDiagram`,
 `timeline`, `xychart-beta`, `sankey-beta`, `quadrantChart`, `block-beta`,
 `C4Context`, `kanban`, `gitGraph`, `packet-beta`, `radar-beta`,
 `treemap-beta`, `requirementDiagram`). If one of these trips
-`ParserFailure` in your diagram but not in the fixture, the difference is
+`parse-diagram-unparseable` in your diagram but not in the fixture, the difference is
 syntax-level — your fence has an author error, not a tooling limitation.
 
 Common author-error causes:
@@ -714,8 +713,8 @@ flowchart LR
 ### Expected finding
 
 ```text
-test_complexity_recommend.md:N-M: NodeCountExceedsCognitiveLimit 51 nodes > 50 (Huang 2020 cognitive limit)
-test_complexity_recommend.md:N-M: VisualComplexityExceedsAcceptable VCS 63.5 > 60 acceptable threshold
+test_complexity_recommend.md:N-M complexity-node-count-cognitive-limit 51 nodes > 50 (Huang 2020 cognitive limit)
+test_complexity_recommend.md:N-M complexity-visual-score-acceptable-exceeded VCS 63.5 > 60 acceptable threshold
 ```
 
 ### Recommendation

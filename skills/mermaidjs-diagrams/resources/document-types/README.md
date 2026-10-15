@@ -46,11 +46,10 @@ siblings rather than unrelated templates.
 3. **Density budgets are per fence, not per document.** An always-visible fence
    targets the `low` preset (≤12 nodes, VCS ≤25). A collapsed detail fence
    targets `high` (≤35 nodes, VCS ≤60).
-4. **Both gates run before the document is done.**
+4. **Both gates run before the document is done.** One lint run carries both.
 
    ```bash
-   bun run scripts/mermaid_complexity.ts path/to/document.md
-   bun run scripts/mermaid_contrast.ts   path/to/document.md
+   bunx @jpeakai/mermaidjs-lint path/to/document.md
    ```
 
    Non-zero exit means stop and fix. Shrink or split the fence; do not raise
@@ -59,7 +58,7 @@ siblings rather than unrelated templates.
    box-drawing or emoji inside labels. See `SKILL.md` → *Common Pitfalls*.
 5b. **Set `edgeLabelBackground` whenever a fence has edge labels.** With
    `textColor:#ffffff`, edge label text is white and sits on the *page*
-   background, so it vanishes in the light theme. `mermaid_contrast.ts` audits
+   background, so it vanishes in the light theme. The lint's contrast rules audit
    only `classDef` pairs and reports a clean pass on a diagram whose labels are
    invisible — verified. Add `"edgeLabelBackground":"#334155"` to
    `themeVariables`, and **look at the light render** before declaring done.

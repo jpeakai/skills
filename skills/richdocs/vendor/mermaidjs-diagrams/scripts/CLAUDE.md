@@ -40,12 +40,31 @@ If you only remember two things:
 
 ### Public (documented in `SKILL.md`)
 
+The parse, complexity and node/edge/ER contrast gates are **not** in this
+directory any more. They run from the published package
+`@jpeakai/mermaidjs-lint` (ADR-004), and `SKILL.md` tells agents to run
+`bunx @jpeakai/mermaidjs-lint`. The one gate still here is the
+sequence-diagram contrast audit, which the package lacks (ADR-005).
+
 | File | Language | Purpose |
 |------|----------|---------|
-| `mermaid_complexity.ts` | TypeScript | Canonical-parser complexity scorer (`.mmd` + `.md`) via Langium + mermaid-core JISON. |
-| `mermaid_contrast.ts` | TypeScript | WCAG contrast audit for `classDef`/`style` directives inside diagrams. |
-| `color_contrast.ts` | TypeScript | WCAG + APCA calculator for arbitrary CSS color pairs. |
+| `mermaid_contrast.ts` (sequence only) | TypeScript | Sequence-diagram contrast audit: resolves theme variables from YAML/JSON config and Mermaid's inherited theme colours, then scores labels, arrows, lifelines, actors, notes and frames in light and dark. Kept for `sequenceDiagram` fences only (ADR-005); its other checks are deprecated. |
+| `color_contrast.ts` | TypeScript | WCAG + APCA calculator for arbitrary CSS color pairs, with `--over` compositing. Kept: the package has no ad-hoc pair calculator. |
 | `render_mermaid.sh` | Bash | Renders both standard variants (dark+transparent, default+white) via `mmdc`, resolving a browser, classifying failures, self-rectifying the remediable ones, and verifying the PNGs. Modes: `--doctor`, `--verify`, `--classify`. |
+
+### Deprecated (NOT in `SKILL.md`)
+
+| File | Language | Superseded by |
+|------|----------|---------------|
+| `mermaid_complexity.ts` | TypeScript | `@jpeakai/mermaidjs-lint` parse and complexity rules (ADR-004) |
+| `mermaid_contrast.ts` (node, edge and ER checks) | TypeScript | `@jpeakai/mermaidjs-lint` contrast rules (ADR-004) |
+
+`mermaid_complexity.ts` carries a `DEPRECATED` banner and `mermaid_contrast.ts`
+a `PARTLY DEPRECATED` one. Both are kept because files in this project are never
+deleted, and because the sequence audit still imports `mermaid_complexity.ts`'s
+file collection, fence extraction and `getMermaid()`. They stay in `TS_SCRIPTS`
+so the quality gates keep covering them. Do not add non-sequence rules or fixes
+to them; change the package instead.
 
 ### Private (NOT in `SKILL.md`)
 
@@ -63,8 +82,8 @@ Every public/private script has a sibling test:
 
 | Source | Test |
 |--------|------|
-| `mermaid_complexity.ts` | `mermaid_complexity.test.ts` |
-| `mermaid_contrast.ts` | `mermaid_contrast.test.ts` |
+| `mermaid_complexity.ts` (deprecated) | `mermaid_complexity.test.ts` (deprecated) |
+| `mermaid_contrast.ts` (sequence only) | `mermaid_contrast.test.ts` (sequence cases live; the rest deprecated) |
 | `color_contrast.ts` | `color_contrast.test.ts` |
 | `render_mermaid.sh` | `render_mermaid.test.ts` (bun test driving the Bash CLI — see `SH_SCRIPTS` in the Makefile) |
 | `_update_examples_readme.py` | `test__update_examples_readme.py` (double underscore: `test_` + `_private`) |
@@ -105,7 +124,7 @@ Convenience targets:
 | `ci` | `format-check + lint + typecheck + test-cov + docs` (non-mutating gate) |
 | `fix` | `format + lint-fix` (auto-apply everything fixable) |
 | `docs` | Regenerates `resources/examples/README.md` via `_update_examples_readme.py` |
-| `cli-demo` | Runs every public TS analyzer against fixture inputs — live tutorial |
+| `cli-demo` | Runs `@jpeakai/mermaidjs-lint` and `color_contrast.ts` against fixture inputs |
 | `install-ts` | `bun install` into this directory's `node_modules` |
 | `clean` | Removes caches (`__pycache__`, `.pytest_cache`, `.mypy_cache`, `.ruff_cache`, `htmlcov`, `.coverage`) |
 
@@ -353,7 +372,7 @@ Run from project root with `make -C`. Never `cd` into the scripts directory
 
 ### ADR-001 — The contrast gate is context-aware (github vs mkdocs-material)
 
-**Status:** accepted.
+**Status:** accepted; implementation superseded by ADR-004 (the behaviour lives on in the package).
 
 **Context.** The original gate scored `fill × color` (text ≥4.5) and `fill × stroke`
 (border ≥3), assuming the author controls the label text. That holds on GitHub/`mmdc`.
@@ -421,7 +440,7 @@ explicit. "It failed" is an invitation to damage working work.*
 
 ### ADR-003 — `erDiagram` fences are scored against Mermaid's row surfaces
 
-**Status:** accepted (2026-09). Refines ADR-001; see jpeakai/skills#6.
+**Status:** accepted (2026-09); implementation superseded by ADR-004 (the behaviour lives on in the package). Refines ADR-001; see jpeakai/skills#6.
 
 **Context.** The `github` profile assumes the declared `fill` backs every label.
 `erDiagram` breaks that: Mermaid applies a `classDef`/`style` fill to even attribute
@@ -445,6 +464,63 @@ constants measured from mermaid-cli 11.x; a Mermaid theme change would drift the
 **Lens.** *ADR-001 again, one level down: the unit a gate scores must be the surface the
 renderer actually paints behind the text, and a diagram type is allowed to paint it
 differently.*
+
+### ADR-004 — The diagram gates run from the published @jpeakai/mermaidjs-lint package
+
+**Status:** accepted (2026-10). Supersedes the implementations behind ADR-001 and ADR-003.
+
+**Context.** `mermaid_complexity.ts` and `mermaid_contrast.ts` were extracted into
+`@jpeakai/mermaidjs-lint`, a published npm package with its own tests, rules
+reference and plugin system. Keeping a second copy here meant two gates that
+could disagree, and every fix landing twice.
+
+**Decision.** `SKILL.md`, the resources, the evals and the repository's
+`docs-ci` run `bunx @jpeakai/mermaidjs-lint` for every parse, complexity and
+contrast check. The package guarantees that every label reads in light and
+dark themes, every diagram parses with Mermaid's own parsers, visual complexity
+is scored, and extra rules plug in. Two scripts stay for capabilities the
+package lacks: `render_mermaid.sh` (PNG rendering and failure triage) and
+`color_contrast.ts` (an ad-hoc colour-pair calculator with APCA and alpha
+compositing). The two superseded scripts and their tests are marked deprecated
+rather than deleted, because this project never deletes files.
+
+**Consequences.** The gates need `bunx` or `npx` and registry access to
+npmjs.org the first time they run. The mermaid, `@mermaid-js/parser` and
+happy-dom dependencies in `package.json` now serve only the deprecated scripts
+and can go when those are archived.
+
+**Lens.** *When a gate has been extracted into a tested, published package,
+point every caller at the package and stop maintaining the local copy; keep a
+local script only for a capability the package does not have, and say which.*
+
+### ADR-005 — Sequence-diagram contrast stays in mermaid_contrast.ts
+
+**Status:** accepted (2026-10). Narrows ADR-004 for `sequenceDiagram` fences.
+
+**Context.** `sequenceDiagram` colours come from theme variables, not
+`classDef`/`style` directives: YAML frontmatter or a JSON `init` directive sets
+some, and Mermaid's theme calculation derives the rest (message and loop text,
+arrows, lifelines, actor labels, notes, frames). `@jpeakai/mermaidjs-lint` does
+not resolve those, so a sequence diagram whose message labels vanish on a dark
+canvas passes it clean. `mermaid_contrast.ts` resolves them through Mermaid's
+own engine, scores both light and dark canvases, and blocks on colours it
+cannot audit.
+
+**Decision.** `SKILL.md`, `resources/contrast_tooling.md` and the change
+documents run `mermaid_contrast.ts` on any document that holds a
+`sequenceDiagram`, in addition to the lint. Every other check stays with the
+package. The script's node, edge and ER checks remain deprecated under ADR-004.
+The Mermaid version is pinned exactly in `package.json`, and richdocs asserts its
+viewer CDN uses the same version, because inherited sequence colours change
+between Mermaid releases.
+
+**Consequences.** `mermaid`, `@mermaid-js/parser`, happy-dom and `yaml` stay
+live dependencies, and `mermaid_complexity.ts` keeps the exports the audit
+imports. When the package gains sequence auditing, point `SKILL.md` at it and
+deprecate the rest of this script.
+
+**Lens.** *Retire a local gate one capability at a time: what the package does
+moves to the package, and what it cannot yet do stays local and named.*
 
 ## Related
 

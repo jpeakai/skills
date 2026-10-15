@@ -1,3 +1,8 @@
+// PARTLY DEPRECATED, like mermaid_contrast.ts: the node, edge and ER cases test
+// checks now owned by @jpeakai/mermaidjs-lint (scripts/CLAUDE.md ADR-004) and
+// are kept for audit history. The sequence-diagram cases test the one job the
+// script still does for SKILL.md (ADR-005) and must keep passing.
+//
 // Tests for mermaid_contrast.ts.
 //
 // Strategy:

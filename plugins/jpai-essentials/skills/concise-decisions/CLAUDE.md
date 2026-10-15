@@ -11,8 +11,7 @@ authority (ADR-0018).
 Prose-only skill (no `scripts/`). Doc gates before handoff, run from repo root:
 
 ```sh
-bun run skills/mermaidjs-diagrams/scripts/mermaid_contrast.ts   skills/concise-decisions/README.md
-bun run skills/mermaidjs-diagrams/scripts/mermaid_complexity.ts skills/concise-decisions/README.md
+bunx @jpeakai/mermaidjs-lint skills/concise-decisions/README.md
 uvx --from md-toc md_toc --in-place --no-list-coherence github --header-levels 4 skills/concise-decisions/README.md
 ```
 

@@ -28,7 +28,7 @@ start unreviewed. Theme changes and navigation retain state in the current page.
 Print includes folded content and hides controls. Sidebar-layout preferences
 are separate from review state.
 
-Run `bunx @jpeakai/mermaidjs-lint@0.6.0` (parse, complexity and contrast,
+Run `bunx @jpeakai/mermaidjs-lint@0.6.3` (parse, complexity and contrast,
 sequence diagrams included) before `md2html.py`, as shown in the SKILL.md
 Mermaid gate. Pass the canvas flags of the theme you render with, so
 page-backed colours (sequence messages, lifelines, loop text and human `actor`
@@ -37,7 +37,7 @@ viewer draws diagrams on:
 
 ```bash
 uv run --no-project .claude/skills/richdocs/scripts/md2html.py SOURCE.md --theme NAME --lint-flags \
-  | xargs bunx @jpeakai/mermaidjs-lint@0.6.0 SOURCE.md
+  | xargs bunx @jpeakai/mermaidjs-lint@0.6.3 SOURCE.md
 ```
 
 Render live and

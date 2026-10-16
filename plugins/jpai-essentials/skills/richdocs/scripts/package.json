@@ -4,7 +4,7 @@
   "type": "module",
   "devDependencies": {
     "@happy-dom/global-registrator": "^20.9.0",
-    "@jpeakai/mermaidjs-lint": "0.6.3",
+    "@jpeakai/mermaidjs-lint": "0.7.0",
     "@types/bun": "latest",
     "happy-dom": "^20.9.0",
     "typescript": "^5"

@@ -80,6 +80,11 @@ Exit 2 is a usage error. Never relax a budget or skip the run to get to 0.
 `--fix` applies only the fixes it can prove safe (an unterminated fence, a label
 colour below AA) and reports what remains. Review its edit like any other diff.
 
+While iterating on one concern, a category flag narrows the run: `--disable-category complexity`
+while fixing colours, or `--category contrast` to put back contrast rules a config switched off.
+Both may be repeated or take a list, such as `--disable-category parse,complexity`.
+The final run before declaring a diagram done passes no category flag.
+
 **The contrast rules are context-aware** (`--profile auto|github|mkdocs-material`,
 default `auto` = mkdocs-material when an ancestor holds `mkdocs.yml`, else github):
 

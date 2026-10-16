@@ -84,7 +84,7 @@ budget, and that every label reads in light and dark themes, including a
 `surface` the viewer draws diagrams on, here the default `osakanights` theme's:
 
 ```bash
-bunx @jpeakai/mermaidjs-lint@0.6.0 SOURCE.md --profile github --canvas-light '#ffffff' --canvas-dark '#1a1a1c'
+bunx @jpeakai/mermaidjs-lint@0.6.3 SOURCE.md --profile github --canvas-light '#ffffff' --canvas-dark '#1a1a1c'
 ```
 
 For another theme, take its flags from `md2html.py --lint-flags`, which prints
@@ -92,7 +92,7 @@ them for the theme it would render and renders nothing:
 
 ```bash
 uv run --no-project .claude/skills/richdocs/scripts/md2html.py SOURCE.md --theme NAME --lint-flags \
-  | xargs bunx @jpeakai/mermaidjs-lint@0.6.0 SOURCE.md
+  | xargs bunx @jpeakai/mermaidjs-lint@0.6.3 SOURCE.md
 ```
 
 Swap `bunx` for `npx -y` where Bun is absent. The version is pinned because

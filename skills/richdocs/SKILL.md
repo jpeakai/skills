@@ -41,6 +41,7 @@ the conversion routes below.
 | "3D scene, colour-space study, or a map" | fenced ` ```deckgl ` block — see `resources/rich-blocks.md` |
 | "Why is my palette not the palette I designed?" | ` ```deckgl ` with `space: "oklch"`, `gamut: [L]` and `targetChroma` — draws the request against the sRGB gamut |
 | "HTML looks broken opened from Finder" | `file://` blocks fetch — run `serve.py` (see `resources/serving.md`) |
+| "Render it in our design profile" | `md2html.py DOC.md --profile NAME`, or nothing at all when `.design-profiles/.default-profile` names it |
 | "Render it in a brand theme" | default is `osakanights`; `md2html.py DOC.md --theme NAME` for another (see `--help` for installed themes) |
 | "Re-brand the output" | edit `<stem>.tokens.json` in the output dir, refresh — no rebuild |
 | "Override a theme for this project" | drop `tmp/richdocs/theme/<name>/design-tokens.json` (+ optional `theme.css`) — shadows the built-in of that name |
@@ -132,7 +133,17 @@ uv run --no-project .claude/skills/richdocs/scripts/showcase.py                 
 uv run --no-project .claude/skills/richdocs/scripts/showcase.py --theme osakanights # one brand
 ```
 
-### `md2html.py DOC.md [--out DIR] [--inline] [--theme NAME] [--tokens FILE] [--title T] [--lint-flags]`
+### `md2html.py DOC.md [--out DIR] [--inline] [--profile NAME] [--theme NAME] [--tokens FILE] [--title T] [--lint-flags]`
+
+- **A design profile is looked up first** (ADR-028). A profile is a brand curated once
+  by the `design-profiles` skill and shared by every skill that renders. `--profile NAME`
+  picks one; with no `--profile`, `--theme` or `--tokens`, the profile named in
+  `.design-profiles/.default-profile` applies. A name resolves from
+  `./.design-profiles/<name>/`, then `~/.design-profiles/<name>/`, then this skill's
+  `resources/profile/<name>/` under `.claude/` or `.codex/`, project then user. A name
+  that resolves nowhere fails loudly. With no profile, the themes below apply exactly
+  as before. The report says which was used: `profile: NAME` or `theme: NAME`.
+  `themecheck.py` never runs on a profile: curation already scored it.
 
 - **`--theme NAME`** — a named brand theme. Supplies both the brandpack
   (`design-tokens.json`) *and* its `theme.css` — which is the only place a webfont

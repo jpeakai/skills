@@ -2,7 +2,9 @@
 
 Paths are relative to `skills/`.
 
-## Where things stand
+**Status:** done, M0 to M6. The table below is the state the plan started from.
+
+## Where things stood
 
 | Consumer | Reads today |
 |---|---|

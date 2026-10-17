@@ -6,6 +6,12 @@
 #        ./render_mermaid.sh --doctor            # probe the host, render nothing
 #        ./render_mermaid.sh --verify out/*.png  # is this a decodable PNG?
 #        ./render_mermaid.sh --classify < stderr.txt
+#        ./render_mermaid.sh --design-profile NAME path/to/diagram.md
+#
+# A design profile (from the design-profiles skill) is read first: the one
+# --design-profile names, else the one .design-profiles/.default-profile names.
+# Its Mermaid themeVariables reach mmdc as a config, light for the white variant
+# and dark for the transparent one. With no profile, mmdc's own themes apply.
 #
 # Rendering drives a real Chromium, so it can fail for reasons unrelated to the
 # diagram. This script senses the environment, classifies failures, applies the
@@ -180,17 +186,23 @@ verify_output_dir() {
 # ── Rendering ──────────────────────────────────────────────────────────────
 
 run_mmdc() {
-  local input="$1" output_target="$2" output="$3" theme="$4" bgcolor="$5" fmt="$6"
+  local input="$1" output_target="$2" output="$3" theme="$4" bgcolor="$5" fmt="$6" config="${7:-}"
+  local -a profile=()
+  # A design profile's config carries every themeVariables key on the base theme.
+  if [ -n "$config" ]; then
+    theme=base
+    profile=(-c "$config")
+  fi
   npx -p @mermaid-js/mermaid-cli mmdc \
     -i "${input}" \
     -a "${output_target}" \
     -o "${output}" \
-    --scale 4 -e "${fmt}" -t "${theme}" -b "${bgcolor}"
+    --scale 4 -e "${fmt}" -t "${theme}" -b "${bgcolor}" ${profile[@]+"${profile[@]}"}
 }
 
 # Render one variant, self-rectifying once per remediable failure class.
 render_variant() {
-  local input="$1" theme="$2" bgcolor="$3" fmt="$4"
+  local input="$1" theme="$2" bgcolor="$3" fmt="$4" config="${5:-}"
   local input_path input_filename stem variant output_target output
   local attempt=0 err="" status=0 class="" applied=""
 
@@ -212,7 +224,7 @@ render_variant() {
   while [ "$attempt" -lt 3 ]; do
     attempt=$((attempt + 1))
     status=0
-    err=$(run_mmdc "$input" "$output_target" "$output" "$theme" "$bgcolor" "$fmt" 2>&1 >/dev/null) || status=$?
+    err=$(run_mmdc "$input" "$output_target" "$output" "$theme" "$bgcolor" "$fmt" "$config" 2>&1 >/dev/null) || status=$?
 
     if [ "$status" -eq 0 ]; then
       verify_output_dir "$output_target" "$stem" && return 0
@@ -278,12 +290,38 @@ verify_cmd() {
   return "$status"
 }
 
+DESIGN_PROFILE=()
+if [ "${1:-}" = "--design-profile" ]; then
+  [ -n "${2:-}" ] || { echo "error: --design-profile needs a profile name" >&2; exit 1; }
+  DESIGN_PROFILE=(--design-profile "$2")
+  shift 2
+fi
+
 case "${1:-}" in
   --doctor) doctor; exit 0 ;;
   --classify) classify_failure "$(cat)"; echo; exit 0 ;;
   --verify) shift; verify_cmd "$@"; exit $? ;;
-  "" ) echo "Usage: $0 [--doctor|--classify|--verify FILE...] <file.md> [file2.md ...]" >&2; exit 1 ;;
+  "" ) echo "Usage: $0 [--doctor|--classify|--verify FILE...] [--design-profile NAME] <file.md> [file2.md ...]" >&2; exit 1 ;;
 esac
+
+# Write one mmdc config per mode from the design profile. A profile that was asked
+# for and cannot be read stops the run here, before any browser starts.
+design_profile() {
+  bun run "$SCRIPT_DIR/design_profile.ts" "$@" ${DESIGN_PROFILE[@]+"${DESIGN_PROFILE[@]}"}
+}
+CONFIG_LIGHT=""
+CONFIG_DARK=""
+if [ ${#DESIGN_PROFILE[@]} -gt 0 ] || [ -f ".design-profiles/.default-profile" ] \
+  || [ -f "$HOME/.design-profiles/.default-profile" ]; then
+  mkdir -p "$MERMAID_RUNTIME_DIR"
+  CONFIG_LIGHT="$MERMAID_RUNTIME_DIR/design-profile-light.json"
+  CONFIG_DARK="$MERMAID_RUNTIME_DIR/design-profile-dark.json"
+  design_profile mermaid-config --mode light > "$CONFIG_LIGHT"
+  design_profile mermaid-config --mode dark > "$CONFIG_DARK"
+  echo "Design $(design_profile status)"
+else
+  echo "Design profile: none (mmdc's own dark and default themes)"
+fi
 
 mkdir -p "$NPM_CONFIG_CACHE"
 
@@ -303,7 +341,7 @@ fi
 FAILED=0
 for INPUT in "$@"; do
   echo "Rendering: ${INPUT}"
-  render_variant "$INPUT" dark transparent png || FAILED=1
-  render_variant "$INPUT" default white png || FAILED=1
+  render_variant "$INPUT" dark transparent png "$CONFIG_DARK" || FAILED=1
+  render_variant "$INPUT" default white png "$CONFIG_LIGHT" || FAILED=1
 done
 exit "$FAILED"

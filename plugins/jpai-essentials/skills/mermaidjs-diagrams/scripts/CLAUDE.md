@@ -48,6 +48,7 @@ run `bunx @jpeakai/mermaidjs-lint`.
 | File | Language | Purpose |
 |------|----------|---------|
 | `color_contrast.ts` | TypeScript | WCAG + APCA calculator for arbitrary CSS color pairs, with `--over` compositing. Kept: the package has no ad-hoc pair calculator. |
+| `design_profile.ts` | TypeScript | Reads a design profile: the five-tier cascade, `.default-profile`, the DTCG reader, and the `mermaid-config` / `lint-flags` / `status` commands. A port of the design-profiles resolver (ADR-008). Fixture: `testdata/osakanights/design-tokens.json`. |
 | `render_mermaid.sh` | Bash | Renders both standard variants (dark+transparent, default+white) via `mmdc`, resolving a browser, classifying failures, self-rectifying the remediable ones, and verifying the PNGs. Modes: `--doctor`, `--verify`, `--classify`. |
 
 ### Retired
@@ -77,6 +78,7 @@ Every public/private script has a sibling test:
 | Source | Test |
 |--------|------|
 | `color_contrast.ts` | `color_contrast.test.ts` |
+| `design_profile.ts` | `design_profile.test.ts` |
 | `render_mermaid.sh` | `render_mermaid.test.ts` (bun test driving the Bash CLI — see `SH_SCRIPTS` in the Makefile) |
 | `_update_examples_readme.py` | `test__update_examples_readme.py` (double underscore: `test_` + `_private`) |
 
@@ -577,6 +579,33 @@ in the sequence workflow.
 
 **Lens.** *When the package closes a gap a doc wrote down, the workaround goes
 in the same change, and the record names which clause it replaces.*
+
+### ADR-008 — A design profile is read first; the palettes are the fallback
+
+**Status:** accepted (2026-10).
+
+**Context.** The `design-profiles` skill curates one brand into a shared
+`.design-profiles/<name>/design-tokens.json`, a DTCG 2025.10 resolver document
+whose `surface.mermaid` group already sets every `themeVariables` key in light and
+dark. This skill's colours were prose palettes and `mmdc`'s stock themes.
+
+**Decision.** `design_profile.ts` ports the design-profiles resolver and reader,
+since a skill never imports another skill's code. `render_mermaid.sh` asks it for
+one `mmdc` config per mode, from `--design-profile NAME` or `.default-profile`,
+and renders on the `base` theme with it. The lint package is published and
+unchanged, so `design_profile.ts lint-flags` prints its canvas flags from the
+profile's Mermaid background; the lint's `--profile` keeps meaning the host. With
+no profile, everything runs as before. `color_theming.md` gains §0, and the hue
+families become ordered slots (DT-CAT-1).
+
+**Consequences.** Rendering with a profile needs `bun`. A profile that was asked
+for and resolves nowhere stops the run before a browser starts, which is the only
+part of the profile path `render_mermaid.test.ts` can exercise without a browser.
+The repository tests hold the port to the Python resolver's answers on the same
+profile.
+
+**Lens.** *Read a shared artifact through a local copy of its reader, and keep
+the meaning of every existing flag; add a command rather than overload one.*
 
 ## Related
 

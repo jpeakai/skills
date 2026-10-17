@@ -20,6 +20,7 @@ plugins:
     skills:
       - agnostic             # de-brand docs to generic placeholders
       - concise-decisions    # consolidate ambiguities into one briefed question
+      - design-profiles      # curate one brand profile that paints every surface
       - gooddocs             # audit, write and restructure documentation
       - librarian            # shelve docs into the canonical document set
       - mermaidjs-diagrams   # render + WCAG-contrast-check Mermaid diagrams

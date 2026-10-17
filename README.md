@@ -7,7 +7,7 @@ The skills are published as two installable plugins, so you take the pack you wa
 
 | Plugin | For | Contains |
 |---|---|---|
-| [`jpai-essentials`](plugins/jpai-essentials) | Documentation and diagrams | `librarian`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `concise-decisions`, `agnostic` |
+| [`jpai-essentials`](plugins/jpai-essentials) | Documentation and diagrams | `librarian`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `design-profiles`, `concise-decisions`, `agnostic` |
 | [`jpai-delivery`](plugins/jpai-delivery) | Delivery planning | `plan-gap`, `concise-decisions` |
 
 `jpai-essentials` ships the `tool_coach` PreToolUse hook.
@@ -108,6 +108,7 @@ ln -s "$PWD/skills/librarian" ~/.claude/skills/librarian
 | [`agnostic`](skills/agnostic) | essentials | Keeps documentation generic by renaming project-, client- or company-specific names to open-source-style placeholders |
 | [`cli`](skills/cli) | none | Playbook for building project-local developer CLIs and the assets they generate: static HTML viewers, workflow templates, stencil diagrams, sticky PR comments |
 | [`concise-decisions`](skills/concise-decisions) | both | Consolidates accumulated ambiguities into a single highest-leverage decision question, answering first from existing decision records |
+| [`design-profiles`](skills/design-profiles) | essentials | Curates one brand design profile (seed, IR, DTCG tokens) that paints every surface richdocs and mermaidjs-diagrams render, in light and dark |
 | [`gooddocs`](skills/gooddocs) | essentials | Documentation quality in three modes: audit docs against the reality of the code, write or improve them, or restructure one for readability |
 | [`librarian`](skills/librarian) | essentials | Repo documentation organisation: ensures the canonical document set exists and every doc lives where its content says it belongs |
 | [`mermaidjs-diagrams`](skills/mermaidjs-diagrams) | essentials | Renders and analyses Mermaid diagrams in markdown, enforcing visual complexity limits and WCAG colour-contrast requirements |
@@ -122,7 +123,7 @@ The packs under `plugins/` are **generated** from them.
 
 ```mermaid
 flowchart LR
-    SK["skills/<br/>8 canonical skills"]:::src
+    SK["skills/<br/>9 canonical skills"]:::src
     HK["hooks/<br/>tool_coach"]:::src
     CF["composition.yaml<br/>the grouping"]:::cfg
     SY["sync_plugins.py"]:::proc
@@ -158,6 +159,7 @@ flowchart TB
     subgraph canon["Canonical source — edit here"]
         AG[agnostic]:::src
         CD[concise-decisions]:::src
+        DP[design-profiles]:::src
         GD[gooddocs]:::src
         LB[librarian]:::src
         MD[mermaidjs-diagrams]:::src
@@ -174,7 +176,7 @@ flowchart TB
     TH["scripts/test_harness_install.sh"]:::gate
 
     subgraph packs["Generated packs — never edit"]
-        ES["jpai-essentials<br/>6 skills + hook"]:::pack
+        ES["jpai-essentials<br/>7 skills + hook"]:::pack
         DL["jpai-delivery<br/>2 skills + hook"]:::pack
     end
 
@@ -186,7 +188,7 @@ flowchart TB
     CC["Claude Code"]:::host
     CX["Codex"]:::host
 
-    AG & CD & GD & LB & MD & RD --> SY
+    AG & CD & DP & GD & LB & MD & RD --> SY
     PG --> SY
     TC & HJ --> SY
     CF --> SY

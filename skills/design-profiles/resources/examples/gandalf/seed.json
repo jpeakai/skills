@@ -1,0 +1,13 @@
+{
+  "brand.hue": 294.364,
+  "brand.chroma": 0.271,
+  "brand.lightness": 0.514,
+  "brand.dark.hue": 297.511,
+  "brand.dark.chroma": 0.147,
+  "brand.dark.lightness": 0.724,
+  "mode.default": "light",
+  "font.display": "Inter, system-ui, sans-serif",
+  "font.body": "Inter, system-ui, -apple-system, Segoe UI, sans-serif",
+  "font.mono": "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+  "font.stylesheet": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+}

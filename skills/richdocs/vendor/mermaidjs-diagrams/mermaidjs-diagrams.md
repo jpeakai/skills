@@ -41,7 +41,11 @@ Not "consider," not "when time permits" — **mandatory, enforced, verifiable**.
 
 ## 1. Apply the color theory reference
 
-Before authoring or revising any diagram, read `resources/color_theming.md`.
+When the project has a **design profile** (from the `design-profiles` skill),
+it supplies the colours: `scripts/design_profile.ts status` says whether one
+applies, and `render_mermaid.sh` and the lint flags below read it. Categories
+take its `color.chart.categorical.<N>` slots in order. Otherwise, before
+authoring or revising any diagram, read `resources/color_theming.md`.
 Every diagram MUST apply custom colors derived from that reference to encode
 its meaningful categories, states, phases, or roles. Never leave an authored
 diagram on Mermaid's default unstyled palette. That file covers:
@@ -169,6 +173,22 @@ bash .claude/skills/mermaidjs-diagrams/scripts/render_mermaid.sh path/to/documen
 ```
 
 Output lands in `.mmdc_cache/{variant}/path/to/document-*.png`.
+
+A **design profile** is read first: `--design-profile NAME` names one, else
+`.design-profiles/.default-profile` does. Its Mermaid `themeVariables` reach
+`mmdc` on the `base` theme, light for the white variant and dark for the
+transparent one, and the script prints which profile it used. A profile that was
+asked for and resolves nowhere stops the run before any browser starts. Score
+the same profile's page with the lint's canvas flags:
+
+```bash
+bash .claude/skills/mermaidjs-diagrams/scripts/render_mermaid.sh --design-profile NAME path/to/document.md
+bunx @jpeakai/mermaidjs-lint path/to/document.md \
+  $(bun run .claude/skills/mermaidjs-diagrams/scripts/design_profile.ts lint-flags --design-profile NAME)
+```
+
+`--profile` on the lint keeps meaning the **host** (GitHub, MkDocs); the design
+profile only supplies the canvas colours.
 
 `mmdc` reads the markdown file, extracts every mermaid fence, and renders each as a
 numbered image artefact. The script exits 0 only when every expected PNG was written

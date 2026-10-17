@@ -3,7 +3,7 @@
 This file is the **self-contained developer reference** for maintaining the
 scripts under `.claude/skills/mermaidjs-diagrams/scripts/`. It covers the SDLC
 workflow, conventions, tool choices, and file layout for the public-facing
-`SKILL.md` assets.
+`mermaidjs-diagrams.md` assets.
 
 > **Scope.** Everything here applies to *this* scripts directory, which is a
 > **mixed-language skill** (Python + TypeScript scripts side-by-side with a
@@ -38,16 +38,17 @@ If you only remember two things:
 
 ## Files in this Directory
 
-### Public (documented in `SKILL.md`)
+### Public (documented in `mermaidjs-diagrams.md`)
 
 No diagram gate lives in this directory any more. Parse, complexity and
 contrast, sequence diagrams included, run from the published package
-`@jpeakai/mermaidjs-lint` (ADR-004, ADR-006), and `SKILL.md` tells agents to
+`@jpeakai/mermaidjs-lint` (ADR-004, ADR-006), and `mermaidjs-diagrams.md` tells agents to
 run `bunx @jpeakai/mermaidjs-lint`.
 
 | File | Language | Purpose |
 |------|----------|---------|
 | `color_contrast.ts` | TypeScript | WCAG + APCA calculator for arbitrary CSS color pairs, with `--over` compositing. Kept: the package has no ad-hoc pair calculator. |
+| `design_profile.ts` | TypeScript | Reads a design profile: the five-tier cascade, `.default-profile`, the DTCG reader, and the `mermaid-config` / `lint-flags` / `status` commands. A port of the design-profiles resolver (ADR-008). Fixture: `testdata/osakanights/design-tokens.json`. |
 | `render_mermaid.sh` | Bash | Renders both standard variants (dark+transparent, default+white) via `mmdc`, resolving a browser, classifying failures, self-rectifying the remediable ones, and verifying the PNGs. Modes: `--doctor`, `--verify`, `--classify`. |
 
 ### Retired
@@ -60,7 +61,7 @@ run `bunx @jpeakai/mermaidjs-lint`.
 Both scripts left the tree once nothing needed them (ADR-006); they remain in
 git history. A new diagram rule or fix belongs in the package, not here.
 
-### Private (NOT in `SKILL.md`)
+### Private (NOT in `mermaidjs-diagrams.md`)
 
 | File | Language | Purpose |
 |------|----------|---------|
@@ -68,7 +69,7 @@ git history. A new diagram rule or fix belongs in the package, not here.
 
 Private helpers are prefixed with `_` (mirroring Python's private-module
 convention, extended to any language). They follow all the same quality rules
-as public scripts but never appear in `SKILL.md`.
+as public scripts but never appear in `mermaidjs-diagrams.md`.
 
 ### Test files
 
@@ -77,6 +78,7 @@ Every public/private script has a sibling test:
 | Source | Test |
 |--------|------|
 | `color_contrast.ts` | `color_contrast.test.ts` |
+| `design_profile.ts` | `design_profile.test.ts` |
 | `render_mermaid.sh` | `render_mermaid.test.ts` (bun test driving the Bash CLI — see `SH_SCRIPTS` in the Makefile) |
 | `_update_examples_readme.py` | `test__update_examples_readme.py` (double underscore: `test_` + `_private`) |
 
@@ -321,7 +323,7 @@ the `.mmd` files in that directory.
 - Include in every quality target (`format`, `lint`, `typecheck`, `test-cov`).
 - Wire to a **`docs`** Makefile target if it regenerates documentation.
 - Reload in `conftest.py` alongside public modules (Python only).
-- **Do NOT add to `SKILL.md`** — that file describes the skill's public API.
+- **Do NOT add to `mermaidjs-diagrams.md`** — that file describes the skill's public API.
 
 ## Debugging a Failing `make ci`
 
@@ -468,7 +470,7 @@ differently.*
 reference and plugin system. Keeping a second copy here meant two gates that
 could disagree, and every fix landing twice.
 
-**Decision.** `SKILL.md`, the resources, the evals and the repository's
+**Decision.** `mermaidjs-diagrams.md`, the resources, the evals and the repository's
 `docs-ci` run `bunx @jpeakai/mermaidjs-lint` for every parse, complexity and
 contrast check. The package guarantees that every label reads in light and
 dark themes, every diagram parses with Mermaid's own parsers, visual complexity
@@ -500,7 +502,7 @@ canvas passes it clean. `mermaid_contrast.ts` resolves them through Mermaid's
 own engine, scores both light and dark canvases, and blocks on colours it
 cannot audit.
 
-**Decision.** `SKILL.md`, `resources/contrast_tooling.md` and the change
+**Decision.** `mermaidjs-diagrams.md`, `resources/contrast_tooling.md` and the change
 documents run `mermaid_contrast.ts` on any document that holds a
 `sequenceDiagram`, in addition to the lint. Every other check stays with the
 package. The script's node, edge and ER checks remain deprecated under ADR-004.
@@ -510,7 +512,7 @@ between Mermaid releases.
 
 **Consequences.** `mermaid`, `@mermaid-js/parser`, happy-dom and `yaml` stay
 live dependencies, and `mermaid_complexity.ts` keeps the exports the audit
-imports. When the package gains sequence auditing, point `SKILL.md` at it and
+imports. When the package gains sequence auditing, point `mermaidjs-diagrams.md` at it and
 deprecate the rest of this script.
 
 **Lens.** *Retire a local gate one capability at a time: what the package does
@@ -534,7 +536,7 @@ Mermaid ignores, so the package is right to pass it. And the script took
 `--background-light` and `--background-dark` for a host page other than
 GitHub's; the package scores against `#ffffff` and `#0d1117` only.
 
-**Decision.** `SKILL.md`, `resources/contrast_tooling.md` and the richdocs
+**Decision.** `mermaidjs-diagrams.md`, `resources/contrast_tooling.md` and the richdocs
 change documents run the lint alone for sequence diagrams. `mermaid_contrast.ts`,
 `mermaid_complexity.ts` and their tests leave the tree, since nothing imports or
 instructs them. `mermaid`, `@mermaid-js/parser`, `yaml` and `happy-dom` leave
@@ -559,14 +561,14 @@ package still does differently so the gap is a known one.*
 
 **Context.** ADR-006 left one known gap: the package scored page-backed colours
 on GitHub's page only, while the retired script took `--background-light` and
-`--background-dark`. So `SKILL.md` and `resources/contrast_tooling.md` told
+`--background-dark`. So `mermaidjs-diagrams.md` and `resources/contrast_tooling.md` told
 agents to score each page-backed sequence variable against a branded page by
 hand with `color_contrast.ts`. `@jpeakai/mermaidjs-lint` 0.6.0 takes
 `--canvas-light` and `--canvas-dark` under the `github` profile. It scores
 translucent fills, edge label boxes and every page-backed sequence pair on that
 canvas, and refuses a canvas for a file it scores under `mkdocs-material`.
 
-**Decision.** `SKILL.md` and `resources/contrast_tooling.md` tell agents to pass
+**Decision.** `mermaidjs-diagrams.md` and `resources/contrast_tooling.md` tell agents to pass
 the host's page colours as the canvas flags, and drop the manual pair check for
 page-backed sequence colours. `color_contrast.ts` stays, for ad-hoc pairs the
 lint does not read, such as colours sampled from a screenshot.
@@ -577,6 +579,33 @@ in the sequence workflow.
 
 **Lens.** *When the package closes a gap a doc wrote down, the workaround goes
 in the same change, and the record names which clause it replaces.*
+
+### ADR-008 — A design profile is read first; the palettes are the fallback
+
+**Status:** accepted (2026-10).
+
+**Context.** The `design-profiles` skill curates one brand into a shared
+`.design-profiles/<name>/design-tokens.json`, a DTCG 2025.10 resolver document
+whose `surface.mermaid` group already sets every `themeVariables` key in light and
+dark. This skill's colours were prose palettes and `mmdc`'s stock themes.
+
+**Decision.** `design_profile.ts` ports the design-profiles resolver and reader,
+since a skill never imports another skill's code. `render_mermaid.sh` asks it for
+one `mmdc` config per mode, from `--design-profile NAME` or `.default-profile`,
+and renders on the `base` theme with it. The lint package is published and
+unchanged, so `design_profile.ts lint-flags` prints its canvas flags from the
+profile's Mermaid background; the lint's `--profile` keeps meaning the host. With
+no profile, everything runs as before. `color_theming.md` gains §0, and the hue
+families become ordered slots (DT-CAT-1).
+
+**Consequences.** Rendering with a profile needs `bun`. A profile that was asked
+for and resolves nowhere stops the run before a browser starts, which is the only
+part of the profile path `render_mermaid.test.ts` can exercise without a browser.
+The repository tests hold the port to the Python resolver's answers on the same
+profile.
+
+**Lens.** *Read a shared artifact through a local copy of its reader, and keep
+the meaning of every existing flag; add a command rather than overload one.*
 
 ## Related
 

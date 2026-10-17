@@ -10,6 +10,33 @@ This file holds ADR-014 onwards, newest first. The founding records, ADR-001 to
 ADR-013, are in [`adr-log-foundations.md`](adr-log-foundations.md).
 
 
+### ADR-028 — A design profile is read first; the built-in themes are the fallback
+
+- **Status:** accepted (2026-10)
+- **Context:** a brand had to be hand-authored once per skill: a richdocs
+  brandpack here, prose palettes in mermaidjs-diagrams. The `design-profiles`
+  skill now curates one profile per brand into a shared `.design-profiles/`
+  store, as a DTCG 2025.10 resolver document carrying every surface already
+  baked: chrome, Cytoscape, Plotly, deck.gl, Mermaid and draw.io.
+- **Decision:** `md2html.py` looks for a profile before any theme. `--profile`
+  wins; an explicit `--theme` or `--tokens` beats the default profile; with
+  none of the three, `.default-profile` applies; with no profile the themes run
+  exactly as before. The lookup is `scripts/profile_resolver.py`, a byte-for-byte
+  copy of the design-profiles resolver, never an import. `brandpack_from_profile`
+  maps the profile onto this skill's brandpack keys as a rename, so the viewer
+  keeps its schema; categories take the categorical slots in order as
+  `canvas.plotly.<mode>.series` (ADR-023). The brandpack is written under
+  `tmp/richdocs/profile/<name>/` and renders through the same `Theme` path, so
+  `--lint-flags` works unchanged. `themecheck.py` never runs on a profile.
+- **Consequences:** one curated brand paints every richdocs surface, and the
+  report says whether a profile or a theme was used. The built-in themes stay,
+  hand-authored and gated, and design-profiles ships their exact-accent seeds
+  as examples. `test_md2html.py` covers the precedence, the mapping and a
+  brandpack-schema superset check against a built-in theme.
+- **Lens:** read a shared artifact through a mapping that renames and never
+  computes. When a surface needs a value the profile lacks, add it to curation,
+  not to the mapping.
+
 ### ADR-027 — The gate scores a diagram on the theme's surface
 
 - **Status:** accepted (2026-10; refines ADR-026)

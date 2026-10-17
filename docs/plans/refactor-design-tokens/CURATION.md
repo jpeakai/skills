@@ -1,7 +1,7 @@
 # Curation: seed → IR
 
 Turns a few stated parameters into a semantically complete `ir.json`. Every stage is settled;
-`prototype/pipeline.py` implements stages 0 to 5 and 7. Stage 6 is MIGRATION M1.
+`skills/design-profiles/scripts/profiles.py` implements every stage.
 
 Invariants: curation imputes what is absent and never overwrites what is stated (DT-BUILD-1,
 DT-PROV-1). A stated value is final and unconstrained: a brand may choose green for `danger`.
@@ -9,7 +9,7 @@ DT-PROV-1). A stated value is final and unconstrained: a brand may choose green 
 ## Stage 0: the seed
 
 Optional. Only the brand hue is required. The full parameter set, each with its default and source,
-is `DEFAULTS` in `prototype/pipeline.py`. A scraped brand usually states `brand.hue`, `brand.chroma`,
+is `DEFAULTS` in `skills/design-profiles/scripts/profiles.py`. A scraped brand usually states `brand.hue`, `brand.chroma`,
 `brand.lightness`, plus `brand.dark.*` when its dark accent differs.
 
 Scrape heuristics: `background|bg|surface|canvas` → ground; `accent|brand|primary|cta|highlight` →

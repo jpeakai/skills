@@ -1,0 +1,10 @@
+{
+  "brand.hue": 84.575,
+  "brand.chroma": 0.173,
+  "brand.lightness": 0.842,
+  "mode.default": "light",
+  "font.display": "'Outfit', system-ui, sans-serif",
+  "font.body": "'Outfit', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+  "font.mono": "'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace",
+  "font.stylesheet": "https://fonts.googleapis.com/css2?family=Outfit:wght@100;300;400;500;700&family=JetBrains+Mono:wght@400;700&display=swap"
+}

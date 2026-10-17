@@ -4,8 +4,9 @@ One design-token architecture shared by `skills/richdocs/` and `skills/mermaidjs
 brand profile is curated once and paints every surface they render: chrome CSS, Cytoscape, Plotly,
 Mermaid, deck.gl and draw.io, in light and dark.
 
-**Status:** every design decision is made. What remains is build, sequenced in
-[`MIGRATION.md`](MIGRATION.md). Start at M1.
+**Status:** implemented. M0 to M6 in [`MIGRATION.md`](MIGRATION.md) are done: the
+producer is [`skills/design-profiles/`](../../../skills/design-profiles/), and `richdocs`
+and `mermaidjs-diagrams` read its profiles first.
 
 ## Architecture
 
@@ -36,14 +37,15 @@ rules only impute what a profile does not state.
 | [`DECISIONS.md`](DECISIONS.md) | The fifteen decisions. **Canonical.** |
 | [`CURATION.md`](CURATION.md) | Seed → IR, stage by stage, with defaults |
 | [`MIGRATION.md`](MIGRATION.md) | The build sequence, M0 to M6 |
-| [`prototype/pipeline.py`](prototype/pipeline.py) | Working stdlib spike of seed → IR → DTCG. M2 promotes it |
-| [`reference/osakanights.design-tokens.json`](reference/osakanights.design-tokens.json) | The target `design-tokens.json` shape (DT-DTCG-1), built from osakanights |
+| [`reference/osakanights.design-tokens.json`](reference/osakanights.design-tokens.json) | The target `design-tokens.json` shape (DT-DTCG-1), built from osakanights before surfaces and fonts were added |
 
-Run the prototype from the repo root:
+The prototype spike was promoted into `skills/design-profiles/scripts/profiles.py` (M2)
+and retired with its richdocs projection (M6); it remains in git history. Run the tool
+from the repo root:
 
 ```bash
-uv run --no-project docs/plans/refactor-design-tokens/prototype/pipeline.py init-seeds
-uv run --no-project docs/plans/refactor-design-tokens/prototype/pipeline.py all
+uv run --no-project skills/design-profiles/scripts/profiles.py init acme --example osakanights
+uv run --no-project skills/design-profiles/scripts/profiles.py all acme
 ```
 
 ## Role vocabulary (DT-ROLES-1)

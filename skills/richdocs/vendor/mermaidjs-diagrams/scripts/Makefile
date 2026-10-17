@@ -21,7 +21,9 @@ PY_SRC = $(addsuffix .py,$(PY_SCRIPTS)) $(addprefix test_,$(addsuffix .py,$(PY_S
 # CLAUDE.md), so mermaid_complexity and mermaid_contrast are retired.
 # color_contrast stays because the package has no ad-hoc colour-pair
 # calculator. See .claude/rules/typescript/ for conventions.
-TS_SCRIPTS = color_contrast
+# design_profile reads a design profile for Mermaid: a port of the design-profiles
+# resolver, since this skill never imports another skill's code (DT-TOOL-1).
+TS_SCRIPTS = color_contrast design_profile
 
 # Private TS maintenance helpers (none today). Same quality gates, never in SKILL.md.
 PRIVATE_TS_SCRIPTS =

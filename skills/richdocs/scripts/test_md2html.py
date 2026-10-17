@@ -19,9 +19,20 @@ from pathlib import Path
 import pytest
 
 import md2html
+import profile_resolver
 from md2html import git_context, output_report, serve_commands
 
+PROFILE_FIXTURE = (
+    Path(__file__).parent / "testdata" / "osakanights" / "design-tokens.json"
+)
+
 DOC_MD = "# Title\n\nSome `</script>` text.\n\n```mermaid\ngraph LR; a-->b\n```\n"
+
+
+@pytest.fixture(autouse=True)
+def _no_user_profiles(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """A real ~/.design-profiles/.default-profile must never leak into a test."""
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
 
 
 @pytest.fixture
@@ -40,6 +51,7 @@ def _args(doc: Path, out: Path, **overrides: object) -> Namespace:
         "title": None,
         "serve_hint": False,
         "theme": None,
+        "profile": None,
         "lint_flags": False,
     }
     base.update(overrides)
@@ -634,6 +646,133 @@ def test_serve_commands_point_at_the_absolute_dir_and_slug(tmp_path: Path) -> No
     joined = "\n".join(cmds)
     assert str(tmp_path.resolve()) in joined
     assert "http://localhost:9001/mydoc.html" in joined
+
+
+# ── Design profiles (DT-TOOL-1) ─────────────────────────────────────────────
+def _profile_doc() -> dict[str, object]:
+    doc: dict[str, object] = json.loads(PROFILE_FIXTURE.read_text(encoding="utf-8"))
+    return doc
+
+
+def _key_paths(node: object, prefix: str = "") -> set[str]:
+    if isinstance(node, dict):
+        return {p for k, v in node.items() for p in _key_paths(v, f"{prefix}.{k}")}
+    return {prefix}
+
+
+def _store_profile(root: Path, name: str = "brand") -> Path:
+    target = root / ".design-profiles" / name
+    target.mkdir(parents=True)
+    (target / "design-tokens.json").write_text(
+        PROFILE_FIXTURE.read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    return target
+
+
+def test_brandpack_from_profile_is_a_rename_of_the_profile_tokens() -> None:
+    doc = _profile_doc()
+    pack = md2html.brandpack_from_profile(doc)
+    dark = profile_resolver.read_tokens(doc, "dark")
+    themes = pack["themes"]
+    assert isinstance(themes, dict)
+    assert themes["dark"]["bg"] == dark["color.surface"]
+    assert themes["dark"]["accent"] == dark["color.background.brand.bold"]
+    canvas = pack["canvas"]
+    assert isinstance(canvas, dict)
+    plotly = canvas["plotly"]["dark"]
+    assert plotly["series"] == [
+        dark[f"color.chart.categorical.{i}"] for i in range(1, 13)
+    ]
+    assert (
+        canvas["cytoscape"]["dark"]["nodeFill"]
+        == dark["color.background.brand.subtlest"]
+    )
+    assert canvas["deckgl"]["dark"]["warn"] == dark["color.text.warning"]
+    status = pack["status"]
+    assert isinstance(status, dict)
+    assert status["dark"]["colours"]["serious"] == status["dark"]["colours"]["critical"]
+    assert pack["defaultTheme"] == "dark"
+    assert "Fira Sans" in str(pack["fonts"])
+    assert "categoryColours" not in pack  # one categorical palette (ADR-023)
+
+
+def test_brandpack_from_profile_covers_every_key_a_built_in_theme_has() -> None:
+    pack = md2html.brandpack_from_profile(_profile_doc())
+    builtin = json.loads(
+        (md2html.THEMES_DIR / "osakanights" / "design-tokens.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    del builtin["waivers"]
+    missing = _key_paths(builtin) - _key_paths(pack)
+    # seriesAlt is optional in the viewer; a profile has one categorical walk.
+    assert {p for p in missing if "seriesAlt" not in p} == set()
+
+
+def test_profile_css_imports_the_web_fonts_only() -> None:
+    doc = _profile_doc()
+    assert md2html.profile_css(doc).startswith(
+        "@import url('https://fonts.googleapis.com/"
+    )
+    mode = doc["modifiers"]
+    assert isinstance(mode, dict)
+    mode["mode"]["$extensions"] = {}
+    assert md2html.profile_css(doc) == ""
+
+
+def test_load_profile_writes_a_brandpack_theme(tmp_path: Path) -> None:
+    theme = md2html.load_profile(PROFILE_FIXTURE, tmp_path)
+    assert theme.kind == "profile"
+    assert theme.name == "osakanights"
+    assert theme.tokens_path == tmp_path / "osakanights" / "design-tokens.json"
+    assert json.loads(theme.tokens_path.read_text(encoding="utf-8"))["themes"]["light"]
+    assert md2html.lint_canvas_flags(theme.tokens_path)[0] == "--profile"
+
+
+def test_resolve_profile_theme_precedence(tmp_path: Path) -> None:
+    project, home, out = tmp_path / "p", tmp_path / "h", tmp_path / "out"
+    kw = {"project": project, "home": home, "out_root": out}
+    assert md2html.resolve_profile_theme(None, None, None, **kw) is None  # tier 5
+    _store_profile(project)
+    (project / ".design-profiles" / ".default-profile").write_text(
+        "brand", encoding="utf-8"
+    )
+    default = md2html.resolve_profile_theme(None, None, None, **kw)
+    assert default is not None and default.name == "brand"
+    # An explicit theme or tokens file is a choice the default profile never overrides.
+    assert md2html.resolve_profile_theme(None, "v2ai", None, **kw) is None
+    assert md2html.resolve_profile_theme(None, None, "x.json", **kw) is None
+    # An explicit profile wins over both.
+    assert md2html.resolve_profile_theme("brand", "v2ai", "x.json", **kw) is not None
+    with pytest.raises(profile_resolver.ProfileError, match="resolves nowhere"):
+        md2html.resolve_profile_theme("ghost", None, None, **kw)
+
+
+def test_main_renders_with_a_profile_and_says_so(
+    doc: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    _store_profile(tmp_path)
+    out = tmp_path / "out"
+    md2html.main(_args(doc, out, tokens=None, profile="brand"))
+    report = capsys.readouterr().out
+    assert "profile: brand (design profile" in report
+    html = (out / "mydoc.html").read_text(encoding="utf-8")
+    assert "fonts.googleapis.com" in html
+    pack = json.loads((out / "mydoc.tokens.json").read_text(encoding="utf-8"))
+    assert pack["defaultTheme"] == "dark"
+
+
+def test_main_without_a_profile_says_it_used_a_theme(
+    doc: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    md2html.main(_args(doc, tmp_path, tokens=None))
+    assert "theme: osakanights (no design profile" in capsys.readouterr().out
+    md2html.main(_args(doc, tmp_path))
+    assert "tokens: " in capsys.readouterr().out
 
 
 if __name__ == "__main__":  # pragma: no cover

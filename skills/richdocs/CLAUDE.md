@@ -27,6 +27,9 @@ make -C .claude/skills/richdocs/scripts ci    # gate: must exit 0 before handoff
 | `scripts/showcase.py` | **theme showcase** generator — gallery of every brand, or one brand alone (`--theme`). Composes architecture diagrams from the stencil pack as drawio-editable SVG (ADR-011) |
 | `assets/showcase.{html,css,js}` | the showcase page. Placeholder-free JS/CSS; only `showcase.html` carries `{{...}}` |
 | `scripts/md2html.py` | markdown → HTML companion **generator** (stdlib). Contains no HTML/CSS/JS source — it assembles the `assets/viewer.*` files (ADR-008) |
+| `scripts/profile_resolver.py` | **copied byte-for-byte** from the design-profiles skill, never edited here: the five-tier profile cascade, `.default-profile`, and the DTCG reader. `md2html.py` maps a profile onto the brandpack schema (ADR-028) |
+| `scripts/testdata/osakanights/design-tokens.json` | a design profile built by design-profiles from its `osakanights` example, for the profile tests |
+| `tmp/richdocs/profile/<name>/` | the brandpack a design profile maps to, written on each render (ADR-028) |
 | `assets/viewer.html` | the page shell — the **only** file carrying `{{...}}` placeholders |
 | `assets/viewer.css` | viewer chrome; all colour/font via `--rd-*` custom properties |
 | `assets/viewer.js` | runtime renderer (marked → fenced-block upgrades → theme flip). **Placeholder-free by contract** — reads generation-time values from the `#rd-config` JSON block |
@@ -68,7 +71,7 @@ make -C .claude/skills/richdocs/scripts ci    # gate: must exit 0 before handoff
 
 ## ADR log
 
-The full decision log (ADR-001 … ADR-025), each entry carrying its **Lens**, lives in
+The full decision log (ADR-001 … ADR-028), each entry carrying its **Lens**, lives in
 [`resources/adr-log.md`](resources/adr-log.md) (ADR-014 onwards) and
 [`resources/adr-log-foundations.md`](resources/adr-log-foundations.md) (ADR-001 … 013).
 Read both before changing anything and apply each ADR's Lens to the next related

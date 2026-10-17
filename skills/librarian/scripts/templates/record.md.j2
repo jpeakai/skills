@@ -35,30 +35,30 @@ generated: { by: {{ author }}, at: {{ rec.last_changed_on }}T00:00:00Z }
 
 #### Given
 
-{{ rec.decision.given }}
+{{ rec.decision.given | one_sentence_per_line }}
 
 #### We prefer
 
-{{ rec.decision.we_prefer }}
+{{ rec.decision.we_prefer | one_sentence_per_line }}
 
 #### Because
 
-{{ rec.decision.because }}
+{{ rec.decision.because | one_sentence_per_line }}
 
 #### Unless
 
-{{ rec.decision.unless }}
+{{ rec.decision.unless | one_sentence_per_line }}
 
 ## Consequences
 
 ### Pros
 
 {% for item in rec.consequences.pros %}
-- {{ item }}
+- {{ item | one_sentence_per_line('  ') }}
 {% endfor %}
 
 ### Cons
 
 {% for item in rec.consequences.cons %}
-- {{ item }}
+- {{ item | one_sentence_per_line('  ') }}
 {% endfor %}

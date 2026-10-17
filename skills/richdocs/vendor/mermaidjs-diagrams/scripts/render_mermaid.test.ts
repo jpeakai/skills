@@ -142,3 +142,19 @@ describe("no arguments", () => {
     expect(stderr).toContain("Usage:");
   });
 });
+
+// ─── Design profile ──────────────────────────────────────────────────────────
+
+describe("design profile", () => {
+  test("a profile that resolves nowhere stops the run before any browser starts", async () => {
+    const { code, stderr } = await run(["--design-profile", "no-such-profile-anywhere", "x.md"]);
+    expect(code).toBe(1);
+    expect(stderr).toContain("'no-such-profile-anywhere' (from --design-profile) resolves nowhere");
+  });
+
+  test("--design-profile needs a name", async () => {
+    const { code, stderr } = await run(["--design-profile"]);
+    expect(code).toBe(1);
+    expect(stderr).toContain("needs a profile name");
+  });
+});

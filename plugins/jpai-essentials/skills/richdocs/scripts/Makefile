@@ -9,9 +9,13 @@ PY_SCRIPTS = serve stencil md2html showcase themecheck
 # Private scripts: maintenance helpers for the skill itself (none yet)
 PRIVATE_PY_SCRIPTS =
 
+# Copied byte-for-byte from the design-profiles skill (DT-TOOL-1); never edited
+# here. Its tests live with the canonical copy; md2html's tests exercise it here.
+COPIED_PY_SCRIPTS = profile_resolver
+
 PY_SRC = $(addsuffix .py,$(PY_SCRIPTS)) $(addprefix test_,$(addsuffix .py,$(PY_SCRIPTS))) \
          $(addsuffix .py,$(PRIVATE_PY_SCRIPTS)) $(addprefix test_,$(addsuffix .py,$(PRIVATE_PY_SCRIPTS))) \
-         conftest.py
+         $(addsuffix .py,$(COPIED_PY_SCRIPTS)) conftest.py
 
 # ── Paths ──────────────────────────────────────────────────────────────────
 
@@ -71,8 +75,8 @@ lint-fix-py: $(PY_SRC)
 typecheck: typecheck-py typecheck-ts
 
 # mypy resolved hermetically via `uv run --with mypy` — no system install assumed.
-typecheck-py: $(addsuffix .py,$(PY_SCRIPTS) $(PRIVATE_PY_SCRIPTS))
-	$(UV) --with mypy mypy $(addsuffix .py,$(PY_SCRIPTS) $(PRIVATE_PY_SCRIPTS)) --ignore-missing-imports --strict
+typecheck-py: $(addsuffix .py,$(PY_SCRIPTS) $(PRIVATE_PY_SCRIPTS) $(COPIED_PY_SCRIPTS))
+	$(UV) --with mypy mypy $(addsuffix .py,$(PY_SCRIPTS) $(PRIVATE_PY_SCRIPTS) $(COPIED_PY_SCRIPTS)) --ignore-missing-imports --strict
 
 # The DOM tests for the viewer's own JavaScript are TypeScript (ADR-021).
 typecheck-ts:

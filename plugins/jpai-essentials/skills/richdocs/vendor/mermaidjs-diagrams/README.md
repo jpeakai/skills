@@ -19,7 +19,7 @@ Render and maintain Mermaid.JS diagrams with **visual-clarity enforcement**.
   That one tested package guarantees every label reads in light and dark
   themes, every diagram parses with Mermaid's own parsers, visual complexity
   (node count, visual-complexity score, subgraph depth) is scored against
-  cognitive-load thresholds, and extra rules plug in. `SKILL.md` "Why this is
+  cognitive-load thresholds, and extra rules plug in. `mermaidjs-diagrams.md` "Why this is
   mandatory" carries the reasoning.
 - **Ad-hoc pair checker**: `scripts/color_contrast.ts` scores any two CSS
   colours (hex, rgb, oklch, named), WCAG 2.x plus APCA Lc, and composites a

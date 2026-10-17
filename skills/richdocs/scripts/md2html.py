@@ -32,7 +32,9 @@ import subprocess
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import NamedTuple
+from typing import Any, NamedTuple
+
+import profile_resolver
 
 # ── Configuration ──────────────────────────────────────────────────────────
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -49,6 +51,11 @@ DEFAULT_THEME = "osakanights"
 # adds project-only themes. When the dir is absent the skill is byte-for-byte the
 # self-contained built-in set (ADR-018 keeps ADR-009 portability intact).
 PROJECT_THEMES_DIR = Path("tmp/richdocs/theme")
+
+# A design profile (the design-profiles skill) is mapped onto this skill's brandpack
+# schema and written here, so it renders through the same path as a named theme.
+PROJECT_PROFILES_DIR = Path("tmp/richdocs/profile")
+PROFILE_SKILL = "richdocs"
 
 DEFAULT_TOKENS = ASSETS_DIR / "design-tokens.json"
 VIEWER_HTML = ASSETS_DIR / "viewer.html"
@@ -111,6 +118,146 @@ class Theme(NamedTuple):
     name: str
     tokens_path: Path
     css: str
+    # "theme" for a built-in or project theme, "profile" for a design profile.
+    kind: str = "theme"
+
+
+# ── Design profiles ────────────────────────────────────────────────────────
+def brandpack_from_profile(doc: dict[str, Any]) -> dict[str, object]:
+    """Map a design profile onto this skill's brandpack keys. A rename, nothing computed.
+
+    Curation baked every surface into the profile, so each key here reads one token.
+    Layout values a profile does not carry (radius, node shape, status labels) are
+    this skill's own constants. Categories take the categorical slots in order, as
+    `canvas.plotly.<mode>.series` (ADR-023).
+    """
+    themes, cyto, plotly, deck, status = {}, {}, {}, {}, {}
+    for mode in profile_resolver.modes(doc):
+        flat = profile_resolver.read_tokens(doc, mode)
+        css = profile_resolver.group(flat, "surface.css")
+        cy = profile_resolver.group(flat, "surface.cytoscape")
+        pl = profile_resolver.group(flat, "surface.plotly")
+        dg = profile_resolver.group(flat, "surface.deckgl")
+
+        def ramp(name: str, src: dict[str, Any] = pl) -> list[Any]:
+            return profile_resolver.series(src, name)
+
+        themes[mode] = {
+            "bg": css["page"],
+            "fg": css["text"],
+            "muted": css["text-subtle"],
+            "accent": css["accent"],
+            "surface": css["raised"],
+            "border": css["border"],
+            "onAccent": css["on-accent"],
+            "link": css["link"],
+            "radius": "12px",
+            "pill": "999px",
+        }
+        cyto[mode] = {
+            "nodeFill": cy["node.background-color"],
+            "nodeBorder": cy["node.border-color"],
+            "nodeLabel": cy["node.color"],
+            "nodeFillAlt": cy["node-alt.background-color"],
+            "edge": cy["edge.line-color"],
+            "edgeLabel": cy["edge.color"],
+            "edgeLabelBg": cy["edge.text-background-color"],
+            "compoundBg": cy["compound.background-color"],
+            "compoundBorder": cy["compound.border-color"],
+            "selected": cy["selected.border-color"],
+            "shape": "round-rectangle",
+            "roundness": 8,
+        }
+        plotly[mode] = {
+            "paper": pl["paper_bgcolor"],
+            "plot": pl["plot_bgcolor"],
+            "font": pl["font_color"],
+            "grid": pl["gridcolor"],
+            "series": ramp("colorway"),
+            "muted": ramp("muted"),
+            "sequential": ramp("sequential"),
+            "diverging": {
+                "good": ramp("diverging.positive"),
+                "zero": pl["diverging.zero"],
+                "bad": ramp("diverging.negative"),
+                "label": "brand ↔ danger",
+            },
+            "divergingAlt": {
+                "good": ramp("diverging.alt-positive"),
+                "zero": pl["diverging.zero"],
+                "bad": ramp("diverging.negative"),
+                "label": "success ↔ danger",
+            },
+        }
+        deck[mode] = {k: dg[k] for k in ("background", "ink", "text", "warn")}
+        status[mode] = {
+            # The glyph distinguishes serious from critical; both read the danger role.
+            "colours": {
+                "good": flat["color.text.success"],
+                "warning": flat["color.text.warning"],
+                "serious": flat["color.text.danger"],
+                "critical": flat["color.text.danger"],
+            },
+            "labels": {
+                "good": "Good",
+                "warning": "Warning",
+                "serious": "Serious",
+                "critical": "Critical",
+            },
+        }
+    flat = profile_resolver.read_tokens(doc)
+    return {
+        "defaultTheme": profile_resolver.default_mode(doc),
+        "fonts": {
+            "display": flat["font.family.display"],
+            "body": flat["font.family.body"],
+            "mono": flat["font.family.mono"],
+        },
+        "themes": themes,
+        "canvas": {"cytoscape": cyto, "plotly": plotly, "deckgl": deck},
+        "status": status,
+    }
+
+
+def profile_css(doc: dict[str, Any]) -> str:
+    """The theme.css a profile implies: only its web-font stylesheet, if it names one."""
+    url = profile_resolver.extension(doc).get("fontStylesheet")
+    return f"@import url('{url}');\n" if url else ""
+
+
+def load_profile(path: Path, out_root: Path = PROJECT_PROFILES_DIR) -> Theme:
+    """Write a profile's brandpack under `out_root/<name>/` and return it as a Theme."""
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    name = path.parent.name
+    target = out_root / name / "design-tokens.json"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(
+        json.dumps(brandpack_from_profile(doc), indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    return Theme(name=name, tokens_path=target, css=profile_css(doc), kind="profile")
+
+
+def resolve_profile_theme(
+    profile_arg: str | None,
+    theme_arg: str | None,
+    tokens_arg: str | None,
+    *,
+    project: Path | None = None,
+    home: Path | None = None,
+    out_root: Path = PROJECT_PROFILES_DIR,
+) -> Theme | None:
+    """The design profile to render with, looked up before any theme (DT-TOOL-1).
+
+    An explicit --profile always wins. An explicit --theme or --tokens is a choice
+    the default profile never overrides. Otherwise `.default-profile` applies, and
+    with none this returns None and the built-in themes run as before. A profile
+    that was asked for and cannot be found fails loudly.
+    """
+    if profile_arg is None and (theme_arg or tokens_arg is not None):
+        return None
+    path = profile_resolver.resolve_profile(profile_arg, PROFILE_SKILL, project, home)
+    return load_profile(path, out_root) if path else None
 
 
 def theme_search_dirs(project_dir: Path = PROJECT_THEMES_DIR) -> list[Path]:
@@ -508,6 +655,15 @@ def build_parser() -> argparse.ArgumentParser:
             f"passed AND --theme is not; otherwise the {DEFAULT_THEME} theme applies."
         ),
     )
+    parser.add_argument(
+        "--profile",
+        help=(
+            "Design profile name (from the design-profiles skill), looked up in "
+            "./.design-profiles/, ~/.design-profiles/, then this skill's "
+            "resources/profile/. Wins over --theme and --tokens. With none of the "
+            "three, .design-profiles/.default-profile applies when it exists."
+        ),
+    )
     parser.add_argument("--title", help="Page title (default: doc stem)")
     parser.add_argument(
         "--lint-flags",
@@ -532,9 +688,11 @@ def main(args: argparse.Namespace) -> None:
         print(f"error: markdown file not found: {doc}", file=sys.stderr)
         raise SystemExit(1)
 
-    # A named theme brings its own brandpack + CSS. With neither --theme nor an
-    # explicit --tokens, this defaults to DEFAULT_THEME (ADR-018).
-    theme = resolve_brand(args.theme, args.tokens)
+    # A design profile is looked up first. Without one, a named theme brings its own
+    # brandpack + CSS, and with neither --theme nor --tokens this defaults to
+    # DEFAULT_THEME (ADR-018).
+    profile = resolve_profile_theme(args.profile, args.theme, args.tokens)
+    theme = profile or resolve_brand(args.theme, args.tokens)
     tokens_path = theme.tokens_path if theme else Path(args.tokens)
     theme_css = theme.css if theme else ""
     if not tokens_path.is_file():
@@ -584,8 +742,14 @@ def main(args: argparse.Namespace) -> None:
         )
     )
 
-    if theme:
-        print(f"theme: {theme.name}")
+    if profile:
+        print(
+            f"profile: {profile.name} (design profile, brandpack {profile.tokens_path})"
+        )
+    elif theme:
+        print(f"theme: {theme.name} (no design profile; richdocs theme)")
+    else:
+        print(f"tokens: {tokens_path} (no design profile)")
 
 
 if __name__ == "__main__":  # pragma: no cover

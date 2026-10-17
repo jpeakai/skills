@@ -14,6 +14,26 @@ visual hierarchy, and subgraph coloring.
 
 ---
 
+## 0. A design profile comes first
+
+When the project has a **design profile** (a brand curated once by the
+`design-profiles` skill into `.design-profiles/<name>/design-tokens.json`), its
+colours win over every palette in this family. Read it with this skill's own
+`scripts/design_profile.ts`:
+
+```bash
+bun run .claude/skills/mermaidjs-diagrams/scripts/design_profile.ts status                         # which profile applies
+bun run .claude/skills/mermaidjs-diagrams/scripts/design_profile.ts mermaid-config --mode dark     # mmdc config
+bun run .claude/skills/mermaidjs-diagrams/scripts/design_profile.ts lint-flags                     # lint canvas flags
+```
+
+`--design-profile NAME` picks one; with none, `.design-profiles/.default-profile`
+names it. A profile's `surface.mermaid` group sets **every** `themeVariables` key,
+so a diagram needs no `classDef` to be on-brand. When a diagram does colour its
+classes, take the profile's `color.chart.categorical.<N>` slots in order (the
+`cScale0…11` variables carry the same colours). With no profile, the palettes
+below apply exactly as before.
+
 ## 1. Core Syntax Recap
 
 ### classDef + class
@@ -69,20 +89,25 @@ Color has three perceptual dimensions that can encode different data types:
 
 ### Mapping to Diagram Roles
 
-Assign each **category** (input, process, output, storage, external) a distinct
-**hue family**. Within each family, vary saturation and lightness to encode
-**prominence** (primary vs. secondary vs. background):
+Give each **category** of the diagram (Storage, Compute, Input, Process, any
+class at all) the **next slot** in the order the categories first appear. A slot
+is a hue family; it carries no meaning, it only keeps categories visually apart.
+Never pick a hue for what a category "means". Within each slot, vary saturation
+and lightness to encode **prominence** (primary vs. secondary vs. background):
 
 ```
-Category        Hue Family     Primary (high-S, low-L)    Secondary (mid-S, mid-L)    Background (low-S, high-L)
--------         ----------     -----------------------    ------------------------    --------------------------
-Input/Source    Blue (210-220)  hsl(217, 91%, 60%)         hsl(217, 60%, 68%)          hsl(217, 30%, 85%)
-Process/Logic   Violet (270)    hsl(271, 81%, 56%)         hsl(271, 55%, 68%)          hsl(271, 30%, 85%)
-Output/Sink     Emerald (160)   hsl(160, 84%, 39%)         hsl(160, 55%, 55%)          hsl(160, 25%, 82%)
-Storage/Data    Amber (38-45)   hsl(38, 92%, 50%)          hsl(38, 65%, 62%)           hsl(38, 30%, 85%)
-Error/Danger    Red (0-4)       hsl(0, 84%, 60%)           hsl(0, 60%, 68%)            hsl(0, 30%, 85%)
-External/API    Slate (215)     hsl(215, 14%, 34%)         hsl(215, 14%, 50%)          hsl(215, 14%, 75%)
+Slot   Hue Family      Primary (high-S, low-L)    Secondary (mid-S, mid-L)    Background (low-S, high-L)
+----   ----------      -----------------------    ------------------------    --------------------------
+1      Blue (217)      hsl(217, 91%, 60%)         hsl(217, 60%, 68%)          hsl(217, 30%, 85%)
+2      Violet (271)    hsl(271, 81%, 56%)         hsl(271, 55%, 68%)          hsl(271, 30%, 85%)
+3      Emerald (160)   hsl(160, 84%, 39%)         hsl(160, 55%, 55%)          hsl(160, 25%, 82%)
+4      Amber (38)      hsl(38, 92%, 50%)          hsl(38, 65%, 62%)           hsl(38, 30%, 85%)
+5      Slate (215)     hsl(215, 14%, 34%)         hsl(215, 14%, 50%)          hsl(215, 14%, 75%)
 ```
+
+Status is a separate channel: danger, warning and success keep their
+conventional red, amber and green, and are never handed out as a slot.
+A design profile replaces this table with its own `color.chart.categorical.1…12`.
 
 ### Converting to Hex for classDef
 

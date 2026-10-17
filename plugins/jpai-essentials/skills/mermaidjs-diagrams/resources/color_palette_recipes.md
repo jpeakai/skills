@@ -6,6 +6,12 @@ dark/light-mode safety, visual hierarchy, subgraph coloring). This file is the
 **copy-paste catalog**: four ready-made palette recipes, a worked example for
 each one, and the Tailwind v3 hex lookup that backs them all.
 
+These recipes are **examples**, used only when the project has no design
+profile (see `color_theming.md` §0). Their family names (ingress, compute,
+data) are labels for the example, not a rule: a diagram hands its categories
+the recipe's families in order, first category first, and never chooses a
+family for what a category means.
+
 All palettes below use Tailwind v3 hex values. Each includes primary (dark fill,
 white text, light stroke), secondary (light fill, dark text, dark stroke), and
 subgraph variants. Every `classDef` passes both contrast rules of `@jpeakai/mermaidjs-lint`:

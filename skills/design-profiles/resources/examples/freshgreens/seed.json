@@ -1,0 +1,13 @@
+{
+  "brand.hue": 123.43,
+  "brand.chroma": 0.155,
+  "brand.lightness": 0.783,
+  "brand.dark.hue": 123.251,
+  "brand.dark.chroma": 0.13,
+  "brand.dark.lightness": 0.74,
+  "mode.default": "light",
+  "font.display": "'Poppins', system-ui, sans-serif",
+  "font.body": "'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  "font.mono": "'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace",
+  "font.stylesheet": "https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+}

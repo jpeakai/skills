@@ -39,6 +39,14 @@ log = logging.getLogger(__name__)
 
 RESERVED_WORDS = {"y", "n", "yes", "no", "true", "false", "on", "off", "null", "~"}
 
+#: A sentence ends at a terminal followed by space, and the next opens with a capital
+#: or an opening delimiter. Anything else, such as e.g. before a lower-case word, is not
+#: a break. The same rule as the prose gate's sentence-one-per-line, so rendered prose passes it.
+SENTENCE_BREAK = re.compile(r"(?<=[.!?])\s+(?=[A-Z`\"'(\[])")
+
+#: An inline code span, whose terminals never end a sentence.
+CODE_SPAN = re.compile(r"`[^`]*`")
+
 #: Every relation paired with its inverse, so symmetry is checkable.
 INVERSE = {
     "extends": "extended_by",
@@ -138,6 +146,21 @@ def yamlq(value: Any) -> str:
     ):
         return '"' + text.replace("\\", "\\\\").replace('"', '\\"') + '"'
     return text
+
+
+def one_sentence_per_line(text: str, indent: str = "") -> str:
+    """Put each sentence of a prose field on its own line, continuing at ``indent``.
+
+    A list item passes ``indent`` so its later sentences stay inside the item.
+    Code spans are masked character for character first, so offsets stay aligned.
+    """
+    masked = CODE_SPAN.sub(lambda m: "x" * len(m.group()), text)
+    out, start = [], 0
+    for match in SENTENCE_BREAK.finditer(masked):
+        out.append(text[start : match.start()])
+        start = match.end()
+    out.append(text[start:])
+    return ("\n" + indent).join(out)
 
 
 def group_of(record: Record, group_by: str) -> str:
@@ -309,6 +332,7 @@ def environment(by_id: dict[str, Record]) -> Environment:
         autoescape=False,
     )
     env.filters["yamlq"] = yamlq
+    env.filters["one_sentence_per_line"] = one_sentence_per_line
     env.filters["relation_prose"] = lambda r: PROSE[r]
     env.filters["record_link"] = lambda i: f"{i.split('-')[-1]}-{by_id[i]['slug']}.md"
     return env

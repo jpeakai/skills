@@ -316,6 +316,39 @@ def test_a_present_plan_id_is_emitted(bundle: Path) -> None:
     assert yaml.safe_load(text.split("---\n")[1])["plan_id"] == "P1.1"
 
 
+def test_a_list_item_of_two_sentences_puts_each_on_its_own_line(bundle: Path) -> None:
+    """A packed list item fails a one-sentence-per-line gate, so the record renders it split."""
+    rec = first_record(bundle)
+    rec["consequences"]["cons"] = ["Schemas drift from the types. A test catches it."]
+    write(bundle, "0001-validate-at-the-boundary.yml", rec)
+    okf_render.render(bundle)
+    text = (bundle / "0001-validate-at-the-boundary.md").read_text()
+    assert "- Schemas drift from the types.\n  A test catches it.\n" in text
+
+
+def test_a_decision_paragraph_of_two_sentences_puts_each_on_its_own_line(bundle: Path) -> None:
+    rec = first_record(bundle)
+    rec["decision"]["because"] = "One check names the source. Scattered checks disagree."
+    write(bundle, "0001-validate-at-the-boundary.yml", rec)
+    okf_render.render(bundle)
+    text = (bundle / "0001-validate-at-the-boundary.md").read_text()
+    assert "#### Because\n\nOne check names the source.\nScattered checks disagree.\n" in text
+
+
+@pytest.mark.parametrize(
+    ("text", "lines"),
+    [
+        ("One. Two? Three! Four.", ["One.", "Two?", "Three!", "Four."]),
+        ("Use e.g. this one.", ["Use e.g. this one."]),
+        ("Run `a. B` now. Then stop.", ["Run `a. B` now.", "Then stop."]),
+        ("It reads (see below). Then stops.", ["It reads (see below).", "Then stops."]),
+        ("Plain sentence", ["Plain sentence"]),
+    ],
+)
+def test_sentences_split_as_the_prose_gate_does(text: str, lines: list[str]) -> None:
+    assert okf_render.one_sentence_per_line(text).split("\n") == lines
+
+
 def test_the_author_reaches_the_generated_frontmatter(bundle: Path) -> None:
     okf_render.render(bundle, author="process:ci")
     text = (bundle / "0001-validate-at-the-boundary.md").read_text()

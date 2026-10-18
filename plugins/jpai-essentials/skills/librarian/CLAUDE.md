@@ -458,6 +458,20 @@ All files ≤ 500 lines (the workspace skills rule, `../../.claude/rules/claude_
 - **Consequences:** The init eval checks for the complexity tenet alongside the other six.
 - **Lens:** Where a metric exists, gate on it; where it does not, say so rather than inventing a proxy.
 
+### ADR-23: generated record prose puts one sentence on each line
+
+- **Status:** Accepted (2026-10-17, user instruction); extends ADR-16.
+- **Context:** Prose gates that require one sentence per line now also report a line that holds several sentences, not only a sentence wrapped across lines.
+  A record field of two sentences rendered onto one line, so every bundle with such a field failed its own repo's docs gate.
+  The output is generated, so the fix belongs in the template, never in the markdown, and never by rewording accepted records.
+- **Decision:** `okf_render.py` gains a `one_sentence_per_line` filter, and `record.md.j2` applies it to the four lens fields and to every pros and cons item.
+  A list item's later sentences continue on lines indented two spaces, so they stay inside the item.
+  A sentence break is the prose gate's own rule: a terminal, then space, then a capital or an opening delimiter, with code spans masked.
+- **Consequences:** A single-sentence field renders byte-identical, so the golden example is unchanged.
+  An abbreviation followed by a capital, such as "Dr. Smith", splits as the prose gate would split it.
+- **Lens:** When generated output fails a gate, fix the generator at its source and prove the fix on the golden fixture.
+  Match the gate's rule exactly, so the generator and the gate never disagree about a sentence.
+
 ## Extension checklist
 
 - [ ] New smells enter `misplacement_smells.md` with symptom, detection, fix, and severity: and never a content-quality judgement (ADR-1).

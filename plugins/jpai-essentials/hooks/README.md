@@ -16,6 +16,23 @@ A plain "permission denied" teaches nothing and invites the model to retry near-
 | One question at a time, recommendation first, an `Other:` option, notes on every option | structural | AskUserQuestion |
 | Tool-choice coaching (inline `-c` snippets, interpreters fed code on stdin, bare interpreters, manual `PYTHONPATH`, the `timeout` binary) | pattern rules in `tool_coach_rules.json` | Bash |
 
+Every denial opens with the rule it applied and the exact command line or path that tripped it.
+A Python rule or an out-of-project path in a Bash command also appends the **preflight**: one complete, project-local setup for the next retry.
+
+- **Setup:** `mkdir` and `export` lines for `TMPDIR`, `BUN_INSTALL_CACHE_DIR`, `UV_CACHE_DIR` and `npm_config_cache`, all under `node_modules/.cache/`.
+  Paths are absolute, and the syntax follows `$SHELL` (fish gets `set -gx`).
+- **Diagnostics:** each of those variables as the hook sees it, marked in or outside the project.
+  Three commands confirm what the tools use: `bun pm cache`, `uv cache dir` and `npm config get cache`.
+  Only those four variables are read, so no credential can leak.
+- **Python recipe:** a named file under `tmp/`, run with `uv run --no-project`.
+- **Scope:** explicit `--cache` arguments override the exports, fresh shells may not inherit them, and workers need the same setup.
+- **Optional:** `UV_TOOL_DIR`, `UV_TOOL_BIN_DIR` and `UV_PYTHON_INSTALL_DIR`, kept apart because only managed installs need them.
+
+Without it a model fixes the one restriction it was told about and hits the next a turn later.
+Each parallel worker then repeats the same walk.
+The hook is stateless, so every relevant denial carries the preflight rather than only the first.
+Set `"preflight": true` on a pattern rule to attach it.
+
 ```mermaid
 flowchart LR
     T["Tool call<br/>Bash / file tools / AskUserQuestion"]:::input

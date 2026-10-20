@@ -8,6 +8,13 @@
     "The goal is to replace a dead-end 'permission denied' with a 'do THIS instead'",
     "so the model stops retrying variants.",
     "",
+    "The denial opens with the rule's `name` and the exact text the pattern matched,",
+    "so the model knows which agreement it broke and where. A rule with",
+    "`\"preflight\": true` also appends the complete project-local setup (tmp/, the",
+    "Bun, uv and npm caches under node_modules/.cache/, and the named-file Python",
+    "recipe), so the first denial carries everything the retry needs instead of",
+    "revealing the next restriction one denial later.",
+    "",
     "Deletions and out-of-project paths are NOT rules here: they are structural",
     "checks in tool_coach.py, which parses the command's argv so it also catches",
     "the wrapped, absolute-path and pipeline forms a regex would miss.",
@@ -21,28 +28,32 @@
   "rules": [
     {
       "name": "no-python-dash-c",
+      "preflight": true,
       "pattern": "\\bpython3?\\b[^\\n;&|]*\\s-c(?:\\b|=|$)",
-      "message": "Blocked: an inline -c snippet. Ad-hoc inline code leaves no auditable trace of what ran. Instead, write a real script FILE under tmp/ (for example tmp/<descriptive_name>.py) and run it with `uv run tmp/<descriptive_name>.py`. Treat the script as a named artifact you can re-read, diff and re-run. This applies to every variant, including the ones wrapped in `uv run`."
+      "message": "An inline -c snippet. Ad-hoc inline code leaves no auditable trace of what ran. Instead, write a real script FILE under tmp/ (for example tmp/<descriptive_name>.py) and run it with `uv run tmp/<descriptive_name>.py`. Treat the script as a named artifact you can re-read, diff and re-run. This applies to every variant, including the ones wrapped in `uv run`."
     },
     {
       "name": "no-python-stdin",
+      "preflight": true,
       "pattern": "(?:\\bpython3?(?:\\.\\d+)?(?:\\s+-[A-Za-z]+)*\\s*(?:(?<=\\s)-(?=\\s|$|[;&|)<])|<|/dev/stdin\\b)|\\buv\\s+run\\b[^\\n;&|]*?\\spython3?(?:\\.\\d+)?\\s*(?=$|[\\n;&|)])|\\buv\\s+run(?:\\s+--?[\\w-]+(?:=\\S+|\\s+(?!-)[^\\s;&|<]+)?)*\\s+-(?=\\s|$|[;&|)<]))",
-      "message": "Blocked: Python code fed in on stdin (a heredoc, a here-string, a `<` redirect, a pipe, a bare `-` or /dev/stdin). Code piped into an interpreter leaves no auditable trace of what ran, exactly like an inline -c snippet. Instead, write the code to a real script FILE under tmp/ (for example tmp/<descriptive_name>.py) with the Write tool and run it with `uv run tmp/<descriptive_name>.py`. If the heredoc is DATA for a script rather than code, keep it and feed it to the script file: `uv run tmp/<descriptive_name>.py <<'EOF'`. This applies to every variant, including `uv run -` and the ones with uv flags before the interpreter."
+      "message": "Python code fed in on stdin (a heredoc, a here-string, a `<` redirect, a pipe, a bare `-` or /dev/stdin). Code piped into an interpreter leaves no auditable trace of what ran, exactly like an inline -c snippet. Instead, write the code to a real script FILE under tmp/ (for example tmp/<descriptive_name>.py) with the Write tool and run it with `uv run tmp/<descriptive_name>.py`. If the heredoc is DATA for a script rather than code, keep it and feed it to the script file: `uv run tmp/<descriptive_name>.py <<'EOF'`. This applies to every variant, including `uv run -` and the ones with uv flags before the interpreter."
     },
     {
       "name": "no-bare-python",
+      "preflight": true,
       "pattern": "(?:^|[\\n;&|()]|&&|\\|\\|)\\s*(?:sudo\\s+)?(?:[\\w./-]*/)?python3?\\b",
-      "message": "Blocked: a direct interpreter invocation. This environment standardizes on uv so the correct virtualenv is always active. Run a module with `uv run -m <pkg.module>`, a script with `uv run <script.py>`, or for a subproject `uv run --directory <subproject> ...`. Re-run through uv rather than calling the interpreter directly."
+      "message": "A direct interpreter invocation. This environment standardizes on uv so the correct virtualenv is always active. Run a module with `uv run -m <pkg.module>`, a script with `uv run <script.py>`, or for a subproject `uv run --directory <subproject> ...`. Re-run through uv rather than calling the interpreter directly."
     },
     {
       "name": "no-pythonpath",
+      "preflight": true,
       "pattern": "\\bPYTHONPATH=",
-      "message": "Blocked: setting the PYTHONPATH= environment variable. Let uv manage the import path instead of injecting it manually - use `uv run` (or `uv run --directory <subproject>`), which activates the right environment and resolves imports correctly."
+      "message": "Setting the PYTHONPATH= environment variable. Let uv manage the import path instead of injecting it manually - use `uv run` (or `uv run --directory <subproject>`), which activates the right environment and resolves imports correctly."
     },
     {
       "name": "no-timeout-binary",
       "pattern": "(?:^|[\\n;&|()`]|&&|\\|\\|)\\s*(?:sudo\\s+)?timeout\\b",
-      "message": "Blocked: the timeout(1) binary. Use the Bash tool's own timeout parameter (in milliseconds) to bound a command instead of wrapping it in the timeout executable."
+      "message": "The timeout(1) binary. Use the Bash tool's own timeout parameter (in milliseconds) to bound a command instead of wrapping it in the timeout executable."
     }
   ]
 }

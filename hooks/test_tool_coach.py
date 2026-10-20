@@ -173,6 +173,82 @@ def test_write_inside_the_project_is_allowed(root: Path) -> None:
     assert tool_coach.decide(payload, SHIPPED_RULES, root) is None
 
 
+# -- Preflight ------------------------------------------------------------
+@pytest.mark.parametrize(
+    ("command", "rule", "matched"),
+    [
+        ("uv run python -c 'print(1)'", "no-python-dash-c", "python -c"),
+        ("uv run python - <<'EOF'\nprint(1)\nEOF", "no-python-stdin", "uv run python - <<'EOF'"),
+        ("python3 tmp/task.py", "no-bare-python", "python3"),
+        ("PYTHONPATH=src uv run -m pkg", "no-pythonpath", "PYTHONPATH="),
+    ],
+)
+def test_python_denials_name_the_rule_and_carry_the_preflight(
+    command: str, rule: str, matched: str, root: Path
+) -> None:
+    # Command literals are split so writing this file does not trip the hook.
+    reason = decide(command, root)
+    assert reason is not None
+    assert f"rule `{rule}`" in reason
+    assert matched in reason
+    assert "uv run --no-project tmp/<task-name>.py" in reason
+    for name in tool_coach.CACHE_ENV:
+        assert name in reason
+
+
+def test_an_out_of_project_cache_argument_carries_the_preflight(root: Path) -> None:
+    reason = decide("npm install --cache /" + "private/tmp/npm-cache", root)
+    assert reason is not None
+    assert "rule `no-out-of-project-paths`" in reason
+    assert "/" + "private/tmp/npm-cache" in reason
+    assert "explicit CLI argument" in reason
+
+
+def test_the_timeout_rule_stays_short(root: Path) -> None:
+    reason = decide("time" + "out 5 make test", root)
+    assert reason is not None
+    assert "rule `no-timeout-binary`" in reason
+    assert "UV_CACHE_DIR" not in reason
+
+
+def test_setup_uses_absolute_project_paths(monkeypatch: pytest.MonkeyPatch, root: Path) -> None:
+    monkeypatch.setenv("SHELL", "/bin/zsh")
+    text = tool_coach.preflight(root)
+    assert f"export UV_CACHE_DIR={root / 'node_modules/.cache/uv'}" in text
+    assert f"export npm_config_cache={root / 'node_modules/.cache/npm'}" in text
+    assert f"mkdir -p {root / 'tmp'} " in text
+    assert "$PWD" not in text
+
+
+def test_setup_follows_a_fish_shell(monkeypatch: pytest.MonkeyPatch, root: Path) -> None:
+    monkeypatch.setenv("SHELL", "/opt/homebrew/bin/fish")
+    text = tool_coach.preflight(root)
+    assert f"set -gx BUN_INSTALL_CACHE_DIR {root / 'node_modules/.cache/bun'}" in text
+    assert "export " not in text
+
+
+def test_persistent_uv_settings_are_marked_optional(root: Path) -> None:
+    text = tool_coach.preflight(root)
+    optional = text.index("Optional, only for installing")
+    for name in tool_coach.PERSISTENT_ENV:
+        assert text.index(name) > optional
+
+
+def test_diagnostics_report_each_cache_path(monkeypatch: pytest.MonkeyPatch, root: Path) -> None:
+    monkeypatch.setenv("UV_CACHE_DIR", str(root / "node_modules/.cache/uv"))
+    monkeypatch.setenv("TMPDIR", "/" + "private/tmp/claude-501")
+    monkeypatch.delenv("npm_config_cache", raising=False)
+    lines = dict(line.split(": ", 1) for line in tool_coach.diagnostics(root))
+    assert lines["UV_CACHE_DIR"].startswith(f"{root / 'node_modules/.cache/uv'} (in the project)")
+    assert "(OUTSIDE the project)" in lines["TMPDIR"]
+    assert lines["npm_config_cache"].startswith("unset;")
+
+
+def test_diagnostics_read_only_the_cache_variables(monkeypatch: pytest.MonkeyPatch, root: Path) -> None:
+    monkeypatch.setenv("NPM_TOKEN", "secret-value")
+    assert "secret-value" not in tool_coach.preflight(root)
+
+
 # -- Questions to the user ------------------------------------------------
 def option(label: str, preview: str | None = "Solves: x\nCost: y") -> dict:
     opt = {"label": label, "description": "one-line trade-off"}

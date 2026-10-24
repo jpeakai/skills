@@ -3,6 +3,12 @@
 This repo will use Github Issues to track work items.
 Github Issue may be shortened to 'GH Issues'.
 
+## Who Am I
+
+When working in a repo with multiple contributors identity is important.
+
+Look at the `git` config as well as the `gh` CLI to corroborate we are filtering to the right person.
+
 ## Backlog
 
 Issues are subdivided into:
@@ -18,6 +24,8 @@ Each issue title should be prefixed with:
 And also tagged accordingly.
 
 This categorisation will assist with prioritising types of work to work on.
+
+For this repo, the owener is `neozenith` and all tickets should be assigned to them.
 
 ## Works In Progress (WIP)
 

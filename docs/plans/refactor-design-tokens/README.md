@@ -37,6 +37,7 @@ rules only impute what a profile does not state.
 | [`DECISIONS.md`](DECISIONS.md) | The fifteen decisions. **Canonical.** |
 | [`CURATION.md`](CURATION.md) | Seed → IR, stage by stage, with defaults |
 | [`MIGRATION.md`](MIGRATION.md) | The build sequence, M0 to M6 |
+| [`review/pr25-design-profiles.md`](review/pr25-design-profiles.md) | The PR 25 review companion; [`.html`](review/pr25-design-profiles.html) is its self-contained render |
 | [`reference/osakanights.design-tokens.json`](reference/osakanights.design-tokens.json) | The target `design-tokens.json` shape (DT-DTCG-1), built from osakanights before surfaces and fonts were added |
 
 The prototype spike was promoted into `skills/design-profiles/scripts/profiles.py` (M2)

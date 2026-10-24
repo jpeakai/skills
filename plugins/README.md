@@ -6,7 +6,7 @@ See [Editing](#editing) before changing a file in this directory.
 
 | Plugin | Skills | Hook |
 |---|---|---|
-| [`jpai-essentials`](jpai-essentials) | `librarian`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `concise-decisions`, `agnostic` | yes |
+| [`jpai-essentials`](jpai-essentials) | `librarian`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `concise-decisions`, `agnostic`, `tickety-boo` | yes |
 | [`jpai-delivery`](jpai-delivery) | `plan-gap`, `concise-decisions` | no |
 
 `concise-decisions` is in both packs deliberately: it is the decision surface `plan-gap` asks its questions through, and it stands alone for documentation work.

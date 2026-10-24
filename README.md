@@ -7,7 +7,7 @@ The skills are published as two installable plugins, so you take the pack you wa
 
 | Plugin | For | Contains |
 |---|---|---|
-| [`jpai-essentials`](plugins/jpai-essentials) | Documentation and diagrams | `librarian`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `concise-decisions`, `agnostic` |
+| [`jpai-essentials`](plugins/jpai-essentials) | Documentation and diagrams | `librarian`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `concise-decisions`, `agnostic`, `tickety-boo` |
 | [`jpai-delivery`](plugins/jpai-delivery) | Delivery planning | `plan-gap`, `concise-decisions` |
 
 `jpai-essentials` ships the `tool_coach` PreToolUse hook.
@@ -113,6 +113,7 @@ ln -s "$PWD/skills/librarian" ~/.claude/skills/librarian
 | [`mermaidjs-diagrams`](skills/mermaidjs-diagrams) | essentials | Renders and analyses Mermaid diagrams in markdown, enforcing visual complexity limits and WCAG colour-contrast requirements |
 | [`plan-gap`](skills/plan-gap) | delivery | Gap analysis planning: iteratively refines a tiered spec covering execution plan, gaps, decisions, and success and negative measures |
 | [`richdocs`](skills/richdocs) | essentials | Source-backed systems discovery in Markdown, live HTML, or inline HTML; rich companions for existing documents |
+| [`tickety-boo`](skills/tickety-boo) | essentials | Follows a repo's `TICKETING.md` to create tickets, report the current user's work in progress, and clean up finished work |
 
 ## Layout
 
@@ -122,7 +123,7 @@ The packs under `plugins/` are **generated** from them.
 
 ```mermaid
 flowchart LR
-    SK["skills/<br/>8 canonical skills"]:::src
+    SK["skills/<br/>canonical skills"]:::src
     HK["hooks/<br/>tool_coach"]:::src
     CF["composition.yaml<br/>the grouping"]:::cfg
     SY["sync_plugins.py"]:::proc
@@ -162,6 +163,7 @@ flowchart TB
         LB[librarian]:::src
         MD[mermaidjs-diagrams]:::src
         RD[richdocs]:::src
+        TB[tickety-boo]:::src
         PG[plan-gap]:::src
         CLI["cli<br/>in no pack"]:::orphan
         TC["hooks/tool_coach.py"]:::src
@@ -174,7 +176,7 @@ flowchart TB
     TH["scripts/test_harness_install.sh"]:::gate
 
     subgraph packs["Generated packs — never edit"]
-        ES["jpai-essentials<br/>6 skills + hook"]:::pack
+        ES["jpai-essentials<br/>skills + hook"]:::pack
         DL["jpai-delivery<br/>2 skills + hook"]:::pack
     end
 
@@ -186,7 +188,7 @@ flowchart TB
     CC["Claude Code"]:::host
     CX["Codex"]:::host
 
-    AG & CD & GD & LB & MD & RD --> SY
+    AG & CD & GD & LB & MD & RD & TB --> SY
     PG --> SY
     TC & HJ --> SY
     CF --> SY

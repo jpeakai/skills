@@ -117,4 +117,5 @@ When a PR is CLOSED the related branch should also be cleaned up too.
 When a PR is CLOSED the related GH Issue should remain OPEN.
 
 When an Issue is CLOSED, any related git worktrees can be cleaned up.
+When an Issue is CLOSED, any related branches can be cleaned up.
 

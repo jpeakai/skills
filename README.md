@@ -7,7 +7,7 @@ The skills are published as two installable plugins, so you take the pack you wa
 
 | Plugin | For | Contains |
 |---|---|---|
-| [`jpai-essentials`](plugins/jpai-essentials) | Documentation and diagrams | `librarian`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `concise-decisions`, `agnostic` |
+| [`jpai-essentials`](plugins/jpai-essentials) | Documentation and diagrams | `librarian`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `concise-decisions`, `agnostic`, `tickety-boo` |
 | [`jpai-delivery`](plugins/jpai-delivery) | Delivery planning | `plan-gap`, `concise-decisions` |
 
 `jpai-essentials` ships the `tool_coach` PreToolUse hook.
@@ -113,6 +113,7 @@ ln -s "$PWD/skills/librarian" ~/.claude/skills/librarian
 | [`mermaidjs-diagrams`](skills/mermaidjs-diagrams) | essentials | Renders and analyses Mermaid diagrams in markdown, enforcing visual complexity limits and WCAG colour-contrast requirements |
 | [`plan-gap`](skills/plan-gap) | delivery | Gap analysis planning: iteratively refines a tiered spec covering execution plan, gaps, decisions, and success and negative measures |
 | [`richdocs`](skills/richdocs) | essentials | Source-backed systems discovery in Markdown, live HTML, or inline HTML; rich companions for existing documents |
+| [`tickety-boo`](skills/tickety-boo) | essentials | Follows a repo's `TICKETING.md` to create tickets, report the current user's work in progress, and clean up finished work |
 
 ## Layout
 

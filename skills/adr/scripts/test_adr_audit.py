@@ -467,26 +467,6 @@ def test_a_root_surface_with_no_index_misses_every_scoped_log(bundle_repo: Path)
     assert [h["where"] for h in hits] == ["adrs"]
 
 
-# ── the eval fixtures ────────────────────────────────────────────────────
-
-FIXTURES = SCRIPT_DIR.parent / "evals" / "fixtures"
-
-
-def fixture_findings(name: str, tmp_path: Path) -> list[dict[str, str]]:
-    """Audit a copy outside this repo, so its git history does not leak into the result."""
-    shutil.copytree(FIXTURES / name, tmp_path / name)
-    return [f for f in findings(tmp_path / name) if f["severity"] == adr_audit.RED]
-
-
-def test_the_compliant_eval_fixture_has_no_red_finding(tmp_path: Path) -> None:
-    assert fixture_findings("adr_compliant", tmp_path) == []
-
-
-def test_the_violations_eval_fixture_trips_every_markdown_check(tmp_path: Path) -> None:
-    got = {f["check"] for f in fixture_findings("adr_violations", tmp_path)}
-    assert got == {"schema", "ids", "relations", "superseded", "wiring", "index"}
-
-
 # ── report and CLI ───────────────────────────────────────────────────────
 
 

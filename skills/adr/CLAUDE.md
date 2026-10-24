@@ -22,13 +22,6 @@ bunx @jpeakai/mermaidjs-lint skills/adr/README.md
 uvx --from md-toc md_toc --in-place --no-list-coherence github --header-levels 4 skills/adr/README.md
 ```
 
-Eval matrix before a release, from repo root (`--dry-run` is free; a live run bills one agent session per case):
-
-```sh
-uv run pytest skills/adr/evals --dry-run
-uv run pytest skills/adr/evals -v
-```
-
 All prose files ≤ 500 lines (the workspace skills rule).
 
 ## File map
@@ -37,7 +30,6 @@ All prose files ≤ 500 lines (the workspace skills rule).
 |------|------|
 | `SKILL.md` | Agent operating manual: modes, surface discovery, the audit's check table, setup and migrate steps |
 | `README.md` | Human explainer: purpose, quickstart, architecture diagram, troubleshooting |
-| `evals/` | pytest-xharness-eval scenarios, one per mode value, with seed fixtures; axis map in `evals/README.md` |
 | `resources/adr_template.md` | Preferred shape of one ADR, one block per layout (lazy; setup, migrate, audit) |
 | `resources/adr_decision_theory.md` | What a decision record captures; the theory behind the lens (lazy) |
 | `resources/adr_okf_yaml.md` | The named `okf-yaml` convention: schema, relation vocabulary, OKF conformance, finding table, migration, gate (lazy) |
@@ -78,7 +70,7 @@ A new record takes the next number after the highest in either log, so no two re
 
 ### ADR-26: the audit is a script with an exit code, not a reading the agent performs
 
-- **Status:** Accepted (2026-10-24, issue #27).
+- **Status:** Accepted (2026-10-24, issue #27); partially superseded by ADR-28 (the eval fixtures it pins are gone).
 - **Context:** The issue asked for an audit that can gate CI, and every check it named is computable: schemas, byte equality, sequences, git history, link targets.
   An agent reading records would be slow, billed, and different on every run.
 - **Decision:** `adr_audit.py` runs all eight checks and exits 1 on any 🔴 finding, so one command serves the agent and CI.
@@ -102,13 +94,23 @@ A new record takes the next number after the highest in either log, so no two re
   A reformat to the template during migration shows up too, and the maintainer accepts it as part of that migration.
 - **Lens:** Define "unchanged" as the complement of the edits the doctrine allows, and test both sides: each allowed edit passes, and a one-word rewording fails.
 
+### ADR-28: the skill carries no evals
+
+- **Status:** Accepted (2026-10-24, user instruction, issue #27); partially supersedes ADR-26 (its eval fixture pinning).
+- **Context:** The skill shipped `evals/` with one live agent scenario per mode and seed fixtures, and `test_adr_audit.py` pinned those fixtures.
+  ADR-26 already moved every check into a deterministic script, so a live eval re-tested the agent presenting a result the unit tests prove.
+  The maintainer ruled the evals unwanted.
+- **Decision:** `evals/` is removed, along with the two tests that audited its fixtures.
+  Each check keeps its compliant and per-violation tests built in `tmp_path`, so the fixtures carried no coverage of their own.
+- **Consequences:** `make -C skills/adr/scripts ci` is the skill's only gate, and nothing bills an agent session before a release.
+  A change to how the agent drives the modes is checked by reading SKILL.md, not by a scenario.
+- **Lens:** When a script's tests already prove a behaviour, do not add a billed agent run to prove it again.
+
 ## Extension checklist
 
 - [ ] A new check enters `adr_audit.py` with its severity fixed, a compliant test and one test per violation, and a row in SKILL.md's check table (ADR-26).
 - [ ] A change to the record shape lands in `adr_template.md` (both layout blocks), `record.schema.json`, `record.md.j2` and the example records together, then `make -C skills/adr/scripts docs` (ADR-16/17).
 - [ ] A change to what supersession may edit updates `MUTABLE_LINE` / `LENS` and adds a passing and a failing test (ADR-27).
-- [ ] An eval fixture change keeps `test_adr_audit.py`'s fixture tests green, so the live eval and the script agree.
-- [ ] A new mode or layout adds its axis row, case and fixture under `evals/`.
 - [ ] Any change under `scripts/` leaves `make -C skills/adr/scripts ci` at exit 0, coverage ≥ 90%.
 - [ ] Prose stays brand-agnostic, and every prose file ≤ 500 lines.
 

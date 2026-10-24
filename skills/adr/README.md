@@ -123,4 +123,3 @@ Audit is read-only; setup, migrate and render write files and should run on a br
 ## For maintainers
 
 Design rationale, decision log and extension checklist: [CLAUDE.md](CLAUDE.md).
-Eval matrix and axis coverage: [evals/README.md](evals/README.md).

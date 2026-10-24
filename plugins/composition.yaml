@@ -28,14 +28,13 @@ plugins:
       - tickety-boo          # follow a repo's TICKETING.md for tickets, WIP and cleanup
     hooks: true
 
-  # Delivery planning. Smaller and more specialised.
+  # Delivery workflow. Smaller and more specialised.
   jpai-delivery:
     skills:
-      # Deliberately also in jpai-essentials: it is the surface plan-gap asks
-      # its decision questions through, and it stands alone for docs work.
+      # Both deliberately also in jpai-essentials: each stands alone.
       # Installing both packs is fine — each harness namespaces by plugin.
       - concise-decisions
-      - plan-gap             # gap analysis as a tiered, measurable spec
+      - tickety-boo
     hooks: false
 
 # Not in any pack: `cli`. It stays canonical in ../skills/cli and is installed

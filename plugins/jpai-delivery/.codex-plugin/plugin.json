@@ -1,7 +1,7 @@
 {
   "name": "jpai-delivery",
-  "version": "0.3.0",
-  "description": "Delivery planning from jpeak.ai: gap-analysis planning that iteratively refines a tiered spec covering execution plan, gaps, decisions, and success and negative measures (plan-gap), paired with single-question decision consolidation that self-answers from existing decision records before asking (concise-decisions).",
+  "version": "0.4.0",
+  "description": "Delivery workflow from jpeak.ai: single-question decision consolidation that self-answers from existing decision records before asking (concise-decisions), and ticketing that follows a repo's own TICKETING.md for tickets, work in progress and cleanup (tickety-boo).",
   "author": {
     "name": "jpeak.ai",
     "url": "https://github.com/jpeakai"
@@ -9,14 +9,14 @@
   "homepage": "https://github.com/jpeakai/skills",
   "repository": "https://github.com/jpeakai/skills",
   "license": "MIT",
-  "keywords": ["planning", "gap-analysis", "decisions", "adr", "delivery"],
+  "keywords": ["decisions", "adr", "ticketing", "delivery"],
   "skills": "./skills",
   "interface": {
     "displayName": "jpeak.ai Delivery",
-    "shortDescription": "Gap-analysis planning paired with single-question decision consolidation",
-    "longDescription": "The delivery-planning half of the jpeak.ai skill set. plan-gap runs a gap analysis as a tiered spec — an index plus per-gap, per-ticket and discovery files, or a GitHub issue with per-gap sub-issues — covering Execution Plan, Overview, Gap Analysis, Decisions, Success Measures and Negative Measures, validating Mermaid diagrams and enforcing requirement integrity through structured questioning. concise-decisions is its decision surface: it self-answers from existing decision records, then puts the single highest-leverage remaining question with a full briefing and captures the user's reasoning as a reusable lens. Both skills are mirrored from the canonical skills/ tree by scripts/sync_plugins.py, so a pack can never drift from the copy it was built from.",
+    "shortDescription": "Single-question decision consolidation paired with TICKETING.md-driven ticketing",
+    "longDescription": "The delivery half of the jpeak.ai skill set. concise-decisions self-answers from existing decision records, then puts the single highest-leverage remaining question with a full briefing and captures the user's reasoning as a reusable lens. tickety-boo follows a repo's own TICKETING.md to create and deduplicate tickets, report the current user's work in progress, and plan cleanup of finished work. Both skills are mirrored from the canonical skills/ tree by scripts/sync_plugins.py, so a pack can never drift from the copy it was built from.",
     "developerName": "jpeak.ai",
     "category": "Developer Tools",
-    "capabilities": ["planning", "gap-analysis", "decisions", "adr", "delivery"]
+    "capabilities": ["decisions", "adr", "ticketing", "delivery"]
   }
 }

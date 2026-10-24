@@ -8,7 +8,7 @@ The skills are published as two installable plugins, so you take the pack you wa
 | Plugin | For | Contains |
 |---|---|---|
 | [`jpai-essentials`](plugins/jpai-essentials) | Documentation and diagrams | `librarian`, `adr`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `concise-decisions`, `agnostic`, `tickety-boo` |
-| [`jpai-delivery`](plugins/jpai-delivery) | Delivery planning | `plan-gap`, `concise-decisions` |
+| [`jpai-delivery`](plugins/jpai-delivery) | Decisions and ticketing | `concise-decisions`, `tickety-boo` |
 
 `jpai-essentials` ships the `tool_coach` PreToolUse hook.
 
@@ -112,9 +112,8 @@ ln -s "$PWD/skills/librarian" ~/.claude/skills/librarian
 | [`gooddocs`](skills/gooddocs) | essentials | Documentation quality in three modes: audit docs against the reality of the code, write or improve them, or restructure one for readability |
 | [`librarian`](skills/librarian) | essentials | Repo documentation organisation: ensures the canonical document set exists and every doc lives where its content says it belongs |
 | [`mermaidjs-diagrams`](skills/mermaidjs-diagrams) | essentials | Renders and analyses Mermaid diagrams in markdown, enforcing visual complexity limits and WCAG colour-contrast requirements |
-| [`plan-gap`](skills/plan-gap) | delivery | Gap analysis planning: iteratively refines a tiered spec covering execution plan, gaps, decisions, and success and negative measures |
 | [`richdocs`](skills/richdocs) | essentials | Source-backed systems discovery in Markdown, live HTML, or inline HTML; rich companions for existing documents |
-| [`tickety-boo`](skills/tickety-boo) | essentials | Follows a repo's `TICKETING.md` to create tickets, report the current user's work in progress, and clean up finished work |
+| [`tickety-boo`](skills/tickety-boo) | both | Follows a repo's `TICKETING.md` to create tickets, report the current user's work in progress, and clean up finished work |
 
 ## Layout
 
@@ -124,7 +123,7 @@ The packs under `plugins/` are **generated** from them.
 
 ```mermaid
 flowchart LR
-    SK["skills/<br/>10 canonical skills"]:::src
+    SK["skills/<br/>9 canonical skills"]:::src
     HK["hooks/<br/>tool_coach"]:::src
     CF["composition.yaml<br/>the grouping"]:::cfg
     SY["sync_plugins.py"]:::proc
@@ -166,7 +165,6 @@ flowchart TB
         MD[mermaidjs-diagrams]:::src
         RD[richdocs]:::src
         TB[tickety-boo]:::src
-        PG[plan-gap]:::src
         CLI["cli<br/>in no pack"]:::orphan
         TC["hooks/tool_coach.py"]:::src
         HJ["hooks/hooks.json"]:::src
@@ -179,7 +177,7 @@ flowchart TB
 
     subgraph packs["Generated packs — never edit"]
         ES["jpai-essentials<br/>8 skills + hook"]:::pack
-        DL["jpai-delivery<br/>2 skills + hook"]:::pack
+        DL["jpai-delivery<br/>2 skills"]:::pack
     end
 
     subgraph mkt["Marketplace manifests"]
@@ -191,7 +189,6 @@ flowchart TB
     CX["Codex"]:::host
 
     AD & AG & CD & GD & LB & MD & RD & TB --> SY
-    PG --> SY
     TC & HJ --> SY
     CF --> SY
     SY --> ES
@@ -211,7 +208,7 @@ flowchart TB
     classDef host   fill:#334155,stroke:#cbd5e1,color:#ffffff,stroke-width:2px
 ```
 
-`cli` sits in the canonical tree with no edge out: it is installed manually. `concise-decisions` is the one skill that flows into both packs.
+`cli` sits in the canonical tree with no edge out: it is installed manually. `concise-decisions` and `tickety-boo` are the two skills that flow into both packs.
 
 </details>
 

@@ -7,40 +7,32 @@ user-invocable: true
 
 # tickety-boo
 
+A top-level skill that respects local conventions.
+`TICKETING.md` decides **what** to do and **how**: the ticketing system, the commands, the naming rules and any repo scripts.
+This skill only routes each command to what the file says, and never fills a gap with conventions of its own.
+
 ## First, every time
 
 1. Read `TICKETING.md` at the repo root, else `docs/TICKETING.md`.
-   If neither exists, stop and say so. Do not assume conventions.
-2. Identify the current user exactly as the file documents (for example `git config user.email` corroborated with `gh api user`).
-   If the sources disagree, stop and say which said what.
-3. Use only the ticketing system, naming rules and completion rules the file states.
+   If neither exists, stop and say so.
+2. Identify the current user exactly as the file documents.
+   If the sources it names disagree, stop and say which said what.
+3. When the file names a command or script for a step, use it as written.
+   When a step is not documented, say so and ask, rather than inventing one.
 
 ## `create {issue description}`
 
-1. Pick the documented category; ask one question if two fit.
-2. Search existing tickets for a duplicate and show any likely match first.
-3. Create the ticket with the documented title prefix, labels and assignee.
-4. Report its URL and the branch, worktree and PR names the conventions give it.
+Create the ticket the way `TICKETING.md` describes: its system, category, title, labels and assignee.
+Check for an existing duplicate first, and report the new ticket's URL.
 
 ## `wip`
 
-Report, for the current user only:
-
-- open tickets assigned to them;
-- open PRs they authored, split into draft and ready;
-- their local branches (`git for-each-ref refs/heads`), marking ones already merged;
-- git worktrees (`git worktree list`), marking dirty ones.
-
-Group items by the documented ticket key, and list anything that matches no ticket.
+Report the current user's work in progress, as `TICKETING.md` defines it:
+open assigned tickets, open PRs (draft and ready), their branches and their git worktrees.
+Group them by the stages the file names, and list anything that fits none.
 
 ## `cleanup`
 
-1. `git fetch --prune`, then find the user's merged and closed PRs and their tickets.
-2. Plan actions from the file's completion rules only, for example:
-   merged PR → close its ticket if still open, delete its branch and worktree;
-   closed PR → delete its branch, keep the ticket open;
-   closed ticket → remove its worktree.
-3. Show the plan and ask once before changing anything.
-4. Remove worktrees with `git worktree remove` and branches with `git branch -d`, never forcing.
-   A squash-merged branch needs `-D`: use it only when the branch tip equals the merged PR's head commit.
-   Skip and report anything dirty or unproven.
+Find finished work and plan only the actions the file's completion rules state.
+Show the plan and ask once before closing tickets or removing branches and worktrees.
+Never force a removal, and report anything left untouched with the reason.

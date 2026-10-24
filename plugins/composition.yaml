@@ -18,6 +18,7 @@ plugins:
   # Documentation and diagramming. The pack most repos want.
   jpai-essentials:
     skills:
+      - adr                  # set up, migrate, render and audit decision records
       - agnostic             # de-brand docs to generic placeholders
       - concise-decisions    # consolidate ambiguities into one briefed question
       - gooddocs             # audit, write and restructure documentation

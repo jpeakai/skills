@@ -27,7 +27,7 @@ PLUGINS=(jpai-essentials jpai-delivery)
 
 # Skills that must appear in each plugin, to prove the mirror survived the clone.
 ESSENTIALS_SKILLS=(librarian gooddocs mermaidjs-diagrams richdocs concise-decisions agnostic)
-DELIVERY_SKILLS=(plan-gap concise-decisions)
+DELIVERY_SKILLS=(concise-decisions tickety-boo)
 
 pass=0
 fail=0

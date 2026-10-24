@@ -31,6 +31,10 @@ Report the current user's work in progress, as `TICKETING.md` defines it:
 open assigned tickets, open PRs (draft and ready), their branches and their git worktrees.
 Group them by the stages the file names, and list anything that fits none.
 
+When there are no open PRs and no branches of active development, look at the backlog instead.
+Follow `TICKETING.md` for how issues relate (for example blocked-by links forming a dependency graph) and for how to choose what comes next.
+Report the issues ready to start, in that order, with what each one unblocks.
+
 ## `cleanup`
 
 Find finished work and plan only the actions the file's completion rules state.

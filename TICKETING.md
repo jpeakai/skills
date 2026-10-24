@@ -27,6 +27,26 @@ This categorisation will assist with prioritising types of work to work on.
 
 For this repo, the owener is `neozenith` and all tickets should be assigned to them.
 
+## Relationships
+
+Issues are linked with GH Issues `blocked by` / `blocking` relationships so the backlog forms a DAG of the work.
+
+- An issue that cannot start until another is done is `blocked by` it.
+- The graph must stay acyclic: before adding a link, check the blocker is not already (transitively) blocked by the issue.
+- When creating an issue, ask whether it is blocked by or blocking any open issue, and link it then.
+
+```sh
+gh issue create ... --blocked-by 12,14 --blocking 20
+gh issue edit 23 --add-blocked-by 12
+gh issue edit 23 --remove-blocked-by 12
+gh issue list --state open --json number,title,labels,blockedBy,blocking --limit 200
+```
+
+An issue is **ready** when every issue it is blocked by is CLOSED.
+
+To choose the next piece of work, take the ready issues in dependency order (topological order of the DAG).
+Among ready issues, prefer the one blocking the most open work, then `[bug]` before `[feat]`, then the lowest issue number.
+
 ## Works In Progress (WIP)
 
 There are 3 possible stages of WIP:

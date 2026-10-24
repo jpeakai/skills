@@ -471,5 +471,5 @@ flowchart LR
 
 ## 7. Permutations
 
-The full product of mode, argument, dialect rung, repo state and index trigger is too large to run.
-The evals cover every value of every axis at least once; the axis table and the scenario that covers each value live in [evals/README.md](evals/README.md#coverage).
+The skill expands along mode, argument, dialect rung, repo state and index trigger.
+No eval suite runs these combinations (ADR-29 in [CLAUDE.md](CLAUDE.md)); the scripts' tests cover the deterministic parts.

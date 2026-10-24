@@ -90,7 +90,6 @@ def check_core_documents(output: CaseOutput) -> None:
     check_claude_stub(output)
     check_links(output, "AGENTS.md", "CONVENTIONS.md", "GLOSSARY.md", "CODING_STANDARDS.md")
     check_glossary_shape(output)
-    check_adr_surface_template(output)
     check_coding_standards_tenets(output)
 
 
@@ -108,14 +107,3 @@ def check_coding_standards_tenets(output: CaseOutput) -> None:
     }
     missing = [tenet for tenet, word in markers.items() if word not in doc]
     assert not missing, f"CODING_STANDARDS.md lacks baseline tenets {missing}"
-
-
-def check_adr_surface_template(output: CaseOutput) -> None:
-    """Init leaves an ADR surface carrying its layout's template, with the four lens headings."""
-    if output.exists("ADRs.md"):
-        surface = output.read("ADRs.md")
-    else:
-        assert output.exists("adrs/TEMPLATE.md"), f"no ADR surface template; workspace holds {output.filenames}"
-        surface = output.read("adrs/TEMPLATE.md")
-    missing = [h for h in ("Given", "We prefer", "Because", "Unless") if f"# {h}" not in surface]
-    assert not missing, f"the ADR template lacks lens headings {missing}"

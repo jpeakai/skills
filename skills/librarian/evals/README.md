@@ -9,7 +9,7 @@ Every case is pinned to `claude/claude-sonnet-5-5` for quick, cheap runs.
 | `eval_audit.py` | Audit on a greenfield repo, agent-file drift, a declared dialect, a due graduation, and a path-scoped monorepo |
 | `eval_apply.py` | Apply on the drift fixture: AGENTS.md + stub, coding rules extracted |
 | `eval_init.py` | Init with no flavour, each of the three flavours, and a full CLAUDE.md to migrate |
-| `eval_index.py` | Index with no consumer (refuses) and `okf-yaml` with a consumer (builds) |
+| `eval_index.py` | Index with no consumer (refuses) and `okf-yaml` named (points at the adr skill) |
 | `_librarian.py` | Shared structural checks |
 | `fixtures/<name>/` | The seed workspace each case starts from |
 
@@ -39,9 +39,9 @@ The mode diagrams these axes expand are in [ARCHITECTURE.md](../ARCHITECTURE.md)
 | Axis | Values |
 |---|---|
 | Mode | audit, apply, init, index |
-| Mode argument | bare, path scope, flavour (none / minimal / standard / rigorous), convention (okf-yaml) |
+| Mode argument | bare, path scope, flavour (none / minimal / standard / rigorous), convention (okf-yaml, redirected) |
 | Dialect rung | declared, observed, baseline |
-| Repo state | greenfield, agent-file drift, misplaced sections, graduation due, monorepo, ADR log |
+| Repo state | greenfield, agent-file drift, misplaced sections, graduation due, monorepo |
 | Index trigger | consumer present, consumer absent |
 
 | Case | Mode | Argument | Rung | Repo state | Asserts |
@@ -52,10 +52,10 @@ The mode diagrams these axes expand are in [ARCHITECTURE.md](../ARCHITECTURE.md)
 | `audit_graduation` | audit | bare | declared | minimal flavour outgrown | no writes; Graduation section |
 | `audit_scoped` | audit | path scope | observed | monorepo | no writes; no finding row against the sibling package |
 | `apply_drift` | apply | bare | baseline | agent-file drift, P8 | AGENTS.md holds old content; CLAUDE.md is the stub; CODING_STANDARDS.md linked |
-| `init_infer` | init | none | baseline | greenfield | five core docs; ADR template; seven coding tenets; flavour named; glossary shape |
+| `init_infer` | init | none | baseline | greenfield | four core docs; seven coding tenets; flavour named; glossary shape; `/adr setup` named |
 | `init_minimal` | init | minimal | baseline | greenfield | core docs; Flavour line reads minimal |
 | `init_standard` | init | standard | baseline | greenfield | core docs; Flavour line reads standard |
 | `init_rigorous` | init | rigorous | baseline | greenfield | core docs; Flavour line reads rigorous |
 | `init_migrate_claude` | init | none | observed | full CLAUDE.md | content moved into AGENTS.md; stub left |
 | `index_no_consumer` | index | bare | baseline | docs, no consumer | no writes; reports no trigger |
-| `index_okf_yaml` | index | okf-yaml | baseline | ADR log + consumer | `.yml` records, schema and `graph.html` |
+| `index_okf_yaml_redirects` | index | okf-yaml | baseline | docs, no consumer | no writes; points at `/adr migrate okf-yaml` |

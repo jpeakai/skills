@@ -5,14 +5,17 @@ A named, selectable convention for a decision-record surface.
 
 Invoke it by name:
 
-- `/librarian index okf-yaml <path>` adopts or migrates.
-- `/librarian audit` judges a surface that already declares it.
+- `/adr setup okf-yaml` adopts it in a repo with no surface.
+- `/adr migrate okf-yaml` moves an existing surface into it.
+- `/adr render <bundle-dir>` regenerates it.
+- `/adr audit` judges a surface that follows it.
 
 The name is accepted spelled either `okf-yaml` or `okf-yml`; `okf-yaml` is canonical and is the spelling written into `docs/CONVENTIONS.md`, generated files and findings.
 It is one option, not the default.
 [adr_template.md](adr_template.md) owns the shape of a single record and remains the rung-3 default.
 This file owns the shape of the whole **bundle**.
-It is only correct when a trigger from [structured_siblings.md](structured_siblings.md) has fired.
+It is only correct when an **observable consumer** reads the records: a script, a CI gate or a derived view.
+Absent one, plain markdown records are the right answer and more structure is not an improvement.
 
 Recorded in `docs/CONVENTIONS.md` as a dialect line, so it sits at rung 1 of the authority ladder once declared:
 
@@ -49,7 +52,7 @@ The artifacts are in the skill and are copied into the adopting repo:
 
 ```sh
 uv run --no-project --with PyYAML --with Jinja2 --with jsonschema \
-  .claude/skills/librarian/scripts/okf_render.py <bundle-dir>
+  <skill>/scripts/okf_render.py <bundle-dir>
 ```
 
 Flags:
@@ -207,7 +210,7 @@ Two consequences worth stating up front:
 - **Links are untyped in OKF.** The typed graph is this convention's addition, carried in `relates_to` and rendered into the body as prose plus `graph.json`.
   An OKF consumer sees ordinary links; a schema-aware one sees the edges.
 
-## Curating a shelving plan against this convention
+## Auditing against this convention
 
 Once declared, the convention is the oracle.
 Findings are structural only: a record's reasoning is never judged ([SKILL.md](../SKILL.md), cross-cutting rules).
@@ -233,12 +236,12 @@ A stale one is a content-quality question this skill does not answer.
 
 ## Migrating an existing ADR surface into it
 
-An APPLY operation, opt-in, one commit-sized step per numbered finding.
+The `migrate okf-yaml` operation: opt-in, one commit-sized step at a time.
 
 1. **Extract, do not rewrite.** Parse each existing record into the record shape; ids and slugs are immutable, so every citation and anchor still resolves.
 2. **Prove the argument survives.** Generate the markdown and diff `## Decision` onward against the original.
    **Byte-identical or the migration stops.** Anything else means the templates are reformatting decisions.
-   The shipped example bundle is the same proof at small scale: `make -C .claude/skills/librarian/scripts ci` fails if the generator stops reproducing it.
+   The shipped example bundle is the same proof at small scale: `make -C skills/adr/scripts ci` fails if the generator stops reproducing it.
 3. **Declare the one-way conversion before running it.** Turning prose relations into typed edges loses the phrasing: `"Feeds the verdict in REC-0008"` becomes `see_also REC-0008 (feeds the verdict)`.
    The nuance survives in `note`; the sentence does not.
    List every affected record and get acceptance.

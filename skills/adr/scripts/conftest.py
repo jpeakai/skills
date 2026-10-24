@@ -15,6 +15,8 @@ import pytest
 
 @pytest.fixture(scope="session", autouse=True)
 def _reload_for_coverage() -> None:
+    import adr_audit
     import okf_render
 
     importlib.reload(okf_render)
+    importlib.reload(adr_audit)

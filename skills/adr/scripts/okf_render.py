@@ -321,10 +321,10 @@ def script_json(value: Any) -> str:
     return text.replace("</", "<\\/").replace(" ", "\\u2028").replace(" ", "\\u2029")
 
 
-def environment(by_id: dict[str, Record]) -> Environment:
+def environment(by_id: dict[str, Record], template_dir: Path = TEMPLATE_DIR) -> Environment:
     """Jinja environment. StrictUndefined so a missing field fails loudly."""
     env = Environment(
-        loader=FileSystemLoader(TEMPLATE_DIR),
+        loader=FileSystemLoader(template_dir),
         undefined=StrictUndefined,
         keep_trailing_newline=True,
         trim_blocks=True,
@@ -345,7 +345,27 @@ def render(
     group_by: str = "tag",
     author: str = "human:maintainer",
 ) -> Record:
-    """Generate the bundle. Raises ValueError if any record fails validation."""
+    """Generate the bundle and write it. Raises ValueError if any record fails validation."""
+    files, summary = build(source_dir, schema_path=schema_path, group_by=group_by, author=author)
+    for name, text in files.items():
+        (source_dir / name).write_text(text, encoding="utf-8")
+    return summary
+
+
+def build(
+    source_dir: Path,
+    *,
+    schema_path: Path = DEFAULT_SCHEMA,
+    group_by: str = "tag",
+    author: str = "human:maintainer",
+    template_dir: Path = TEMPLATE_DIR,
+) -> tuple[dict[str, str], Record]:
+    """Generate the bundle in memory: each file name mapped to its text, plus a summary.
+
+    Writes nothing, so an audit can compare a fresh build with the files on disk.
+    ``template_dir`` lets a bundle that carries its own templates be built with them.
+    Raises ValueError if any record fails validation.
+    """
     records = load(source_dir)
     if not records:
         raise ValueError(f"no records found in {source_dir}")
@@ -355,7 +375,7 @@ def render(
         raise ValueError("records did not validate:\n  " + "\n  ".join(problems))
 
     by_id = {r["id"]: r for r in records}
-    env = environment(by_id)
+    env = environment(by_id, template_dir)
 
     # The rendered markdown is kept as it is written, so graph.html can inline it
     # and its reading pane needs no fetch. That is what makes the viewer work from
@@ -366,11 +386,12 @@ def render(
     # the YAML beneath it as a setext heading, so the pane would open with the
     # whole metadata block styled as a title. The viewer shows those fields as
     # chips instead.
+    files: dict[str, str] = {}
     rendered: dict[str, Record] = {}
     for record in records:
         name = f"{record['id'].split('-')[-1]}-{record['slug']}.md"
         markdown = env.get_template("record.md.j2").render(rec=record, author=author)
-        (source_dir / name).write_text(markdown, encoding="utf-8")
+        files[name] = markdown
         rendered[record["id"]] = {
             "file": name,
             "status": record["status"],
@@ -387,22 +408,16 @@ def render(
         (g, [r for r in records if group_of(r, group_by) == g])
         for g in sorted({group_of(r, group_by) for r in records})
     ]
-    (source_dir / "index.md").write_text(
-        env.get_template("index.md.j2").render(records=records, areas=groups, edges=edges),
-        encoding="utf-8",
-    )
+    files["index.md"] = env.get_template("index.md.j2").render(records=records, areas=groups, edges=edges)
 
     graph = cytoscape(records, group_by)
-    (source_dir / "graph.json").write_text(json.dumps(graph, indent=2) + "\n", encoding="utf-8")
+    files["graph.json"] = json.dumps(graph, indent=2) + "\n"
     skew = asymmetries(records)
-    (source_dir / "graph.md").write_text(
-        env.get_template("graph.md.j2").render(
-            node_count=len(records),
-            edge_count=len(edges),
-            group_count=len(groups),
-            asymmetries=skew,
-        ),
-        encoding="utf-8",
+    files["graph.md"] = env.get_template("graph.md.j2").render(
+        node_count=len(records),
+        edge_count=len(edges),
+        group_count=len(groups),
+        asymmetries=skew,
     )
 
     # graph.json is the data; graph.html is the way a human reads it. The viewer
@@ -410,18 +425,15 @@ def render(
     # graph nobody checks. A repo's own tokens.json overrides the defaults.
     tokens_path = source_dir / "tokens.json"
     tokens = json.loads(tokens_path.read_text(encoding="utf-8")) if tokens_path.is_file() else DEFAULT_TOKENS
-    (source_dir / "graph.html").write_text(
-        env.get_template("graph.html.j2").render(
-            bundle_name=source_dir.name,
-            node_count=len(records),
-            edge_count=len(edges),
-            graph_json=script_json(graph),
-            records_json=script_json(rendered),
-            tokens_json=script_json(tokens),
-        ),
-        encoding="utf-8",
+    files["graph.html"] = env.get_template("graph.html.j2").render(
+        bundle_name=source_dir.name,
+        node_count=len(records),
+        edge_count=len(edges),
+        graph_json=script_json(graph),
+        records_json=script_json(rendered),
+        tokens_json=script_json(tokens),
     )
-    return {
+    return files, {
         "records": len(records),
         "edges": len(edges),
         "groups": len(groups),

@@ -56,7 +56,7 @@ flowchart LR
         BARE["bare"]:::input
         PATH["path scope"]:::input
         FLV["minimal / standard /<br/>rigorous"]:::input
-        CONV["okf-yaml / okf-yml"]:::input
+        CONV["okf-yaml<br/>points at /adr"]:::input
     end
 
     subgraph MODES["Modes"]
@@ -72,16 +72,14 @@ flowchart LR
         FLAV["flavours.md"]:::resource
         CTPL["conventions_template.md"]:::resource
         GTPL["glossary_template.md"]:::resource
-        ATPL["adr_template.md"]:::resource
         SIB["structured_siblings.md"]:::resource
-        OKF["adr_okf_yaml.md"]:::resource
     end
 
     subgraph OUT["Outputs"]
         PLAN["Shelving plan"]:::artifact
         MOV["git mv + link rewrites"]:::artifact
-        CORE["CONVENTIONS, AGENTS + stub,<br/>GLOSSARY, CODING_STANDARDS,<br/>ADR surface"]:::artifact
-        GEN["YAML index or<br/>okf-yaml bundle"]:::artifact
+        CORE["CONVENTIONS, AGENTS + stub,<br/>GLOSSARY, CODING_STANDARDS"]:::artifact
+        GEN["YAML index"]:::artifact
     end
 
     BARE --> AUD
@@ -94,9 +92,7 @@ flowchart LR
     AUD --> FLAV
     INI --> CTPL
     INI --> GTPL
-    INI --> ATPL
     IDX --> SIB
-    IDX --> OKF
     AUD --> PLAN
     APP --> MOV
     INI --> CORE
@@ -145,7 +141,7 @@ flowchart TB
     Q["Contested question"]:::input
     ADJ["Adjudication exists?"]:::rule
     DEC["CONVENTIONS.md<br/>declares it?"]:::rule
-    NAMED["Named convention<br/>e.g. okf-yaml"]:::rule
+    NAMED["Named convention"]:::rule
     OBS["3+ consistent<br/>instances?"]:::rule
     MIX["Inconsistent repo"]:::rule
     MAJ["Majority is dialect,<br/>minority are findings"]:::step
@@ -210,7 +206,7 @@ flowchart LR
     subgraph EXIST["Existence"]
         REQ["Required set:<br/>README, CONTRIBUTING,<br/>CODING_STANDARDS, AGENTS,<br/>ADRs, GLOSSARY"]:::step
         STUB["CLAUDE.md is<br/>exactly @AGENTS.md"]:::step
-        ADRS["ADR records<br/>structurally complete"]:::step
+        ADRS["ADR surface present,<br/>contents to /adr audit"]:::step
         GLOS["GLOSSARY shape"]:::step
         LOC["Health-file locations"]:::step
     end
@@ -344,7 +340,7 @@ flowchart LR
     AG["AGENTS.md +<br/>CLAUDE.md stub"]:::artifact
     GL["GLOSSARY.md"]:::artifact
     CSD["CODING_STANDARDS.md"]:::artifact
-    ADR["ADR surface +<br/>template"]:::artifact
+    ADR["Pointer to<br/>/adr setup"]:::artifact
 
     ARG --> PICK --> OBS
     OBS --> CONV
@@ -358,7 +354,7 @@ flowchart LR
     classDef artifact fill:#92400e,stroke:#fcd34d,color:#fff,stroke-width:2px
 ```
 
-*Five core documents, each written only when missing.*
+*Four core documents, each written only when missing, and a pointer for the ADR surface.*
 
 <details>
 <summary>Complete diagram: flavours, templates and wiring</summary>
@@ -379,7 +375,6 @@ flowchart LR
         CT["conventions_template"]:::resource
         GT["glossary_template"]:::resource
         ST["coding_standards_template"]:::resource
-        AT["adr_template"]:::resource
     end
 
     subgraph WRITE["Writes"]
@@ -388,7 +383,7 @@ flowchart LR
         CL["CLAUDE.md =<br/>@AGENTS.md"]:::artifact
         GL["GLOSSARY.md<br/>6 seed terms"]:::artifact
         CSD["CODING_STANDARDS.md<br/>per language"]:::artifact
-        ADRS["ADR surface +<br/>layout template"]:::artifact
+        ADRS["Pointer to<br/>/adr setup"]:::artifact
     end
 
     MVCL["Full CLAUDE.md<br/>git mv to AGENTS.md"]:::step
@@ -403,13 +398,12 @@ flowchart LR
     ST --> CSD
     OBS --> CONV
     OBS --> CSD
-    AT --> ADRS
+    OBS --> ADRS
     MVCL --> AG
     AG --> CL
     AG -- links --> CONV
     AG -- links --> GL
     AG -- links --> CSD
-    AG -- links --> ADRS
 
     classDef input    fill:#1e40af,stroke:#93c5fd,color:#fff,stroke-width:2px
     classDef rule     fill:#6d28d9,stroke:#c4b5fd,color:#fff,stroke-width:2px
@@ -426,19 +420,17 @@ No consumer, no index.
 
 ```mermaid
 flowchart LR
-    ARG["index [convention] path"]:::input
+    ARG["index path"]:::input
     TRIG["Observable<br/>consumer?"]:::rule
     STOP["Report: plain<br/>markdown is correct"]:::artifact
-    ARR["Pick arrangement"]:::rule
+    OKF["okf-yaml named:<br/>point at /adr"]:::artifact
     MD["Indexed markdown<br/>md2yaml.ts"]:::resource
-    OKF["okf-yaml bundle<br/>okf_render.py"]:::resource
     GATE["Round-trip gate<br/>whole corpus"]:::step
 
     ARG --> TRIG
+    ARG -- okf-yaml --> OKF
     TRIG -- no --> STOP
-    TRIG -- yes --> ARR
-    ARR -- default --> MD --> GATE
-    ARR -- named --> OKF --> GATE
+    TRIG -- yes --> MD --> GATE
 
     classDef input    fill:#1e40af,stroke:#93c5fd,color:#fff,stroke-width:2px
     classDef rule     fill:#6d28d9,stroke:#c4b5fd,color:#fff,stroke-width:2px
@@ -447,37 +439,24 @@ flowchart LR
     classDef artifact fill:#92400e,stroke:#fcd34d,color:#fff,stroke-width:2px
 ```
 
-*A named convention skips the arrangement choice.*
+*Authored-YAML decision records are the adr skill's `okf-yaml` convention, so index hands that request over.*
 
 <details>
-<summary>Complete diagram: both arrangements end to end</summary>
+<summary>Complete diagram: the indexed-markdown arrangement end to end</summary>
 
 ```mermaid
 flowchart LR
     TRIG["Consumer exists"]:::rule
-
-    subgraph IDXMD["Indexed markdown"]
-        SRC["doc.md stays<br/>authoritative"]:::step
-        M2Y["md2yaml.ts --out"]:::resource
-        YML["doc.yml sibling"]:::artifact
-        CHK["md2yaml.ts --check"]:::step
-    end
-
-    subgraph OKFB["okf-yaml"]
-        REC["NNNN-slug.yml<br/>records"]:::step
-        SCH["record.schema.json"]:::resource
-        REN["okf_render.py"]:::resource
-        OUTS["md + index +<br/>graph.json + graph.html"]:::artifact
-    end
-
+    SRC["doc.md stays<br/>authoritative"]:::step
+    M2Y["md2yaml.ts --out"]:::resource
+    YML["doc.yml sibling"]:::artifact
+    CHK["md2yaml.ts --check"]:::step
     MK["make target +<br/>generator banner"]:::step
     CONV["Dialect line in<br/>CONVENTIONS.md"]:::artifact
     FIXDOC["Edit source to<br/>suit the tool"]:::forbidden
 
     TRIG --> SRC --> M2Y --> YML --> CHK
-    TRIG --> REC --> SCH --> REN --> OUTS
     CHK --> MK
-    OUTS --> MK
     MK --> CONV
     CHK -. never .-> FIXDOC
 

@@ -1,10 +1,10 @@
 # ADR template: the preferred shape of one decision record
 
-The format the librarian prefers for a single ADR, whichever layout the repo uses.
+The format the adr skill prefers for a single ADR, whichever layout the repo uses.
 Both layouts carry the same fields and the same Given / We prefer / Because / Unless lens; only the heading depth differs.
 Each layout has its own block below, so neither is derived by hand.
 
-Format is a **dialect line like any other** (SKILL.md, authority ladder).
+Format is a **dialect line like any other** (SKILL.md, Step 0).
 A repo keeps its own ADR shape when it has declared one in `docs/CONVENTIONS.md`, or consistently uses one across three or more records.
 This template is the rung-3 default for repos that have not chosen.
 It is also the recommendation when a repo asks what good looks like.
@@ -142,14 +142,15 @@ Four properties, and an audit can check each one:
 - **Plain punctuation only.** Use `:` after the title number, a comma in the Status date, and comma-separated `Enforced in` values.
   The em-dash and the interpunct are AI-authorship tells that prose-quality audits flag; the template must not mandate glyphs its sibling doctrine bans.
 
-## What the librarian does with it
+## What the adr skill does with it
 
-Placement and existence only, per the skill's own boundary (SKILL.md, "never judge content"):
+Structure only, per the skill's own boundary (SKILL.md, "never judge reasoning"):
 
-- **Audit** reports a **structural** finding against an ADR surface whose records carry no `Status`, no decision statement, or no reasoning.
+- **Audit** reports a **structural** finding against a record that carries no `Status`, no decision statement, or no reasoning.
   It names this template as the recommended shape.
   It never reports that the reasoning is *weak*, which is a content judgement.
-- **Init** and **apply** write the matching layout block whenever they create an ADR-surface stub.
+- **Setup** writes the matching layout block with every new surface.
   The file-per-decision block becomes `<adr-dir>/TEMPLATE.md`, and the single-file block a closing `## Template` section of `ADRs.md`.
-  Init also records the choice as a Dialect line in `docs/CONVENTIONS.md`.
-- **Apply** migrates existing records to this shape only on explicit user acceptance, preserving every id, anchor, and inbound `ADR-NNNN` citation.
+  Setup also records the choice as a Dialect line in `docs/CONVENTIONS.md`.
+- **Migrate** reformats existing records to this shape only on explicit user acceptance, preserving every id, anchor, and inbound `ADR-NNNN` citation.
+  Audit's `immutable` check compares a record's text, so a reformat shows up there; the maintainer accepts it as part of the migration.

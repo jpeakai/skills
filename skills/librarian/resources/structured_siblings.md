@@ -89,9 +89,9 @@ Constrain what is worth constraining: an id pattern, a closed `status` vocabular
 - **Metadata beats a title heading.** Putting the title in frontmatter rather than an H1 shortens every query path by one segment.
   No root heading nests the whole document (see the path rule below).
 
-One fully-specified instance of this arrangement ships with the skill: the named **`okf-yaml`** ADR surface in [adr_okf_yaml.md](adr_okf_yaml.md).
-It fixes the schema, the relation vocabulary, the bundle layout and the finding table.
-Reach for it when the document set is decision records; use the generic arrangement above when it is not.
+One fully-specified instance of this arrangement exists for decision records: the named **`okf-yaml`** ADR surface.
+It fixes the schema, the relation vocabulary, the bundle layout and the finding table, and it belongs to the `adr` skill.
+When the document set is decision records, point at `/adr setup okf-yaml` or `/adr migrate okf-yaml`; use the generic arrangement above when it is not.
 
 ### Migration
 

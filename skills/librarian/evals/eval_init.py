@@ -26,7 +26,8 @@ def eval_init_infer(output: CaseOutput) -> None:
     check_core_documents(output)
     conv = output.read("docs/CONVENTIONS.md").lower()
     assert any(f in conv for f in FLAVOURS), "docs/CONVENTIONS.md names no flavour"
-    check_reported(output, "flavour")
+    # The ADR surface is core but not init's to write: the report hands it to the adr skill.
+    check_reported(output, "flavour", "/adr setup")
 
 
 @evalcase(task="init minimal", skill=SKILL, fixture="greenfield", models=MODELS)

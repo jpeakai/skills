@@ -102,6 +102,12 @@ The related GH Issue should be mentioned in the PR as `Closes #{issue_number}`.
 
 When working on an open issue it should ideally be in a new git worktree named `SKILLS-{issue_number}-{4 words description in kebab-case}`.
 
+Worktrees are sibling directories of the main checkout, never inside it.
+
+```sh
+git worktree add -b feat/SKILLS-{issue_number}-{description} ../SKILLS-{issue_number}-{description} main
+```
+
 ## Completed Work
 
 When a PR is MERGED the related branch should also be cleaned up too.

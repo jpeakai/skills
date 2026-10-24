@@ -27,6 +27,42 @@ This categorisation will assist with prioritising types of work to work on.
 
 For this repo, the owener is `neozenith` and all tickets should be assigned to them.
 
+## Deduplication
+
+Before creating an issue, search open and closed issues for the same work.
+
+```sh
+gh issue list --state all --search "{key words} in:title,body" --json number,title,state,createdAt --limit 50
+```
+
+The earliest issue is the **canonical** issue.
+Every later issue for the same work is closed as a duplicate of it, never the other way round.
+
+```sh
+gh issue close {duplicate} --duplicate-of {canonical}
+```
+
+The canonical issue keeps a count of its duplicates in one tracking comment, edited in place rather than added to:
+
+```
+Duplicates: 2
+- #31
+- #35
+```
+
+Create the comment on the first duplicate, then edit it for each later one, increasing the count and adding the issue number.
+
+When a duplicate sheds new light on the work, rewrite the canonical issue's title and body into a refined, updated version.
+GH Issues keeps every edit of the body in its history, so nothing is lost.
+
+```sh
+gh issue edit {canonical} --title "{refined title}" --body-file {refined body}
+```
+
+Emoji reactions on the canonical issue are upvotes.
+Anyone who hits the same need reacts with 👍 instead of filing a new issue.
+An issue's **demand** is its duplicate count plus its total reactions.
+
 ## Relationships
 
 Issues are linked with GH Issues `blocked by` / `blocking` relationships so the backlog forms a DAG of the work.
@@ -45,7 +81,7 @@ gh issue list --state open --json number,title,labels,blockedBy,blocking --limit
 An issue is **ready** when every issue it is blocked by is CLOSED.
 
 To choose the next piece of work, take the ready issues in dependency order (topological order of the DAG).
-Among ready issues, prefer the one blocking the most open work, then `[bug]` before `[feat]`, then the lowest issue number.
+Among ready issues, prefer the one blocking the most open work, then `[bug]` before `[feat]`, then the highest demand, then the lowest issue number.
 
 ## Works In Progress (WIP)
 

@@ -1,7 +1,7 @@
 {
   "name": "jpai-essentials",
   "displayName": "jpeak.ai Essentials",
-  "version": "0.14.0",
+  "version": "0.14.1",
   "description": "Documentation and diagramming essentials from jpeak.ai: doc organisation (librarian), decision records (adr), doc auditing and authoring (gooddocs), Mermaid rendering with WCAG contrast gates (mermaidjs-diagrams), discovery documents and rich HTML companions (richdocs), single-question decisions (concise-decisions), ticketing conventions from TICKETING.md (tickety-boo), and de-branding docs to generic placeholders (agnostic). Ships the PreToolUse working-agreements coaching hook.",
   "author": {
     "name": "jpeak.ai",

@@ -41,6 +41,20 @@ Report the issues ready to start, in that order, with what each one unblocks.
 
 ## `cleanup`
 
+The remote default branch (for example `origin/main`) is the source of truth.
+Judge what is finished against it, never against a stale local copy.
+
 Find finished work and plan only the actions the file's completion rules state.
-Show the plan and ask once before closing tickets or removing branches and worktrees.
-Never force a removal, and report anything left untouched with the reason.
+The plan always starts by updating the local default branch to match the remote.
+If uncommitted changes would block that update, name the files in that step.
+
+Write the plan for the objective, not the mechanics:
+
+- **One section per trigger**, such as a closed issue or a merged PR.
+- **One item per line.** Branches, worktrees and tickets are nested lists, never a comma-joined run.
+- **Say what gets cleaned up**, not which git command does it or why git might refuse.
+- **Flag only what the user must weigh**, such as commits that are not on the remote and would be lost.
+- **Close with one question** asking to go ahead.
+
+Ask once before closing tickets or removing branches and worktrees.
+Never force a removal, and report anything left untouched in one line with the reason.

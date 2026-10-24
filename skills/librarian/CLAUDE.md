@@ -21,13 +21,6 @@ bunx @jpeakai/mermaidjs-lint skills/librarian/README.md skills/librarian/ARCHITE
 uvx --from md-toc md_toc --in-place --no-list-coherence github --header-levels 4 skills/librarian/README.md
 ```
 
-Eval matrix before a release, from repo root (`--dry-run` is free; a live run bills one agent session per case):
-
-```sh
-uv run pytest skills/librarian/evals --dry-run
-uv run pytest skills/librarian/evals -v
-```
-
 All files ≤ 500 lines (the workspace skills rule, `../../.claude/rules/claude_skills/index.md` from repo root).
 
 ## File map
@@ -36,8 +29,7 @@ All files ≤ 500 lines (the workspace skills rule, `../../.claude/rules/claude_
 |------|------|
 | `SKILL.md` | Agent operating manual: modes, authority ladder, audit steps, apply invariants |
 | `README.md` | Human explainer: purpose, quickstart, architecture diagram |
-| `ARCHITECTURE.md` | Dual-density diagrams per lens + the permutation axes and their eval coverage |
-| `evals/` | pytest-xharness-eval scenarios, one per permutation row, with seed fixtures |
+| `ARCHITECTURE.md` | Dual-density diagrams per lens + the permutation axes |
 | `resources/baseline.md` | Universal compliance baseline: required set, locations, naming, ADR-surface presence, agent-file rules (lazy) |
 | `resources/misplacement_smells.md` | Detection catalogue: M1-M10 whole-doc + P1-P8 within-file smells (lazy; audit) |
 | `resources/conventions_template.md` | docs/CONVENTIONS.md template + bootstrapping guidance (lazy; init) |
@@ -301,7 +293,7 @@ Moved verbatim to the `adr` skill's log by ADR-24.
 
 ### ADR-19: every permutation axis value has an eval case, and the axis map lives with the evals
 
-- **Status:** Accepted (2026-10-05, user instruction).
+- **Status:** Accepted (2026-10-05, user instruction); superseded by ADR-29 (the skill carries no evals).
 - **Context:** The skill expands along five axes (mode, argument, dialect rung, repo state, index trigger), and nothing showed which combinations had ever been run.
   The first live sweep found two grader defects and one fixture too thin to migrate, none visible from reading SKILL.md.
 - **Decision:** `ARCHITECTURE.md` diagrams each mode at two densities; `evals/README.md` holds the axis table and maps every axis value to at least one case.
@@ -377,6 +369,19 @@ Moved verbatim to the `adr` skill's log by ADR-24.
   Keep only presence and the link here.
   Pointing at a sibling by name is fine; loading its files is not.
 
+### ADR-29: the skill carries no evals
+
+- **Status:** Accepted (2026-10-24, user instruction, issue #27); supersedes ADR-19.
+  Ids 25 to 28 belong to the `adr` skill's log, which continues this sequence, so this record takes the next free number.
+- **Context:** ADR-19 required a billed agent eval for every permutation axis value, with seed fixtures and an axis map under `evals/`.
+  The maintainer never wanted an eval suite for this skill, and ruled it removed.
+- **Decision:** `evals/` is removed, and nothing in the development contract, the file map or the extension checklist asks for a case.
+  `make -C skills/librarian/scripts ci` stays the skill's gate.
+- **Consequences:** A new mode, argument or repo-state class no longer lands with a case and a fixture.
+  `ARCHITECTURE.md` still names the permutation axes, but nothing claims they are covered.
+  The init write rule of ADR-18 stands; only its eval assertion goes.
+- **Lens:** A test surface the maintainer did not ask for is a cost, not a safety net: remove it rather than keep it green.
+
 ## Extension checklist
 
 - [ ] New smells enter `misplacement_smells.md` with symptom, detection, fix, and severity: and never a content-quality judgement (ADR-1).
@@ -391,8 +396,7 @@ Moved verbatim to the `adr` skill's log by ADR-24.
 - [ ] A new **named** convention ships as its own resource with a layout, a shelving-plan finding table, a migration operation and a verification gate.
   It never ships as prose inside the general resource (ADR-10).
 - [ ] Anything inside the ADR surface (record shape, layouts, okf-yaml, compliance) lands in the `adr` skill; here only presence and the link change (ADR-24).
-- [ ] A new required document adds an init write and an init eval assertion in the same change (ADR-18).
-- [ ] A new mode, argument or repo-state class adds its axis row, case and fixture under `evals/` (ADR-19).
+- [ ] A new required document adds an init write in the same change (ADR-18).
 - [ ] Both mermaid gates re-run if README or ARCHITECTURE is touched, and mdtoc if README is touched.
 - [ ] All files stay ≤ 500 lines.
 - [ ] Prose stays brand-agnostic.

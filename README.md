@@ -7,7 +7,7 @@ The skills are published as two installable plugins, so you take the pack you wa
 
 | Plugin | For | Contains |
 |---|---|---|
-| [`jpai-essentials`](plugins/jpai-essentials) | Documentation and diagrams | `librarian`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `concise-decisions`, `agnostic`, `tickety-boo` |
+| [`jpai-essentials`](plugins/jpai-essentials) | Documentation and diagrams | `librarian`, `adr`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `concise-decisions`, `agnostic`, `tickety-boo` |
 | [`jpai-delivery`](plugins/jpai-delivery) | Delivery planning | `plan-gap`, `concise-decisions` |
 
 `jpai-essentials` ships the `tool_coach` PreToolUse hook.
@@ -105,6 +105,7 @@ ln -s "$PWD/skills/librarian" ~/.claude/skills/librarian
 
 | Skill | Pack | What it does |
 |---|---|---|
+| [`adr`](skills/adr) | essentials | Sets up, migrates, renders and audits architecture decision records, with a compliance audit that exits non-zero so it can gate CI |
 | [`agnostic`](skills/agnostic) | essentials | Keeps documentation generic by renaming project-, client- or company-specific names to open-source-style placeholders |
 | [`cli`](skills/cli) | none | Playbook for building project-local developer CLIs and the assets they generate: static HTML viewers, workflow templates, stencil diagrams, sticky PR comments |
 | [`concise-decisions`](skills/concise-decisions) | both | Consolidates accumulated ambiguities into a single highest-leverage decision question, answering first from existing decision records |
@@ -123,7 +124,7 @@ The packs under `plugins/` are **generated** from them.
 
 ```mermaid
 flowchart LR
-    SK["skills/<br/>8 canonical skills"]:::src
+    SK["skills/<br/>10 canonical skills"]:::src
     HK["hooks/<br/>tool_coach"]:::src
     CF["composition.yaml<br/>the grouping"]:::cfg
     SY["sync_plugins.py"]:::proc
@@ -157,12 +158,14 @@ flowchart LR
 ```mermaid
 flowchart TB
     subgraph canon["Canonical source — edit here"]
+        AD[adr]:::src
         AG[agnostic]:::src
         CD[concise-decisions]:::src
         GD[gooddocs]:::src
         LB[librarian]:::src
         MD[mermaidjs-diagrams]:::src
         RD[richdocs]:::src
+        TB[tickety-boo]:::src
         PG[plan-gap]:::src
         CLI["cli<br/>in no pack"]:::orphan
         TC["hooks/tool_coach.py"]:::src
@@ -175,7 +178,7 @@ flowchart TB
     TH["scripts/test_harness_install.sh"]:::gate
 
     subgraph packs["Generated packs — never edit"]
-        ES["jpai-essentials<br/>6 skills + hook"]:::pack
+        ES["jpai-essentials<br/>8 skills + hook"]:::pack
         DL["jpai-delivery<br/>2 skills + hook"]:::pack
     end
 
@@ -187,7 +190,7 @@ flowchart TB
     CC["Claude Code"]:::host
     CX["Codex"]:::host
 
-    AG & CD & GD & LB & MD & RD --> SY
+    AD & AG & CD & GD & LB & MD & RD & TB --> SY
     PG --> SY
     TC & HJ --> SY
     CF --> SY

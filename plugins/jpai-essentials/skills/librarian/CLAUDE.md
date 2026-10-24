@@ -6,13 +6,12 @@ Each ADR carries a **Lens**: apply it to the next decision instead of re-derivin
 ## Development contract
 
 Code gates come first.
-The skill carries `scripts/` in two languages: TypeScript (bun) for the indexer, Python (uv) for the okf-yaml generator.
-`ci` regenerates the shipped example bundle via `docs`, so a template change that stops reproducing the golden fails the gate.
+The skill carries `scripts/` in TypeScript (bun) for the indexer; the okf-yaml generator moved to the `adr` skill (ADR-24).
 Run from repo root, never `cd`:
 
 ```sh
-make -C skills/librarian/scripts fix   # mutates: format + lint --write, both languages
-make -C skills/librarian/scripts ci    # the gate: format-check, lint, typecheck, test-cov (≥90%), docs
+make -C skills/librarian/scripts fix   # mutates: format + lint --write
+make -C skills/librarian/scripts ci    # the gate: format-check, lint, typecheck, test-cov (≥90%)
 ```
 
 Doc gates before handoff, also from repo root:
@@ -20,13 +19,6 @@ Doc gates before handoff, also from repo root:
 ```sh
 bunx @jpeakai/mermaidjs-lint skills/librarian/README.md skills/librarian/ARCHITECTURE.md
 uvx --from md-toc md_toc --in-place --no-list-coherence github --header-levels 4 skills/librarian/README.md
-```
-
-Eval matrix before a release, from repo root (`--dry-run` is free; a live run bills one agent session per case):
-
-```sh
-uv run pytest skills/librarian/evals --dry-run
-uv run pytest skills/librarian/evals -v
 ```
 
 All files ≤ 500 lines (the workspace skills rule, `../../.claude/rules/claude_skills/index.md` from repo root).
@@ -37,28 +29,18 @@ All files ≤ 500 lines (the workspace skills rule, `../../.claude/rules/claude_
 |------|------|
 | `SKILL.md` | Agent operating manual: modes, authority ladder, audit steps, apply invariants |
 | `README.md` | Human explainer: purpose, quickstart, architecture diagram |
-| `ARCHITECTURE.md` | Dual-density diagrams per lens + the permutation axes and their eval coverage |
-| `evals/` | pytest-xharness-eval scenarios, one per permutation row, with seed fixtures |
-| `resources/baseline.md` | Universal compliance baseline: required set, locations, naming, ADR/agent-file rules (lazy) |
+| `ARCHITECTURE.md` | Dual-density diagrams per lens + the permutation axes |
+| `resources/baseline.md` | Universal compliance baseline: required set, locations, naming, ADR-surface presence, agent-file rules (lazy) |
 | `resources/misplacement_smells.md` | Detection catalogue: M1-M10 whole-doc + P1-P8 within-file smells (lazy; audit) |
 | `resources/conventions_template.md` | docs/CONVENTIONS.md template + bootstrapping guidance (lazy; init) |
 | `resources/flavours.md` | Named presets (minimal/standard/rigorous) + graduation triggers (lazy; init + audit) |
-| `resources/adr_template.md` | Preferred shape of one ADR, one block per layout (lazy; init + audit + apply) |
-| `resources/adr_decision_theory.md` | What a decision record captures; the theory behind the lens (lazy) |
 | `resources/glossary_template.md` | Preferred shape of GLOSSARY.md + structural finding table (lazy; init + audit) |
 | `resources/coding_standards_template.md` | Preferred shape of CODING_STANDARDS.md: seven baseline tenets mapped per language, structural findings (lazy; init + audit) |
 | `resources/structured_siblings.md` | Machine-readable layouts in general: authored-YAML vs indexed-markdown, triggers, output shape, gotchas (lazy; index mode) |
-| `resources/adr_okf_yaml.md` | The named `okf-yaml` ADR-surface convention: record schema, relation vocabulary, OKF conformance, finding table, migration (lazy; named or observed) |
-| `resources/okf_yaml/record.schema.json` | The okf-yaml record contract, copied into an adopting repo |
-| `resources/okf_yaml/example/` | Worked two-record bundle; doubles as the golden fixture the Python suite diffs against |
-| `scripts/okf_render.py` | Reference generator: validate, then render markdown + index + graph + viewer |
-| `scripts/templates/*.j2` | Jinja templates, one per generated artifact (including `graph.html.j2`) |
-| `scripts/test_okf_render.py` | pytest suite (PEP-723 entry point) |
-| `scripts/conftest.py` | Coverage reload fixture |
 | `resources/evidence.md` | Research citations + counter-evidence, dated 2026-07-23 |
 | `scripts/md2yaml.ts` | The markdown → YAML/JSON indexer; `--check` is the byte-exact round-trip gate |
 | `scripts/md2yaml.test.ts` | `bun:test` suite: structure, tables, lists, whitespace fields, CLI via subprocess |
-| `scripts/Makefile` | `fix` / `ci` quality gates, plus `docs` (regenerate the example bundle) and `install` (bun deps) |
+| `scripts/Makefile` | `fix` / `ci` quality gates, plus `install` (bun deps) |
 | `resources/learned/` | User adjudications on placement rulings (created on first rejection; already-decided) |
 | `CLAUDE.md` | This file: rationale and decision log |
 
@@ -189,27 +171,7 @@ All files ≤ 500 lines (the workspace skills rule, `../../.claude/rules/claude_
 
 ### ADR-8: the preferred ADR format is a template the skill carries, not just a layout
 
-- **Status:** Accepted (2026-08-25, user instruction)
-- **Context:** The baseline covered where decision records *live* (single-file log vs file-per-decision) and said nothing about what one record *looks like*.
-  So an audit could pass a repo whose ADRs were undated one-line bullets, and init produced an ADR surface with no shape to fill.
-  Meanwhile the maintainer converged on a specific record format elsewhere in this repo.
-  It has a metadata table, a `Lens` blockquote holding the reusable rule, then Problem / Decision / Consequences under their own headings.
-  The decision itself is written as `Given` / `We prefer … over …` / `Because` / `Unless`.
-- **Decision:** Adopt that format as the librarian's preferred one, and carry a **copy** at `resources/adr_template.md`.
-  The copy is adapted to work in either layout (a file, or a section with headings demoted).
-  Format is a dialect line like any other, so it sits at rung 3 of the authority ladder (ADR-2).
-  A declared or consistently observed local format wins, and an accepted record is never rewritten to match.
-  The skill uses it structurally only (ADR-1): a record missing Status, a decision statement, or reasoning is a finding; weak reasoning is not.
-- **Provenance:** the format originates in the `concise-decisions` skill in this repo, which developed it over four layout iterations.
-  This maintainer document may name that origin; no runtime surface here points at it.
-  The copy is the skill's own, and it drifts from the origin on purpose (skills are self-contained).
-- **Consequences:** Init now writes a `TEMPLATE.md` alongside the ADR surface and records the format as a Dialect line.
-  Reformatting an existing log becomes an opt-in APPLY operation that preserves every id and anchor.
-  This skill's own log (above) predates the format and has not been migrated.
-  That is exactly the "never rewrite an accepted record" rule applied to itself.
-- **Lens:** When the skill recommends a shape, ship the shape as a file it owns, not as prose describing one.
-  A template can be copied into a repo, diffed, and vetoed; a paragraph saying "ADRs should have a status" cannot.
-  Copy it in rather than pointing at wherever it came from.
+Moved verbatim to the `adr` skill's log by ADR-24.
 
 ### ADR-9: machine-readable siblings are generated artifacts, and the index is byte-reversible
 
@@ -265,62 +227,11 @@ All files ≤ 500 lines (the workspace skills rule, `../../.claude/rules/claude_
 
 ### ADR-11: the convention ships its artifacts, and the skill goes mixed-language to run them
 
-- **Status:** Accepted (2026-08-30, user decision)
-- **Context:** ADR-10 made the convention invocable, but `adr_okf_yaml.md` still only *described* the schema and the bundle in fenced blocks.
-  ADR-8's lens already names that failure: "ship the shape as a file it owns, not as prose describing one".
-  That lens had been applied to the record and not to the bundle.
-  Three options were weighed:
-  - schema plus golden fixtures only
-  - a TypeScript port keeping the skill single-language
-  - vendoring the working Python/Jinja generator as-is
-
-  The maintainer chose the last: the generator is proven over a real corpus, and a port would trade that evidence for toolchain tidiness.
-- **Decision:** Vendor the generator and its Jinja templates unchanged in substance.
-  Accept the **mixed-language scripts contract**:
-  - one Makefile fanning out to `-py` and `-ts` sub-targets
-  - `conftest.py`
-  - pytest via PEP-723
-  - ruff and mypy alongside biome and tsc
-  - ≥90% coverage on both
-
-  The schema and a two-record worked bundle ship under `resources/okf_yaml/`, and that bundle is the **golden fixture**.
-  `ci`'s `docs` target regenerates it, and the Python suite fails if the output drifts.
-  So a generator ported to any other language has bytes to conform to.
-  Genericisation is the price of vendoring: hardcoded group names became data (`group`, or `--group-by tag|plan_id`), and the author became `--author`.
-- **Consequences:** A contributor now needs both `uv` and `bun` to run `ci`.
-  The README says so under requirements rather than letting it surface as a failure.
-  Adopting repos are expected to port the generator to their own language, which is exactly what the golden fixture is for.
-  Porting found a real defect the prose could not have.
-  A null field rendered as `plan_id: None`, which parses as the string `'None'`.
-  The defect was present in the origin bundle too, and fixed in both.
-- **Lens:** Vendor the working implementation over a cleaner rewrite when the implementation carries evidence a rewrite would discard.
-  Pay the toolchain cost openly in the requirements.
-  But never vendor an artifact without a **fixture that pins its output**.
-  The generator is the part that will be replaced, and the bytes it produces are the part that must not change.
+Moved verbatim to the `adr` skill's log by ADR-24.
 
 ### ADR-12: the okf-yaml bundle always ships a viewer, and it is self-contained
 
-- **Status:** Accepted (2026-09-01, user instruction)
-- **Context:** The bundle emitted `graph.json` (a Cytoscape payload) and `graph.md`.
-  The fenced `cytoscape` block in `graph.md` only renders inside a companion HTML pipeline the skill does not own.
-  So the typed relation graph, the whole point of ADR-10's convention, had no reader in a plain checkout.
-  A graph nobody can see is a graph nobody checks.
-  One-way edges, orphaned records and mis-grouped decisions all survive review, because reviewing them means reading JSON.
-  The maintainer supplied a working viewer from a real corpus rather than a specification.
-- **Decision:** Generate `graph.html` **unconditionally**, as one self-contained file.
-  It holds three inlined data blocks (elements, every record's rendered markdown, design tokens) and two CDN scripts.
-  It shows a graceful message when the network is absent.
-  The layout is a deterministic shelf-pack computed from sorted record ids, not a force layout, so the committed file does not redraw on every rebuild.
-  Tokens come from an optional repo-supplied `tokens.json`, falling back to defaults carried in the generator, so a missing brandpack cannot break the page.
-- **Consequences:** Every bundle grows one large generated file whose diff is dominated by inlined JSON; compact separators keep that as small as it can be.
-  The viewer's absence is now a 🔴 finding, and the verification gate checks the data blocks are inlined.
-  A record whose prose contains `</script>` would have closed the tag and spilled into the document.
-  So the generator escapes `</` before embedding.
-  The defect was found while writing the test, not in review.
-- **Lens:** When a convention derives a machine-readable artifact, ship the thing that makes it *legible to a human* in the same breath.
-  Generate it unconditionally.
-  An opt-in viewer is one nobody enables, which returns the derived data to the unchecked state it was created to escape.
-  Prefer a deterministic rendering over a prettier non-deterministic one: a generated file that changes on every rebuild stops being reviewable, and review is the point.
+Moved verbatim to the `adr` skill's log by ADR-24.
 
 ### ADR-13: AGENTS.md is the canonical agent file, and CLAUDE.md is only `@AGENTS.md`
 
@@ -363,36 +274,11 @@ All files ≤ 500 lines (the workspace skills rule, `../../.claude/rules/claude_
 
 ### ADR-16: the ADR template is metadata, the decision lens, and consequences
 
-- **Status:** Accepted (2026-10-05, user instruction); supersedes the record shape described in ADR-8 and the fields fixed in ADR-10/11.
-- **Context:** The template carried a summary `Lens` blockquote, a Problem section (Symptom / Pain point) and an `In practice` list.
-  The maintainer ruled all three invented.
-  Given / We prefer / Because / Unless *is* the decision lens.
-  Problem restates Given, and In practice is noise.
-  The template also mandated an em-dash and an interpunct while its own filling rule banned both.
-- **Decision:** `adr_template.md` is a metadata table, `## Decision` with H4 Given / We prefer / Because / Unless, then `## Consequences`, in plain punctuation.
-  Three changes follow:
-  - the okf-yaml schema drops `lens`, `problem` and `decision.in_practice`
-  - `record.md.j2` renders the lens as H4 headings
-  - the example bundle and eval fixture are regenerated
-- **Consequences:** Existing okf-yaml records carrying the removed keys now fail validation (`additionalProperties: false`); migrating them is deleting three keys, never rewording.
-- **Lens:** A template field must earn its place by carrying information no other field carries.
-  A field that restates another, or that agents added because a template had a slot for it, is removed.
+Moved verbatim to the `adr` skill's log by ADR-24.
 
 ### ADR-17: every ADR layout carries the lens, and every ADR surface the skill creates carries its template
 
-- **Status:** Accepted (2026-10-05, user instruction); extends ADR-16 and makes ADR-8's "init writes a TEMPLATE.md" operative.
-- **Context:** ADR-16 fixed one record's shape, but the single-file layout was only described as "the same with headings demoted".
-  That left each agent to derive it by hand.
-  The evals also showed init never created an ADR surface.
-  So ADR-8's TEMPLATE.md was never written, and the first real record had no shape to copy.
-- **Decision:** `adr_template.md` carries one complete block per layout, both with Given / We prefer / Because / Unless:
-  - file-per-decision (H1 title, H4 lens headings)
-  - single-file log section (H2 title, H5 lens headings)
-
-  Init creates a missing ADR surface in the declared layout.
-  Any ADR-surface stub (init or apply) carries its layout's block: `adrs/TEMPLATE.md`, or a closing `## Template` section in `ADRs.md`.
-- **Consequences:** Init now writes five core documents, not four; the init eval asserts the template's lens headings.
-- **Lens:** A shape that has to be derived is a shape that drifts: ship every variant the skill can produce as its own copyable block.
+Moved verbatim to the `adr` skill's log by ADR-24.
 
 ### ADR-18: init writes the missing core set, never anything else
 
@@ -407,7 +293,7 @@ All files ≤ 500 lines (the workspace skills rule, `../../.claude/rules/claude_
 
 ### ADR-19: every permutation axis value has an eval case, and the axis map lives with the evals
 
-- **Status:** Accepted (2026-10-05, user instruction).
+- **Status:** Accepted (2026-10-05, user instruction); superseded by ADR-29 (the skill carries no evals).
 - **Context:** The skill expands along five axes (mode, argument, dialect rung, repo state, index trigger), and nothing showed which combinations had ever been run.
   The first live sweep found two grader defects and one fixture too thin to migrate, none visible from reading SKILL.md.
 - **Decision:** `ARCHITECTURE.md` diagrams each mode at two densities; `evals/README.md` holds the axis table and maps every axis value to at least one case.
@@ -460,17 +346,41 @@ All files ≤ 500 lines (the workspace skills rule, `../../.claude/rules/claude_
 
 ### ADR-23: generated record prose puts one sentence on each line
 
-- **Status:** Accepted (2026-10-17, user instruction); extends ADR-16.
-- **Context:** Prose gates that require one sentence per line now also report a line that holds several sentences, not only a sentence wrapped across lines.
-  A record field of two sentences rendered onto one line, so every bundle with such a field failed its own repo's docs gate.
-  The output is generated, so the fix belongs in the template, never in the markdown, and never by rewording accepted records.
-- **Decision:** `okf_render.py` gains a `one_sentence_per_line` filter, and `record.md.j2` applies it to the four lens fields and to every pros and cons item.
-  A list item's later sentences continue on lines indented two spaces, so they stay inside the item.
-  A sentence break is the prose gate's own rule: a terminal, then space, then a capital or an opening delimiter, with code spans masked.
-- **Consequences:** A single-sentence field renders byte-identical, so the golden example is unchanged.
-  An abbreviation followed by a capital, such as "Dr. Smith", splits as the prose gate would split it.
-- **Lens:** When generated output fails a gate, fix the generator at its source and prove the fix on the golden fixture.
-  Match the gate's rule exactly, so the generator and the gate never disagree about a sentence.
+Moved verbatim to the `adr` skill's log by ADR-24.
+
+### ADR-24: the ADR surface's internals move to the `adr` skill, and the librarian keeps presence and a pointer
+
+- **Status:** Accepted (2026-10-24, user instruction, issue #27).
+  Supersedes ADR-8, ADR-11, ADR-12, ADR-16, ADR-17 and ADR-23 in this skill, and ADR-10 where it applies to decision records; the `adr` skill's log carries them forward.
+  Amends ADR-1 (the adr skill may be named as a pointer) and ADR-18 (init no longer writes the ADR surface).
+- **Context:** The librarian owns placement, but decision records grew into a subsystem of their own.
+  That subsystem is a record template, a schema and relation vocabulary, a generator with a viewer, layout migration, and decision theory.
+  Every docs-organisation task paid for it in the description and in resources it never loaded.
+  And nobody could ask "is this repo's ADR surface compliant?" on its own.
+- **Decision:** The ADR resources, the generator, its templates, the golden bundle and the okf-yaml eval move to the `adr` skill with `git mv`.
+  The librarian keeps the ADR surface in the required set as a presence check, plus the AGENTS.md link.
+  A missing surface is a 🔴 finding whose operation is `/adr setup`; compliance is one 🟣 line pointing at `/adr audit`.
+  Naming the adr skill is allowed; reading its files is not, so ADR-1's self-containment stands.
+- **Consequences:** The librarian's scripts are TypeScript only, so its `ci` no longer needs `uv`.
+  Init writes four core documents, not five, and points at `/adr setup` for the fifth.
+  Index refuses `okf-yaml` with a pointer.
+  The superseded records moved verbatim to the adr skill's log, and each id here keeps a one-line stub so citations still resolve.
+- **Lens:** When a document in the required set grows its own lifecycle (setup, migration, a generator, compliance), give it its own skill.
+  Keep only presence and the link here.
+  Pointing at a sibling by name is fine; loading its files is not.
+
+### ADR-29: the skill carries no evals
+
+- **Status:** Accepted (2026-10-24, user instruction, issue #27); supersedes ADR-19.
+  Ids 25 to 28 belong to the `adr` skill's log, which continues this sequence, so this record takes the next free number.
+- **Context:** ADR-19 required a billed agent eval for every permutation axis value, with seed fixtures and an axis map under `evals/`.
+  The maintainer never wanted an eval suite for this skill, and ruled it removed.
+- **Decision:** `evals/` is removed, and nothing in the development contract, the file map or the extension checklist asks for a case.
+  `make -C skills/librarian/scripts ci` stays the skill's gate.
+- **Consequences:** A new mode, argument or repo-state class no longer lands with a case and a fixture.
+  `ARCHITECTURE.md` still names the permutation axes, but nothing claims they are covered.
+  The init write rule of ADR-18 stands; only its eval assertion goes.
+- **Lens:** A test surface the maintainer did not ask for is a cost, not a safety net: remove it rather than keep it green.
 
 ## Extension checklist
 
@@ -485,9 +395,8 @@ All files ≤ 500 lines (the workspace skills rule, `../../.claude/rules/claude_
 - [ ] A new generated-artifact kind states its regenerate banner and its reversibility proof before it ships (ADR-9).
 - [ ] A new **named** convention ships as its own resource with a layout, a shelving-plan finding table, a migration operation and a verification gate.
   It never ships as prose inside the general resource (ADR-10).
-- [ ] A change to the ADR record shape lands in `adr_template.md` (both layout blocks), `record.schema.json`, `record.md.j2` and the example records together, then `make -C skills/librarian/scripts docs` (ADR-16/17).
-- [ ] A new required document adds an init write and an init eval assertion in the same change (ADR-18).
-- [ ] A new mode, argument or repo-state class adds its axis row, case and fixture under `evals/` (ADR-19).
+- [ ] Anything inside the ADR surface (record shape, layouts, okf-yaml, compliance) lands in the `adr` skill; here only presence and the link change (ADR-24).
+- [ ] A new required document adds an init write in the same change (ADR-18).
 - [ ] Both mermaid gates re-run if README or ARCHITECTURE is touched, and mdtoc if README is touched.
 - [ ] All files stay ≤ 500 lines.
 - [ ] Prose stays brand-agnostic.
@@ -505,8 +414,6 @@ All files ≤ 500 lines (the workspace skills rule, `../../.claude/rules/claude_
   Blank lines before a heading, two fences butted together, and a missing final newline are invisible in a diff viewer.
   All three break a round trip.
   `md2yaml.ts` models them as `gap` / `leading` / `trailing`; a new block type that ignores them reformats documents silently (ADR-9).
-- YAML resolves an unquoted `2026-08-30` to a date, not a string, so a JSON Schema `"type": "string"` rejects it.
-  Validate the JSON projection, not the raw load.
 - Flattening a heading to text (right for a slug) and *storing* that flattened text (wrong for anything reconstruction reads) are different operations.
   Store the slice, or an inline-code heading loses its backticks.
 - Content before the first heading is normal wherever the title lives in frontmatter.

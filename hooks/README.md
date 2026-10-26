@@ -19,14 +19,14 @@ A plain "permission denied" teaches nothing and invites the model to retry near-
 Every denial opens with the rule it applied and the exact command line or path that tripped it.
 A Python rule or an out-of-project path in a Bash command also appends the **preflight**: one complete, project-local setup for the next retry.
 
-- **Setup:** `mkdir` and `export` lines for `TMPDIR`, `BUN_INSTALL_CACHE_DIR`, `UV_CACHE_DIR` and `npm_config_cache`, all under `node_modules/.cache/`.
+- **Setup:** directory creation and environment exports keep temporary files and package caches under `node_modules/.cache/`.
   Paths are absolute, and the syntax follows `$SHELL` (fish gets `set -gx`).
 - **Diagnostics:** each of those variables as the hook sees it, marked in or outside the project.
-  Three commands confirm what the tools use: `bun pm cache`, `uv cache dir` and `npm config get cache`.
+  The Bun, uv and npm cache inspection commands confirm the paths actually used.
   Only those four variables are read, so no credential can leak.
 - **Python recipe:** a named file under `tmp/`, run with `uv run --no-project`.
 - **Scope:** explicit `--cache` arguments override the exports, fresh shells may not inherit them, and workers need the same setup.
-- **Optional:** `UV_TOOL_DIR`, `UV_TOOL_BIN_DIR` and `UV_PYTHON_INSTALL_DIR`, kept apart because only managed installs need them.
+- **Optional:** uv tool, tool-binary and Python-install directories are configured separately for managed installs.
 
 Without it a model fixes the one restriction it was told about and hits the next a turn later.
 Each parallel worker then repeats the same walk.
@@ -111,12 +111,12 @@ Failure is loud: a broken rules file exits 1 rather than silently allowing the c
 </details>
 
 Structural checks parse the command into argv with `shlex`.
-That catches forms a regex misses: `sudo`, `xargs`, an absolute `/bin/` path, an env-var prefix, a pipeline, `git rm`, `find -delete`.
+That catches forms a regex misses: elevated commands, argument expansion, absolute executable paths, environment prefixes, pipelines and deletion commands.
 Pattern rules live in the JSON file and need no code change to add.
 Heredoc bodies are stripped before any check runs, so writing *documentation about* a blocked command is never itself blocked.
 Full behaviour and rationale are in the module docstrings of `tool_coach.py` and `tool_coach_rules.json`.
 
-Stdlib only (`json`, `os`, `re`, `shlex`, `sys`, `pathlib`).
+The implementation uses only Python standard-library modules.
 There is nothing to install and no virtualenv to resolve, on every call in either agent.
 
 ## What's portable, and why
@@ -124,7 +124,12 @@ There is nothing to install and no virtualenv to resolve, on every call in eithe
 This directory is the plugin-facing, ecosystem-agnostic core: two stdlib Python scripts and a JSON rules file.
 Neither reads a Claude-specific or Codex-specific API.
 They only read the hook's stdin JSON and print a JSON decision to stdout.
-Inbound they read `tool_name`, `tool_input` and `cwd`.
+Inbound they read:
+
+- `tool_name`
+- `tool_input`
+- `cwd`
+
 Outbound they write `hookSpecificOutput.{hookEventName,permissionDecision,permissionDecisionReason}`.
 That is the *same* wire shape in both agents for `PreToolUse` today.
 That's the "portable" part.
@@ -157,24 +162,26 @@ It, too, is shared verbatim:
 
 This is the documented plugin convention.
 A plugin's `hooks/hooks.json` is auto-discovered at the plugin root and merged into the session's hook config when the plugin is enabled.
-No reference from `plugin.json` is needed, the same way `skills/` is auto-discovered.
-`${CLAUDE_PLUGIN_ROOT}` resolves to this plugin's install directory.
+No reference from `plugin.json` is needed, the same way `skills/` is auto-discovered. `${CLAUDE_PLUGIN_ROOT}` resolves to this plugin's install directory.
 (Confirmed against [Claude Code plugin docs](https://code.claude.com/docs/en/plugins) and [hooks reference](https://code.claude.com/docs/en/hooks), September 2026.)
 
 ### Codex CLI
 
-Codex CLI ships its own hooks engine (`codex-rs/hooks`, `codex-rs/plugin`, `codex-rs/config::hook_config` in [`openai/codex`](https://github.com/openai/codex)).
+Codex CLI ships its own hooks engine in the hooks, plugin and configuration modules of [`openai/codex`](https://github.com/openai/codex).
 It mirrors Claude Code's `PreToolUse` contract closely enough to be wire-compatible:
 
-- Same event name (`PreToolUse`), same handler shape (`{"type": "command", "command", "timeout", "statusMessage"}`).
-- Same output shape: `hookSpecificOutput.hookEventName`, `.permissionDecision` (`allow`, `deny` or `ask`) and `.permissionDecisionReason`.
+- Same event name (`PreToolUse`) and command-handler shape.
+  Handlers declare their type, command, timeout and status message.
+- Same output shape: the hook-specific event name, permission decision and reason.
+  The decision permits, denies or asks about the tool call.
   This was verified against Codex's own generated JSON Schema fixture (`codex-rs/hooks/schema/generated/pre-tool-use.command.output.schema.json` at commit `1e66885a`).
 - Codex's hook-command executor explicitly sets **`CLAUDE_PLUGIN_ROOT`** in the child process environment, alongside its own `PLUGIN_ROOT`.
   The code comment reads *"For OOTB compat with existing plugins that use this env var"* (`codex-rs/hooks/src/engine/*`).
   That is a deliberate interoperability decision on Codex's side, not an assumption made here.
 - The plugin manifest loader (`codex-rs/core-plugins/src/manifest.rs`, `RawPluginManifestHooks`) accepts a `hooks` field in `.codex-plugin/plugin.json`.
   It takes a bare path string, an array of path strings, or an inline hooks object.
-  That mirrors exactly how `skills`, `apps` and `mcpServers` already accept a bare string in this same file.
+  The skills, apps and MCP-server fields also accept a bare string in this file.
+
   Its own unit test parses `"hooks": "./hooks.json"` (a bare string) into a resolved hook file path.
   A second fixture (`core-plugins/src/marketplace_tests.rs`) uses the array form, `"hooks": ["./hooks/session.json"]`.
   Both resolve to the same `PluginManifestHooks::Paths`.
@@ -185,7 +192,7 @@ So the one file above wires the one script into both agents.
 
 **Provenance note.** All of the above came from reading Codex's own source, not from stable public documentation.
 The source read was the `openai/codex` repository at commit `c9c7b73c`, September 2026.
-Within it: `codex-rs/hooks`, `codex-rs/plugin`, `codex-rs/core-plugins` and `codex-rs/config::hook_config`, plus the unit tests exercising the exact manifest shape used here.
+The evidence covers its hooks, plugin, core-plugin and hook-configuration modules, plus unit tests for the manifest shape used here.
 Public docs were not an option, because `developers.openai.com/codex` was unreachable from the environment used for this research.
 
 So treat the citations above as confirmed by reading the shipped source and its tests, not as guaranteed stable across future Codex releases.
@@ -213,7 +220,7 @@ Already wired: see the root [README](../README.md#installing).
 Installing `jpai-essentials`, in Claude Code or Codex, brings this hook with it.
 
 This directory is canonical.
-`scripts/sync_plugins.py` mirrors `hooks.json`, `tool_coach.py`, `tool_coach_rules.json` and this README into each pack under `plugins/`.
+The sync script mirrors the hook wiring, implementation, pattern rules and this README into packs that enable hooks.
 The tests stay here and are not published.
 Edit the files here, then re-run the sync.
 Never edit the copy inside a pack.

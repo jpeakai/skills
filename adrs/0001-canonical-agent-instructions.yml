@@ -1,0 +1,32 @@
+id: ADR-0001
+slug: canonical-agent-instructions
+title: Keep agent instructions canonical in AGENTS.md
+description: One instruction source shared by agent harnesses
+plan_id:
+status: accepted
+accepted_on: '2026-10-26'
+last_changed_on: '2026-10-26'
+tags:
+- documentation
+group: repository-conventions
+provenance: Explicit maintainer requirements for repository agent files, skill overviews and documentation
+  conventions.
+enforced_in:
+- AGENTS.md
+- CLAUDE.md
+- skills/*/AGENTS.md
+- skills/*/CLAUDE.md
+relates_to: []
+decision:
+  given: Maintainers use multiple agent harnesses and existing skill-local instructions must remain available.
+  we_prefer: canonical AGENTS.md files with CLAUDE.md import siblings over separate harness-specific
+    instruction bodies
+  because: one maintained instruction body avoids harness drift while retaining existing scoped guidance
+  unless: a vendored snapshot has an upstream-owned file layout; refresh that snapshot through its documented
+    procedure
+consequences:
+  pros:
+  - Agent harnesses share the same authored instructions.
+  - Existing skill decision arguments retain their wording.
+  cons:
+  - Each canonical instruction file needs a small import sibling.

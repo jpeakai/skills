@@ -6,10 +6,11 @@ See [Editing](#editing) before changing a file in this directory.
 
 | Plugin | Skills | Hook |
 |---|---|---|
-| [`jpai-essentials`](jpai-essentials) | `librarian`, `adr`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `concise-decisions`, `agnostic`, `tickety-boo` | yes |
-| [`jpai-delivery`](jpai-delivery) | `concise-decisions`, `tickety-boo` | no |
+| [`jpai-essentials`](jpai-essentials) | `librarian`, `adr`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `concise-decisions`, `agnostic`, `tickety-boo`, `snr-pr` | yes |
+| [`jpai-delivery`](jpai-delivery) | `snr-pr`, `concise-decisions`, `tickety-boo` | no |
 
-`concise-decisions` and `tickety-boo` are in both packs deliberately: each stands alone for documentation work and for delivery work.
+The decision, review-feedback and ticketing skills are in both packs deliberately.
+Each supports documentation and delivery work.
 Installing both packs is fine: each harness namespaces skills by plugin.
 
 The `cli` skill is not in either pack.

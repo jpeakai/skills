@@ -51,6 +51,10 @@ uv run --no-project --with PyYAML --with Jinja2 --with jsonschema \
 
 ## Architecture
 
+The generated graph viewer displays records beside the graph on desktop.
+On narrow screens, selecting a record opens a full-screen reader with the title immediately visible.
+Use **Back to graph** to return with the selected node still highlighted.
+
 ```mermaid
 flowchart LR
     F["Find the surface"] --> A["Audit: 8 checks"]
@@ -122,4 +126,4 @@ Audit is read-only; setup, migrate and render write files and should run on a br
 
 ## For maintainers
 
-Design rationale, decision log and extension checklist: [CLAUDE.md](CLAUDE.md).
+Design rationale, decision log and extension checklist: [AGENTS.md](AGENTS.md).

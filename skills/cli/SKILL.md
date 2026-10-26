@@ -62,5 +62,5 @@ These hold across all the resources; they are the house contract a new CLI inher
 
 ## Maintaining this skill
 
-See [CLAUDE.md](CLAUDE.md) for the decision lenses (why each pattern is shaped this way)
+See [AGENTS.md](AGENTS.md) for the decision lenses (why each pattern is shaped this way)
 and the extension checklist. Keep every file ≤ 500 lines and brand-agnostic.

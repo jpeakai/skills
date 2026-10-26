@@ -25,13 +25,15 @@ plugins:
       - librarian            # shelve docs into the canonical document set
       - mermaidjs-diagrams   # render + WCAG-contrast-check Mermaid diagrams
       - richdocs             # interactive HTML companions to markdown
+      - snr-pr               # filter review results into Signal and Noise; prevent recurrence
       - tickety-boo          # follow a repo's TICKETING.md for tickets, WIP and cleanup
     hooks: true
 
   # Delivery workflow. Smaller and more specialised.
   jpai-delivery:
     skills:
-      # Both deliberately also in jpai-essentials: each stands alone.
+      # All also appear in jpai-essentials: each stands alone.
+      - snr-pr
       # Installing both packs is fine — each harness namespaces by plugin.
       - concise-decisions
       - tickety-boo

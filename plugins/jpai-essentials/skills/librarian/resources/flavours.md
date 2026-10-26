@@ -1,5 +1,7 @@
 # Flavours: named convention presets and graduation triggers
 
+For a visual walkthrough, see [flavours-diagrammed.md](flavours-diagrammed.md).
+
 A **flavour** is a named, coherent bundle of layout choices sized to a project's use case, scale, complexity, and rigour.
 Init takes a flavour to scaffold a new or young repo.
 The chosen flavour is recorded in `docs/CONVENTIONS.md` (Dialect section).

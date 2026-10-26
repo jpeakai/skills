@@ -1,12 +1,7 @@
 # Concise Decisions
 
-Human attention is the scarcest resource. 
- 
-- Reduce cognitive fatigue and leverage the decisions we are already making. 
-- Force the agent to leverage existing ADRs to self answer questions.
-- Guide the agent extract your reasoning and apply it to all open questions before asking the next question.
-- Use a checklist for the agent to **ask better questions** so you can make **informed decisions**.
-- There is also a difference between **answering a question**, and **making a decision**.
+Resolves accumulated ambiguities with one informed decision at a time.
+Checks existing decisions first, captures the user's reasoning, then applies it across related questions before asking again.
 
 ----
 
@@ -171,5 +166,5 @@ flowchart TB
 
 ## For maintainers
 
-Rationale and the extension checklist are in [CLAUDE.md](CLAUDE.md); the ADR
+Rationale and the extension checklist are in [AGENTS.md](AGENTS.md); the ADR
 log with lenses is one file per decision in [docs/adrs/](docs/adrs/README.md).

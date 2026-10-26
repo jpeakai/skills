@@ -1,6 +1,6 @@
 ---
 name: concise-decisions
-description: "Concise Decisions. Use mid-session when two or more ambiguities have accumulated and you'd otherwise interrupt the user with several questions, and whenever a design decision must be put to the user. Self-answers first from existing decision records (ADRs, CLAUDE.md lenses, plan decisions, knowledge bases), then consolidates what remains into the single highest-leverage decision question: a full briefing (decision sentence, why now and why this one first, already settled with what was checked, reversibility, complete previews on real data, pros/cons, recommendation, TBD routes explain/show/spike/defer) plus ONE answer surface that captures the choice AND the user's reasoning, then cascades the answer and its reasoning across every related ambiguity before asking another. Loads one question-shape file and one harness adapter on demand. Skip when a single trivial, reversible ambiguity is open: state a default in passing and move on."
+description: "Concise Decisions. Use mid-session when two or more ambiguities have accumulated and you'd otherwise interrupt the user with several questions, and whenever a design decision must be put to the user. Self-answers first from existing decision records (ADRs, AGENTS.md lenses, plan decisions, knowledge bases), then consolidates what remains into the single highest-leverage decision question: a full briefing (decision sentence, why now and why this one first, already settled with what was checked, reversibility, complete previews on real data, pros/cons, recommendation, TBD routes explain/show/spike/defer) plus ONE answer surface that captures the choice AND the user's reasoning, then cascades the answer and its reasoning across every related ambiguity before asking another. Loads one question-shape file and one harness adapter on demand. Skip when a single trivial, reversible ambiguity is open: state a default in passing and move on."
 user-invocable: true
 ---
 
@@ -245,7 +245,7 @@ and within conventions you can apply. Wanting to ask a tenth-priority question
 ## Resources
 
 This file and `resources/` are the **only runtime authority**, with no
-exceptions. `README.md`, `CLAUDE.md`, and `docs/adrs/` are development-time
+exceptions. `README.md`, `AGENTS.md`, `CLAUDE.md`, and `docs/adrs/` are development-time
 documents: read them when *editing* the skill, never cite them as authority
 when *running* it. This skill keeps no learning store of its own — what it
 learns about how to ask becomes an ADR **and** a change to this file or a

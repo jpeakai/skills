@@ -69,6 +69,7 @@ main { flex: 1; display: flex; min-height: 0; }
   border-left: 1px solid var(--line); background: var(--panel); padding: 22px 26px 60px;
 }
 #pane.empty { display: flex; align-items: center; justify-content: center; color: var(--muted); text-align: center; }
+.reader-nav { display: none; }
 .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); align-items: center; }
 .legend b { font-weight: 600; color: var(--ink); }
 .key { display: inline-flex; align-items: center; gap: 5px; }
@@ -98,9 +99,27 @@ a.chip { text-transform: none; letter-spacing: 0; max-width: 100%; overflow: hid
 #pane a.adr { text-decoration-style: dotted; }
 .nofx { padding: 26px; color: var(--bad); font-family: var(--mono); font-size: 13px; }
 @media (max-width: 900px) {
+  body { height: 100dvh; overflow: hidden; }
+  header { gap: 8px; padding: 10px 12px; flex-shrink: 0; }
+  header h1 { flex-basis: 100%; }
+  header .legend, header .spacer { display: none; }
+  input[type="search"] { flex: 1 1 100%; min-width: 0; }
+  header button, header select, .reader-nav button { min-height: 44px; }
+  nav#groups { flex-wrap: nowrap; overflow-x: auto; padding: 6px 12px; flex-shrink: 0; }
+  .gchip { flex-shrink: 0; min-height: 44px; }
   main { flex-direction: column; }
-  #cy { flex: 0 0 45vh; }
-  #pane { max-width: none; border-left: 0; border-top: 1px solid var(--line); }
+  #cy { flex: 1; }
+  #pane.empty { display: none; }
+  #pane:not(.empty) {
+    position: fixed; inset: 0; z-index: 10; max-width: none;
+    border: 0; padding: 0 18px calc(32px + env(safe-area-inset-bottom));
+    overflow-wrap: anywhere; overscroll-behavior: contain;
+  }
+  .reader-nav {
+    display: flex; align-items: center; position: sticky; top: 0; z-index: 1;
+    margin: 0 -18px 18px; padding: calc(10px + env(safe-area-inset-top)) 18px 10px;
+    background: var(--panel); border-bottom: 1px solid var(--line);
+  }
 }
 </style>
 {% endraw %}
@@ -128,8 +147,8 @@ a.chip { text-transform: none; letter-spacing: 0; max-width: 100%; overflow: hid
 </header>
 <nav id="groups" aria-label="filter by group"></nav>
 <main>
-  <div id="cy"></div>
-  <div id="pane" class="empty"><p>Select a record to read it.<br>Links between records navigate the graph.</p></div>
+  <div id="cy" tabindex="0" role="region" aria-label="Decision graph"></div>
+  <div id="pane" class="empty" role="region" aria-label="Decision record"><p>Select a record to read it.<br>Links between records navigate the graph.</p></div>
 </main>
 
 <script id="graph-data" type="application/json">{{ graph_json }}</script>
@@ -347,24 +366,47 @@ a.chip { text-transform: none; letter-spacing: 0; max-width: 100%; overflow: hid
       ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
     );
 
+  function syncReaderMode() {
+    const mobileOpen = window.matchMedia("(max-width: 900px)").matches && !pane.classList.contains("empty");
+    for (const element of [document.querySelector("header"), document.getElementById("groups"), document.getElementById("cy")]) {
+      element.inert = mobileOpen;
+    }
+    pane.setAttribute("role", mobileOpen ? "dialog" : "region");
+    if (mobileOpen) pane.setAttribute("aria-modal", "true");
+    else pane.removeAttribute("aria-modal");
+  }
+
+  function closeReader() {
+    pane.classList.add("empty");
+    pane.innerHTML = "<p>Select a record to read it.<br>Links between records navigate the graph.</p>";
+    syncReaderMode();
+    history.replaceState(null, "", "#");
+    document.getElementById("cy").focus({ preventScroll: true });
+  }
+
   function show(id) {
     const rec = RECORDS[id];
     if (!rec) return;
     cy.batch(() => {
       cy.elements().removeClass("sel hot dim").addClass("dim");
       const node = cy.getElementById(id);
-      node.removeClass("dim").addClass("sel hot");
-      node.connectedEdges().removeClass("dim").addClass("hot").connectedNodes().removeClass("dim").addClass("hot");
+      const focus = node.closedNeighborhood();
+      focus.removeClass("dim").addClass("hot");
+      // Compound opacity multiplies into its children, even when a child is hot.
+      // Keep every focused endpoint's containers visible, including nested groups.
+      focus.nodes().ancestors().removeClass("dim");
+      node.addClass("sel");
     });
     pane.classList.remove("empty");
     // The record's markdown arrives without its frontmatter, because a renderer
     // would show that block as a heading. Its fields are the chips and the title
     // below, so nothing is lost.
     pane.innerHTML =
+      '<div class="reader-nav"><button type="button" id="back-to-graph">Back to graph</button></div>' +
       '<div class="meta"><span class="chip">' + id + '</span>' +
       '<span class="chip ' + rec.status + '">' + rec.status + "</span>" +
       '<a class="chip" href="' + rec.file + '">' + rec.file + "</a></div>" +
-      "<h1>" + escapeHtml(rec.title) + "</h1>" +
+      '<h1 id="record-title" tabindex="-1">' + escapeHtml(rec.title) + "</h1>" +
       '<div id="doc">' + marked.parse(rec.markdown) + "</div>";
     // A link to another record navigates the graph instead of leaving the page. Scoped
     // to the rendered body: the chip above links to this record's own file and must keep
@@ -377,6 +419,11 @@ a.chip { text-transform: none; letter-spacing: 0; max-width: 100%; overflow: hid
       a.addEventListener("click", (ev) => { ev.preventDefault(); select(target); });
     }
     pane.scrollTop = 0;
+    document.getElementById("back-to-graph").addEventListener("click", closeReader);
+    syncReaderMode();
+    if (window.matchMedia("(max-width: 900px)").matches) {
+      document.getElementById("record-title").focus({ preventScroll: true });
+    }
   }
 
   function select(id) {
@@ -392,9 +439,7 @@ a.chip { text-transform: none; letter-spacing: 0; max-width: 100%; overflow: hid
   cy.on("tap", (ev) => {
     if (ev.target !== cy) return;
     cy.elements().removeClass("sel hot dim");
-    pane.classList.add("empty");
-    pane.innerHTML = "<p>Select a record to read it.<br>Links between records navigate the graph.</p>";
-    history.replaceState(null, "", "#");
+    closeReader();
   });
 
   // ---- controls --------------------------------------------------------------
@@ -464,6 +509,10 @@ a.chip { text-transform: none; letter-spacing: 0; max-width: 100%; overflow: hid
   });
 
   window.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape" && pane.getAttribute("aria-modal") === "true") {
+      closeReader();
+      return;
+    }
     if (ev.key === "Escape") { document.getElementById("q").value = ""; cy.elements().removeClass("dim"); }
     if (ev.key === "/" && document.activeElement !== document.getElementById("q")) {
       ev.preventDefault(); document.getElementById("q").focus();
@@ -486,7 +535,10 @@ a.chip { text-transform: none; letter-spacing: 0; max-width: 100%; overflow: hid
     const deep = decodeURIComponent(location.hash.slice(1));
     if (RECORDS[deep]) select(deep);
   });
-  window.addEventListener("resize", () => cy.fit(undefined, 30));
+  window.addEventListener("resize", () => {
+    syncReaderMode();
+    cy.fit(undefined, 30);
+  });
 })();
 </script>
 {% endraw %}

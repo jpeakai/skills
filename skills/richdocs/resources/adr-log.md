@@ -1,7 +1,7 @@
 # richdocs — ADR log
 
 The decision log for the richdocs skill. This is the **child** of
-[`../CLAUDE.md`](../CLAUDE.md) (the maintainer guide) — it was split out to keep that
+[`../AGENTS.md`](../AGENTS.md) (the maintainer guide) — it was split out to keep that
 file under the 500-line invariant (`.claude/rules/claude_skills/index.md`). Read it
 before changing anything: each entry carries a **Lens**, a forward-looking rule to
 apply to the next related decision.

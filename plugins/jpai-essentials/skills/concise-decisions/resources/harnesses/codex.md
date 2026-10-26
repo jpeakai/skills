@@ -31,6 +31,6 @@ five shapes.
   applies in every mode. If it is verified to carry per-option reasoning,
   add a Codex-structured pattern here modelled on
   [claude-code.md](claude-code.md) and record the change as a new ADR (the
-  maintainer contract in `CLAUDE.md` says how). If it cannot carry free
+  maintainer contract in `AGENTS.md` says how). If it cannot carry free
   text on the selected option, it is not an adapter for this skill at all
   (multichoice without reasoning is the failure the user named).

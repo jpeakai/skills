@@ -68,6 +68,23 @@ jq -r '.file as $f | [..|objects|select(.type=="code")]|.[]|"\($f): \(.lang // "
 ## Architecture
 
 ```mermaid
+flowchart LR
+    D["Repository docs"]:::input --> C["Resolve local conventions"]:::process
+    C --> A["Audit placement and links"]:::process
+    A --> P["Shelving plan"]:::output
+    P -->|when authorized| F["Loss-free changes"]:::output
+    classDef input fill:#1e40af,stroke:#93c5fd,color:#fff,stroke-width:2px
+    classDef process fill:#6d28d9,stroke:#c4b5fd,color:#fff,stroke-width:2px
+    classDef output fill:#047857,stroke:#6ee7b7,color:#fff,stroke-width:2px
+    classDef rule fill:#334155,stroke:#cbd5e1,color:#fff,stroke-width:2px
+```
+
+Local conventions determine what belongs where; audit produces a plan before changes.
+
+<details>
+<summary>Complete workflow and supporting components</summary>
+
+```mermaid
 flowchart TD
     D[Discover dialect] --> L{Authority ladder}
     L --> C[docs/CONVENTIONS.md]
@@ -91,6 +108,8 @@ flowchart TD
     class L,S,V accent
 ```
 
+</details>
+
 Every mode starts by resolving what "compliant" means for *this* repo.
 A declared `docs/CONVENTIONS.md` dialect beats observed conventions, which beat the researched baseline.
 The skill then audits against document charters and executes only loss-free, history-preserving operations.
@@ -104,6 +123,7 @@ It emits generated siblings and refuses to ship any it cannot reconstruct the or
 - Misplacement smell catalog (M1-M10 whole-doc, P1-P8 within-file): [resources/misplacement_smells.md](resources/misplacement_smells.md)
 - docs/CONVENTIONS.md template + bootstrapping guidance: [resources/conventions_template.md](resources/conventions_template.md)
 - Flavour presets (minimal / standard / rigorous) + graduation triggers: [resources/flavours.md](resources/flavours.md)
+- Visual guide to choosing flavours and reading graduation recommendations: [resources/flavours-diagrammed.md](resources/flavours-diagrammed.md)
 - Machine-readable layouts in general, adoption triggers, output shape and gotchas: [resources/structured_siblings.md](resources/structured_siblings.md)
 - Research citations and counter-evidence (dated): [resources/evidence.md](resources/evidence.md)
 
@@ -137,5 +157,5 @@ Index writes only generated artifacts.
 
 ## For maintainers
 
-Design rationale, decision log, and extension checklist: [CLAUDE.md](CLAUDE.md).
+Design rationale, decision log, and extension checklist: [AGENTS.md](AGENTS.md).
 Every mode and argument permutation, diagrammed: [ARCHITECTURE.md](ARCHITECTURE.md).

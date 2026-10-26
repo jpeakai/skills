@@ -14,6 +14,23 @@ The showcase exercises the full visual surface in one animated tour.
 
 ```mermaid
 flowchart LR
+    S["Repositories and documents"]:::input --> M["Source-backed Markdown"]:::process
+    M --> H["HTML companion"]:::process
+    H --> L["Live local viewer"]:::output
+    H --> I["Single-file viewer"]:::output
+    classDef input fill:#1e40af,stroke:#93c5fd,color:#fff,stroke-width:2px
+    classDef process fill:#6d28d9,stroke:#c4b5fd,color:#fff,stroke-width:2px
+    classDef output fill:#047857,stroke:#6ee7b7,color:#fff,stroke-width:2px
+    classDef rule fill:#334155,stroke:#cbd5e1,color:#fff,stroke-width:2px
+```
+
+Editable Markdown remains the source; live and inline HTML provide two viewing modes.
+
+<details>
+<summary>Complete workflow and supporting components</summary>
+
+```mermaid
+flowchart LR
     subgraph inputs["Inputs"]
         MD["DOC.md<br/>(committed)"]
         DATA["data/*.json<br/>(generated)"]
@@ -39,12 +56,14 @@ flowchart LR
     SVG --> HTML
 
     classDef src fill:#e2e8f0,stroke:#475569,color:#1e293b
-    classDef tool fill:#1e293b,stroke:#0f172a,color:#f8fafc
+    classDef tool fill:#1e293b,stroke:#cbd5e1,color:#f8fafc
     classDef output fill:#dbeafe,stroke:#1d4ed8,color:#1e3a8a
     class MD,DATA,TOK,ZIP src
     class M2H,ST,SRV tool
     class HTML,SVG,BROWSER output
 ```
+
+</details>
 
 ## Quickstart
 
@@ -113,5 +132,5 @@ external data file at refresh time. See `resources/rich-blocks.md`.
 
 ## For maintainers
 
-Design rationale, ADR log, and gotchas: [`CLAUDE.md`](CLAUDE.md). Dev loop:
+Design rationale, ADR log, and gotchas: [`AGENTS.md`](AGENTS.md). Dev loop:
 `make -C .claude/skills/richdocs/scripts fix ci`.

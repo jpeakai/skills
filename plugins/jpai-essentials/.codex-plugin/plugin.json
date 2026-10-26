@@ -1,7 +1,7 @@
 {
   "name": "jpai-essentials",
-  "version": "0.14.1",
-  "description": "Documentation and diagramming essentials from jpeak.ai: doc organisation (librarian), decision records (adr), doc auditing and authoring (gooddocs), Mermaid rendering with WCAG contrast gates (mermaidjs-diagrams), discovery documents and rich HTML companions (richdocs), single-question decisions (concise-decisions), ticketing conventions from TICKETING.md (tickety-boo), and de-branding docs to generic placeholders (agnostic). Ships the PreToolUse working-agreements coaching hook.",
+  "version": "0.15.0",
+  "description": "Documentation and delivery essentials from jpeak.ai: doc organisation (librarian), decision records (adr), doc quality (gooddocs), Mermaid QA (mermaidjs-diagrams), discovery and HTML companions (richdocs), decisions (concise-decisions), ticketing (tickety-boo), generic docs (agnostic), and Signal/Noise filtering of code review results (snr-pr). Ships the PreToolUse working-agreements coaching hook.",
   "author": {
     "name": "jpeak.ai",
     "url": "https://github.com/jpeakai"
@@ -14,8 +14,8 @@
   "hooks": "./hooks/hooks.json",
   "interface": {
     "displayName": "jpeak.ai Essentials",
-    "shortDescription": "Docs organisation, docs quality, Mermaid QA, systems discovery, decision triage",
-    "longDescription": "The documentation and diagramming half of the jpeak.ai skill set. librarian shelves a repo's documents so the canonical set exists and every doc sits where its content says it belongs. gooddocs keeps docs true (audit against the code), great (write and improve) and navigable (restructure). mermaidjs-diagrams renders and analyses Mermaid diagrams, enforcing visual complexity limits and WCAG colour contrast. richdocs authors source-backed systems discovery guides and generates interactive HTML companions with a vendored draw.io stencil library. concise-decisions consolidates accumulated ambiguities into one fully-briefed decision question, self-answering from existing decision records first. agnostic keeps documentation generic by renaming project-specific names to open-source-style placeholders. A PreToolUse hook turns blocked tool calls into coaching redirects. Every skill is mirrored from the canonical skills/ tree by scripts/sync_plugins.py, so a pack can never drift from the copy it was built from.",
+    "shortDescription": "Docs, Mermaid QA, systems discovery, decisions and review feedback filtering",
+    "longDescription": "The documentation and diagramming half of the jpeak.ai skill set. librarian shelves a repo's documents so the canonical set exists and every doc sits where its content says it belongs. gooddocs keeps docs true (audit against the code), great (write and improve) and navigable (restructure). mermaidjs-diagrams renders and analyses Mermaid diagrams, enforcing visual complexity limits and WCAG colour contrast. richdocs authors source-backed systems discovery guides and generates interactive HTML companions with a vendored draw.io stencil library. concise-decisions consolidates accumulated ambiguities into one fully-briefed decision question, self-answering from existing decision records first. agnostic keeps documentation generic by renaming project-specific names to open-source-style placeholders. snr-pr filters code review results into Signal and Noise, improving review filters and preventing recurring problem categories. A PreToolUse hook turns blocked tool calls into coaching redirects. Every skill is mirrored from the canonical skills/ tree by scripts/sync_plugins.py, so a pack can never drift from the copy it was built from.",
     "developerName": "jpeak.ai",
     "category": "Developer Tools",
     "capabilities": ["documentation", "adr", "mermaid", "diagrams", "decisions", "hooks"]

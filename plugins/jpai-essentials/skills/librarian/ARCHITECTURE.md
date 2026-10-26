@@ -4,17 +4,6 @@ How one `/librarian` invocation expands into work.
 Each lens below has an overview that stays visible and a detailed reference you can expand.
 The last section lists the permutation axes and the eval scenario that covers each one.
 
-Colour key, shared by every diagram:
-
-| Colour | Kind |
-|---|---|
-| Blue | Invocation and arguments |
-| Violet | Authority and decisions |
-| Green | Pipeline steps |
-| Slate | Skill resources and scripts |
-| Amber | Artifacts written or reported |
-| Red | Forbidden outcomes |
-
 ## 1. Mode dispatch
 
 Every mode runs Step 0 first, then branches on the first argument.
@@ -472,4 +461,4 @@ flowchart LR
 ## 7. Permutations
 
 The skill expands along mode, argument, dialect rung, repo state and index trigger.
-No eval suite runs these combinations (ADR-29 in [CLAUDE.md](CLAUDE.md)); the scripts' tests cover the deterministic parts.
+No eval suite runs these combinations (ADR-29 in [AGENTS.md](AGENTS.md)); the scripts' tests cover the deterministic parts.

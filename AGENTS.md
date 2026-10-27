@@ -21,6 +21,7 @@
   Keep each plugin's Claude and Codex manifests consistent.
 - Preserve `skills/richdocs/vendor/` as an upstream-owned snapshot.
   Refresh it through the documented procedure rather than patching individual files.
+- Keep `evals/` only in canonical skills; exclude it from vendor snapshots and plugin output.
 - Every authored `AGENTS.md` has a regular sibling `CLAUDE.md` containing only `@AGENTS.md`.
   Preserve existing instructions and accepted decision arguments when moving agent files.
 - Every canonical skill has a concise human overview in `README.md`.

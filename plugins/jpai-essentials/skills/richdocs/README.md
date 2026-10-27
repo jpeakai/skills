@@ -81,12 +81,6 @@ The Markdown remains editable in every mode. See
 [`resources/upgrade-recipes.md`](resources/upgrade-recipes.md) covers existing
 documents.
 
-Use `pr-review` with a GitHub PR to focus on files remaining for the authenticated
-viewer, including files changed since last viewed.
-Request the whole PR to include every file.
-GitHub file state and the companion's page-only section controls are separate.
-See [change documents](resources/change-documents.md) for the workflow.
-
 **Direct scripts (from repo root, never `cd`):**
 
 ```bash

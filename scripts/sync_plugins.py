@@ -53,13 +53,13 @@ COMPOSITION = REPO / "plugins" / "composition.yaml"
 # config without following symlinks.
 HOOK_FILES = ["hooks.json", "tool_coach.py", "tool_coach_rules.json", "README.md"]
 
-# Build artefacts that appear inside a canonical skill tree but must never be
+# Development files that appear inside a canonical skill tree but must never be
 # mirrored into a pack. Several skills ship their own script directories with a
 # package.json or a PEP-723 environment, so running their gates materialises
 # node_modules and friends next to the source. Copying those would bloat the
 # published plugin and make the mirror non-idempotent: the tree would differ
 # again the moment anyone ran a gate.
-IGNORED = {"node_modules", "__pycache__", ".venv", ".mmdc_cache", ".pytest_cache", ".ruff_cache"}
+IGNORED = {"node_modules", "__pycache__", ".venv", ".mmdc_cache", ".pytest_cache", ".ruff_cache", "evals"}
 
 
 def is_ignored(rel: Path) -> bool:
@@ -86,6 +86,9 @@ def tree_differs(src: Path, dst: Path) -> list[str]:
     if not dst.exists():
         return [f"{dst.relative_to(REPO)} missing"]
     diffs: list[str] = []
+    for path in sorted(dst.rglob("evals")):
+        if path.is_dir():
+            diffs.append(f"{path.relative_to(REPO)} must not be published")
     src_files = {r for p in src.rglob("*") if p.is_file() and not is_ignored(r := p.relative_to(src))}
     dst_files = {r for p in dst.rglob("*") if p.is_file() and not is_ignored(r := p.relative_to(dst))}
     for missing in sorted(src_files - dst_files):

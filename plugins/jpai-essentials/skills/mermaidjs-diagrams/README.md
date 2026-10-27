@@ -4,10 +4,6 @@ Render and maintain Mermaid.JS diagrams with **visual-clarity enforcement**.
 
 ## Features
 
-- **PR review companions** default to GitHub files remaining to be reviewed by
-  the authenticated viewer, including files changed since last viewed.
-  See the [PR Review contract](resources/document-types/pr-review.md) for scope
-  overrides, state queries, and coverage rules.
 - **Render** `.md` files containing Mermaid code fences to PNG. Two
   variants by default, dark+transparent and default+white, because a diagram
   has to read on a dark host and a light host and one image cannot do both.

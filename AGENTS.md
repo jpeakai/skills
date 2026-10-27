@@ -27,6 +27,8 @@
 - Every canonical skill has a concise human overview in `README.md`.
   Include an always-visible Mermaid overview and a more detailed diagram inside `<details>`.
   Keep README guidance distinct from the runtime instructions in `SKILL.md`.
+- Every `plugins/<name>/README.md` follows the same overview and diagram format.
+  Maintain it alongside plugin composition and link to its included skill READMEs.
 - Keep examples generic under the [agnostic skill](skills/agnostic/SKILL.md).
   Do not add client names, private repository paths or extraction history to maintained documentation.
 

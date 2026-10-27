@@ -1,13 +1,14 @@
 # plugins/
 
 Installable packs, grouped by the job they do.
-Everything here is **generated** from the canonical trees at the repo root.
+Skill and hook copies are generated from the canonical trees at the repo root.
+Plugin READMEs and manifests are maintained here.
 See [Editing](#editing) before changing a file in this directory.
 
 | Plugin | Skills | Hook |
 |---|---|---|
-| [`jpai-essentials`](jpai-essentials) | `librarian`, `adr`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `concise-decisions`, `agnostic`, `tickety-boo`, `snr-pr` | yes |
-| [`jpai-delivery`](jpai-delivery) | `snr-pr`, `concise-decisions`, `tickety-boo` | no |
+| [`jpai-essentials`](jpai-essentials/README.md) | `librarian`, `adr`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `concise-decisions`, `agnostic`, `tickety-boo`, `snr-pr` | yes |
+| [`jpai-delivery`](jpai-delivery/README.md) | `snr-pr`, `concise-decisions`, `tickety-boo` | no |
 
 The decision, review-feedback and ticketing skills are in both packs deliberately.
 Each supports documentation and delivery work.
@@ -128,6 +129,7 @@ The cost is working-tree disk, not history.
 | Change a skill | `../skills/<name>/` | `make fix` |
 | Change the hook | `../hooks/` | `make fix` |
 | Add or remove a skill from a pack | [`composition.yaml`](composition.yaml) | `make fix` |
+| Update a plugin overview | that pack's `README.md` | `make docs-ci` |
 | Change a pack's name, version or blurb | that pack's two `plugin.json` files | `make ci` |
 
 Each pack carries two manifests, one per ecosystem:

@@ -7,6 +7,15 @@ or [Plan](../vendor/mermaidjs-diagrams/resources/document-types/plan.md) contrac
 Curate evidence before writing. Conversion does not infer groups, produce
 diagrams, or detect keywords. `data-model` and `event-flow` select extra lenses.
 
+For a GitHub `pr-review`, follow the contract's paginated `gh api graphql`
+query before authoring. Default to `UNVIEWED` and `DISMISSED` files for the
+authenticated viewer; disclose unknown states and include those files too.
+Viewed prerequisites appear as context in the relevant section's file list.
+Other viewed files appear in the collapsed **Already viewed** list after the
+change sections. Explicit full-PR requests override the default.
+For local diffs or unavailable state, cover the full diff and disclose the limit.
+This scope rule applies to `pr-review`; `plan` keeps its proposed-change scope.
+
 Each change section starts with its own **Related files** list, sorted by
 filepath. Keep those lists beside the behavior they explain, rather than in an
 upfront coverage table. Use language-tagged fences (`javascript`, `typescript`, `diff`,
@@ -27,6 +36,10 @@ Review state lives only in page memory. Refresh, new tabs, and regenerated pages
 start unreviewed. Theme changes and navigation retain state in the current page.
 Print includes folded content and hides controls. Sidebar-layout preferences
 are separate from review state.
+GitHub file viewed state is an authoring snapshot recorded in the Markdown.
+It does not initialise section controls or update when those controls are used.
+Re-query GitHub and update the Markdown before regenerating the companion.
+Only change GitHub viewed state on an explicit user request.
 
 Run `bunx @jpeakai/mermaidjs-lint@0.7.0` (parse, complexity and contrast,
 sequence diagrams included) before `md2html.py`, as shown in the SKILL.md

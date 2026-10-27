@@ -18,6 +18,7 @@ plugins:
   # Documentation and diagramming. The pack most repos want.
   jpai-essentials:
     skills:
+      - adr                  # set up, migrate, render and audit decision records
       - agnostic             # de-brand docs to generic placeholders
       - concise-decisions    # consolidate ambiguities into one briefed question
       - design-profiles      # curate one brand profile that paints every surface
@@ -25,16 +26,18 @@ plugins:
       - librarian            # shelve docs into the canonical document set
       - mermaidjs-diagrams   # render + WCAG-contrast-check Mermaid diagrams
       - richdocs             # interactive HTML companions to markdown
+      - snr-pr               # filter review results into Signal and Noise; prevent recurrence
+      - tickety-boo          # follow a repo's TICKETING.md for tickets, WIP and cleanup
     hooks: true
 
-  # Delivery planning. Smaller and more specialised.
+  # Delivery workflow. Smaller and more specialised.
   jpai-delivery:
     skills:
-      # Deliberately also in jpai-essentials: it is the surface plan-gap asks
-      # its decision questions through, and it stands alone for docs work.
+      # All also appear in jpai-essentials: each stands alone.
+      - snr-pr
       # Installing both packs is fine — each harness namespaces by plugin.
       - concise-decisions
-      - plan-gap             # gap analysis as a tiered, measurable spec
+      - tickety-boo
     hooks: false
 
 # Not in any pack: `cli`. It stays canonical in ../skills/cli and is installed

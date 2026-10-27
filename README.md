@@ -3,12 +3,14 @@
 Agent skills published by [jpeak.ai](https://github.com/jpeakai).
 Each directory under `skills/` is one skill: a `SKILL.md` carrying YAML frontmatter, plus whatever resources, scripts and templates it needs.
 
+Contributors: see [CONTRIBUTING.md](CONTRIBUTING.md), [documentation conventions](docs/CONVENTIONS.md), the [glossary](GLOSSARY.md), and the [repository decisions](adrs/index.md).
+
 The skills are published as two installable plugins, so you take the pack you want rather than all of them:
 
 | Plugin | For | Contains |
 |---|---|---|
-| [`jpai-essentials`](plugins/jpai-essentials) | Documentation and diagrams | `librarian`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `design-profiles`, `concise-decisions`, `agnostic` |
-| [`jpai-delivery`](plugins/jpai-delivery) | Delivery planning | `plan-gap`, `concise-decisions` |
+| [`jpai-essentials`](plugins/jpai-essentials) | Documentation and diagrams | `librarian`, `adr`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `design-profiles`, `concise-decisions`, `agnostic`, `tickety-boo`, `snr-pr` |
+| [`jpai-delivery`](plugins/jpai-delivery) | Review feedback, decisions and ticketing | `snr-pr`, `concise-decisions`, `tickety-boo` |
 
 `jpai-essentials` ships the `tool_coach` PreToolUse hook.
 
@@ -35,8 +37,7 @@ claude plugin update jpai-essentials@jpeakai
 claude plugin update jpai-delivery@jpeakai
 ```
 
-An update applies on restart, so start a new session afterwards.
-`claude plugin list` shows the version each pack is on.
+An update applies on restart, so start a new session afterwards. `claude plugin list` shows the version each pack is on.
 
 ### Codex
 
@@ -57,22 +58,21 @@ codex plugin add jpai-delivery@jpeakai
 ```
 
 Codex has no update command, because it caches each version of a plugin in its own directory.
-Adding a pack again installs the version the refreshed snapshot now carries.
-`codex plugin list` shows the version each pack is on.
+Adding a pack again installs the version the refreshed snapshot now carries. `codex plugin list` shows the version each pack is on.
 
 ### npx skills
 
 [`npx skills`](https://github.com/vercel-labs/skills) treats any GitHub repo as the registry, and installs skills into whichever agents it finds.
 
 ```sh
-npx skills add jpeakai/skills --list              # the eight skills, nothing installed
+npx skills add jpeakai/skills --list              # list available skills, nothing installed
 npx skills add jpeakai/skills --skill librarian
 npx skills add jpeakai/skills --skill '*' --global
 ```
 
 It resolves the canonical `skills/` tree rather than the packs, so it reaches `cli` but brings no hook.
 Skills land in the current project unless `--global` sends them to your user directory.
-Afterwards `npx skills list`, `update` and `remove` manage what it installed.
+Afterwards use the list, update and remove subcommands to manage installed skills.
 
 ### apm
 
@@ -105,15 +105,17 @@ ln -s "$PWD/skills/librarian" ~/.claude/skills/librarian
 
 | Skill | Pack | What it does |
 |---|---|---|
+| [`adr`](skills/adr) | essentials | Sets up, migrates, renders and audits architecture decision records, with a compliance audit that exits non-zero so it can gate CI |
 | [`agnostic`](skills/agnostic) | essentials | Keeps documentation generic by renaming project-, client- or company-specific names to open-source-style placeholders |
+| [`snr-pr`](skills/snr-pr) | both | Filters code review results into Signal and Noise, improving review filters and preventing recurring problem categories |
 | [`cli`](skills/cli) | none | Playbook for building project-local developer CLIs and the assets they generate: static HTML viewers, workflow templates, stencil diagrams, sticky PR comments |
 | [`concise-decisions`](skills/concise-decisions) | both | Consolidates accumulated ambiguities into a single highest-leverage decision question, answering first from existing decision records |
 | [`design-profiles`](skills/design-profiles) | essentials | Curates one brand design profile (seed, IR, DTCG tokens) that paints every surface richdocs and mermaidjs-diagrams render, in light and dark |
 | [`gooddocs`](skills/gooddocs) | essentials | Documentation quality in three modes: audit docs against the reality of the code, write or improve them, or restructure one for readability |
 | [`librarian`](skills/librarian) | essentials | Repo documentation organisation: ensures the canonical document set exists and every doc lives where its content says it belongs |
 | [`mermaidjs-diagrams`](skills/mermaidjs-diagrams) | essentials | Renders and analyses Mermaid diagrams in markdown, enforcing visual complexity limits and WCAG colour-contrast requirements |
-| [`plan-gap`](skills/plan-gap) | delivery | Gap analysis planning: iteratively refines a tiered spec covering execution plan, gaps, decisions, and success and negative measures |
 | [`richdocs`](skills/richdocs) | essentials | Source-backed systems discovery in Markdown, live HTML, or inline HTML; rich companions for existing documents |
+| [`tickety-boo`](skills/tickety-boo) | both | Follows a repo's `TICKETING.md` to create tickets, report the current user's work in progress, and clean up finished work |
 
 ## Layout
 
@@ -123,7 +125,7 @@ The packs under `plugins/` are **generated** from them.
 
 ```mermaid
 flowchart LR
-    SK["skills/<br/>9 canonical skills"]:::src
+    SK["skills/<br/>canonical skills"]:::src
     HK["hooks/<br/>tool_coach"]:::src
     CF["composition.yaml<br/>the grouping"]:::cfg
     SY["sync_plugins.py"]:::proc
@@ -157,14 +159,16 @@ flowchart LR
 ```mermaid
 flowchart TB
     subgraph canon["Canonical source — edit here"]
+        AD[adr]:::src
         AG[agnostic]:::src
+        BP[snr-pr]:::src
         CD[concise-decisions]:::src
         DP[design-profiles]:::src
         GD[gooddocs]:::src
         LB[librarian]:::src
         MD[mermaidjs-diagrams]:::src
         RD[richdocs]:::src
-        PG[plan-gap]:::src
+        TB[tickety-boo]:::src
         CLI["cli<br/>in no pack"]:::orphan
         TC["hooks/tool_coach.py"]:::src
         HJ["hooks/hooks.json"]:::src
@@ -176,8 +180,8 @@ flowchart TB
     TH["scripts/test_harness_install.sh"]:::gate
 
     subgraph packs["Generated packs — never edit"]
-        ES["jpai-essentials<br/>7 skills + hook"]:::pack
-        DL["jpai-delivery<br/>2 skills + hook"]:::pack
+        ES["jpai-essentials<br/>skills + hook"]:::pack
+        DL["jpai-delivery<br/>delivery skills"]:::pack
     end
 
     subgraph mkt["Marketplace manifests"]
@@ -188,8 +192,7 @@ flowchart TB
     CC["Claude Code"]:::host
     CX["Codex"]:::host
 
-    AG & CD & DP & GD & LB & MD & RD --> SY
-    PG --> SY
+    AD & AG & BP & CD & DP & GD & LB & MD & RD & TB --> SY
     TC & HJ --> SY
     CF --> SY
     SY --> ES
@@ -209,7 +212,8 @@ flowchart TB
     classDef host   fill:#334155,stroke:#cbd5e1,color:#ffffff,stroke-width:2px
 ```
 
-`cli` sits in the canonical tree with no edge out: it is installed manually. `concise-decisions` is the one skill that flows into both packs.
+The CLI skill stays in the canonical tree for manual installation.
+Both packs include the decision, review-feedback and ticketing skills.
 
 </details>
 
@@ -238,7 +242,7 @@ make harness-ci   # install both packs into throwaway Claude and Codex sandboxes
 ```
 
 A skill opts into its own script gate by shipping `scripts/Makefile` with a `ci` target, and `make skills-ci` discovers it.
-Four of the eight do; the other four have no `scripts/` at all, so there is nothing to opt in and no exemption to record.
+Skills without a script gate need no exemption entry.
 The discovery glob is one level deep, which keeps a vendored copy's gate out: that copy is read-only and its upstream is already gated here.
 
 Dependencies split by what ships.
@@ -252,9 +256,7 @@ Those execute on a machine that has never seen this repo, so a shared manifest w
 [`tests/test_publication_contract.py`](tests/test_publication_contract.py) asserts what a marketplace enforces when this repo is published, parametrised over every skill so a new one is covered without touching the file.
 
 Every rule in it came from a real failed or warned sync, and each names the incident.
-It exists because nothing else available locally catches these.
-`claude plugin validate --strict` passes on a tree that fails the sync.
-`make harness-ci` installs both packs happily while the tree is in breach, and the published marketplace schema declares no length limit at all.
+It exists because nothing else available locally catches these. `claude plugin validate --strict` passes on a tree that fails the sync. `make harness-ci` installs both packs happily while the tree is in breach, and the published marketplace schema declares no length limit at all.
 So the description caps it checks are observed rather than documented, and the sync's own wording is quoted beside each one.
 
 ```sh
@@ -279,4 +281,5 @@ uv run pytest hooks/test_tool_coach.py
 
 ## Licence
 
-MIT. See [LICENSE](LICENSE).
+MIT.
+See [LICENSE](LICENSE).

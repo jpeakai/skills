@@ -1,8 +1,15 @@
-.PHONY: fix ci skills-ci docs-ci harness-ci
+.PHONY: fix ci skills-ci docs-ci harness-ci adrs adr-ci
 
 # Regenerate everything that is generated. Safe to run at any time.
 fix:
 	uv run scripts/sync_plugins.py
+	$(MAKE) adrs
+
+adrs:
+	uv run --no-project adrs/okf_render.py adrs
+
+adr-ci:
+	uv run --no-project skills/adr/scripts/adr_audit.py .
 
 # Assert the tree is clean after a regenerate: a generated file that differs
 # means someone hand-edited a pack, or edited a canonical skill without
@@ -21,6 +28,8 @@ ci: fix
 		exit 1; }
 	uv run scripts/validate_plugins.py
 	uv run pytest
+	$(MAKE) adr-ci
+	$(MAKE) docs-ci
 	$(MAKE) skills-ci
 	@test -z "$$(git status --porcelain)" || { \
 		git status --short; \
@@ -51,11 +60,11 @@ skills-ci:
 		$(MAKE) -C "$$d" ci || exit 1; \
 	done
 
-# The authored markdown. Everything under skills/ is a skill's own
-# documentation, vendored or upstream-owned, and plugins/*/hooks/README.md is a
-# generated mirror of hooks/README.md - gating either would report the same
-# finding twice, or report one this repo cannot fix.
-DOCS := README.md plugins/README.md hooks/README.md $(wildcard rules/*.md)
+# Gate root documentation and canonical skill README diagrams once.
+# Plugin mirrors and vendored references remain outside the authored corpus.
+DOCS := README.md CONTRIBUTING.md CODING_STANDARDS.md GLOSSARY.md AGENTS.md \
+        docs/CONVENTIONS.md plugins/README.md hooks/README.md $(wildcard rules/*.md)
+SKILL_READMES := $(wildcard skills/*/README.md)
 
 # The prose gate and the diagram gate are both published packages,
 # @jpeakai/prose-gates and @jpeakai/mermaidjs-lint, deliberately unpinned: the
@@ -69,7 +78,7 @@ MERMAID_GATES := @jpeakai/mermaidjs-lint@latest
 
 docs-ci:
 	bunx $(PROSE_GATES) $(DOCS)
-	bunx $(MERMAID_GATES) $(DOCS)
+	bunx $(MERMAID_GATES) $(DOCS) $(SKILL_READMES)
 
 # The real install test: clones HEAD and installs both packs into throwaway
 # Claude and Codex sandboxes. Kept out of `ci` because it drives two external

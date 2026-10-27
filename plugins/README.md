@@ -6,10 +6,11 @@ See [Editing](#editing) before changing a file in this directory.
 
 | Plugin | Skills | Hook |
 |---|---|---|
-| [`jpai-essentials`](jpai-essentials) | `librarian`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `design-profiles`, `concise-decisions`, `agnostic` | yes |
-| [`jpai-delivery`](jpai-delivery) | `plan-gap`, `concise-decisions` | no |
+| [`jpai-essentials`](jpai-essentials) | `librarian`, `adr`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `design-profiles`, `concise-decisions`, `agnostic`, `tickety-boo`, `snr-pr` | yes |
+| [`jpai-delivery`](jpai-delivery) | `snr-pr`, `concise-decisions`, `tickety-boo` | no |
 
-`concise-decisions` is in both packs deliberately: it is the decision surface `plan-gap` asks its questions through, and it stands alone for documentation work.
+The decision, review-feedback and ticketing skills are in both packs deliberately.
+Each supports documentation and delivery work.
 Installing both packs is fine: each harness namespaces skills by plugin.
 
 The `cli` skill is not in either pack.
@@ -107,19 +108,14 @@ Nothing errors on any surface.
 So the packs hold real files.
 The duplication is cheaper than it looks: git stores content addressed by hash, so every mirrored copy collapses onto the same object.
 Mirroring all eight skill trees left `.git` *smaller* than before.
-Five paths now carry `concise-decisions/SKILL.md`, and all five share one blob:
+Three paths now carry `concise-decisions/SKILL.md`, and all three share one blob:
 
 ```
 $ git ls-files -s '*concise-decisions/SKILL.md'
 100644 08fb9432e72f5928d31a232b36169834c49d03ff 0  plugins/jpai-delivery/skills/concise-decisions/SKILL.md
-100644 08fb9432e72f5928d31a232b36169834c49d03ff 0  plugins/jpai-delivery/skills/plan-gap/vendor/concise-decisions/SKILL.md
 100644 08fb9432e72f5928d31a232b36169834c49d03ff 0  plugins/jpai-essentials/skills/concise-decisions/SKILL.md
 100644 08fb9432e72f5928d31a232b36169834c49d03ff 0  skills/concise-decisions/SKILL.md
-100644 08fb9432e72f5928d31a232b36169834c49d03ff 0  skills/plan-gap/vendor/concise-decisions/SKILL.md
 ```
-
-Two of those five are `plan-gap`'s own vendored copy, which predates the packs.
-They cost nothing either, for the same reason.
 
 The cost is working-tree disk, not history.
 

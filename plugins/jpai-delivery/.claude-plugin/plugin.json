@@ -1,8 +1,8 @@
 {
   "name": "jpai-delivery",
   "displayName": "jpeak.ai Delivery",
-  "version": "0.3.0",
-  "description": "Delivery planning from jpeak.ai: gap-analysis planning that iteratively refines a tiered spec covering execution plan, gaps, decisions, and success and negative measures (plan-gap), paired with single-question decision consolidation that self-answers from existing decision records before asking (concise-decisions).",
+  "version": "0.5.0",
+  "description": "Delivery workflow from jpeak.ai: PR review feedback filtering and category-level prevention (snr-pr), single-question decision consolidation that self-answers from existing decision records before asking (concise-decisions), and ticketing that follows a repo's own TICKETING.md for tickets, work in progress and cleanup (tickety-boo).",
   "author": {
     "name": "jpeak.ai",
     "url": "https://github.com/jpeakai"
@@ -11,10 +11,9 @@
   "repository": "https://github.com/jpeakai/skills",
   "license": "MIT",
   "keywords": [
-    "planning",
-    "gap-analysis",
     "decisions",
     "adr",
+    "ticketing",
     "delivery"
   ]
 }

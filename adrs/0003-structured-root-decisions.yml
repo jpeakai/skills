@@ -1,0 +1,34 @@
+id: ADR-0003
+slug: structured-root-decisions
+title: Declare standard documentation and render root decisions from YAML
+description: Standard documentation dialect with a generated root decision bundle
+plan_id:
+status: accepted
+accepted_on: '2026-10-26'
+last_changed_on: '2026-10-26'
+tags:
+- documentation
+group: repository-conventions
+provenance: Explicit maintainer requirements for repository agent files, skill overviews and documentation
+  conventions.
+enforced_in:
+- docs/CONVENTIONS.md
+- adrs/record.schema.json
+- adrs/templates/
+- Makefile
+relates_to: []
+decision:
+  given: Repository guidance needs a declared layout and a root decision surface while existing skill logs
+    remain scoped.
+  we_prefer: standard documentation conventions and an okf-yaml bundle in adrs/ over an undeclared layout and
+    hand-maintained decision views
+  because: schema validation and generated views keep root records, their index and their relation graph
+    consistent
+  unless: the maintainer requests another layout and an explicit migration preserves accepted decision
+    arguments
+consequences:
+  pros:
+  - Root decisions are schema-validated and rendered consistently.
+  - The root index routes readers to existing scoped decisions.
+  cons:
+  - The root bundle carries a renderer and templates that require maintenance.

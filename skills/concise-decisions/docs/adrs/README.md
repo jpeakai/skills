@@ -1,7 +1,7 @@
 # concise-decisions — ADR log
 
 The decision record for this skill, one file per decision (`NNNN-short-name.md`, four digits so lexical sort is
-chronological). Parent: [CLAUDE.md](../../CLAUDE.md), which owns the dev contract, file map, principles, extension
+chronological). Parent: [AGENTS.md](../../AGENTS.md), which owns the dev contract, file map, principles, extension
 checklist, and gotchas.
 
 **None of this is loaded at runtime.** `SKILL.md` and `resources/` are the only runtime authority (ADR-0018). These

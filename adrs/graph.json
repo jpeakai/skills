@@ -1,0 +1,54 @@
+{
+  "elements": [
+    {
+      "data": {
+        "id": "group-repository-conventions",
+        "label": "repository-conventions",
+        "colour": "#6366f1"
+      }
+    },
+    {
+      "data": {
+        "id": "ADR-0001",
+        "label": "0001",
+        "parent": "group-repository-conventions",
+        "colour": "#6366f1",
+        "file": "0001-canonical-agent-instructions.md",
+        "title": "Keep agent instructions canonical in AGENTS.md",
+        "description": "One instruction source shared by agent harnesses",
+        "status": "accepted",
+        "tags": "documentation"
+      }
+    },
+    {
+      "data": {
+        "id": "ADR-0002",
+        "label": "0002",
+        "parent": "group-repository-conventions",
+        "colour": "#6366f1",
+        "file": "0002-human-skill-overviews.md",
+        "title": "Give every canonical skill a dual-density human overview",
+        "description": "Human entry points separate from runtime skill instructions",
+        "status": "accepted",
+        "tags": "documentation"
+      }
+    },
+    {
+      "data": {
+        "id": "ADR-0003",
+        "label": "0003",
+        "parent": "group-repository-conventions",
+        "colour": "#6366f1",
+        "file": "0003-structured-root-decisions.md",
+        "title": "Declare standard documentation and render root decisions from YAML",
+        "description": "Standard documentation dialect with a generated root decision bundle",
+        "status": "accepted",
+        "tags": "documentation"
+      }
+    }
+  ],
+  "layout": {
+    "name": "cose"
+  },
+  "height": 620
+}

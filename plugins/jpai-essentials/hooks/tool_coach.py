@@ -34,6 +34,15 @@ Two kinds of check, in this order:
    injection, the timeout binary. Edit
    that file to add a rule; no code change needed.
 
+Every denial opens with the rule it applied and the exact command text or path
+that tripped it. Python rules and out-of-project paths also append the
+*preflight*: one complete project-local setup (tmp/ plus the Bun, uv and npm
+caches under node_modules/.cache/), the named-file Python recipe, and the
+effective cache paths. A model that fixes only the restriction it was told
+about hits the next one a turn later, so the first relevant denial says
+everything. The hook is stateless, so "first" means every such denial carries
+it; repeating a block costs less than a worker that never saw it.
+
 Heredoc bodies are stripped before every command check. A heredoc body is data
 being written, not a command being run, so scanning it produces pure false
 positives: writing a *document about* a blocked command would otherwise be
@@ -100,6 +109,27 @@ OTHER_LABEL = re.compile(r"^\s*Other\b", re.IGNORECASE)
 
 HEREDOC_START = re.compile(r"<<-?\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1")
 
+# Disposable package caches the preflight redirects into the project, under the
+# ignored node_modules/.cache/ so they stay apart from the auditable scratch in
+# tmp/. One variable per tool: Bun needs TMPDIR as well as its install cache,
+# UV_CACHE_DIR also holds uvx's throwaway tool environments, and npx reads npm's
+# configuration. npm's variable is lowercase on purpose: npm lifecycle scripts
+# set lowercase npm_config_* themselves, which would win over an uppercase one.
+CACHE_ENV = {
+    "TMPDIR": "node_modules/.cache/tmp",
+    "BUN_INSTALL_CACHE_DIR": "node_modules/.cache/bun",
+    "UV_CACHE_DIR": "node_modules/.cache/uv",
+    "npm_config_cache": "node_modules/.cache/npm",
+}
+
+# Only for workflows that install managed tools or Pythons with uv. Running a
+# package with uvx needs none of these.
+PERSISTENT_ENV = {
+    "UV_TOOL_DIR": "node_modules/.cache/uv-tools",
+    "UV_TOOL_BIN_DIR": "node_modules/.cache/uv-tool-bin",
+    "UV_PYTHON_INSTALL_DIR": "node_modules/.cache/uv-python",
+}
+
 DELETE_GUIDANCE = """\
 Deleting is not allowed in this project. Never remove a file; move it aside so it stays auditable.
 
@@ -151,6 +181,42 @@ The rules, and why each one matters:
     - A preview on EVERY option, including `Other:`. The preview pane is what exposes the notes field, so the user can pick an option and "yes, and..." it with their reasoning. An option without a preview cannot carry notes.
 
 Ask the questions you dropped in later turns, after this answer is in."""
+
+PREFLIGHT_GUIDANCE = """\
+Before retrying any Python or package-manager command, run this setup. Every path is absolute under the project root, {root}, so it works from any directory:
+
+{setup}
+
+Check what the tools will actually use (each prints a path, never a credential):
+
+    bun pm cache
+    uv cache dir
+    npm config get cache
+
+The same variables as this hook's process sees them now:
+
+{diagnostics}
+
+Python:
+    - Save the code to a named file under tmp/ with the file-writing tool, then run it with `uv run --no-project tmp/<task-name>.py`.
+    - Direct python/python3, inline -c, Python code on stdin and `uv run -` stay blocked. A heredoc of DATA fed to a script file is fine; a heredoc of CODE is not.
+    - Moving a script into tmp/ does not redirect its interpreter or its tool caches. The exports above do.
+
+Where things go:
+    - Inspectable scripts, inputs and outputs go in tmp/. Disposable package caches go in node_modules/.cache/.
+    - No system-temp or home-directory caches for task writes. A path the sandbox lets you write is still outside the project.
+    - An explicit CLI argument (--cache, --cache-dir, --tmpdir) overrides these variables. Replace an out-of-project argument rather than only exporting.
+
+Scope:
+    - Exports last for this shell and its children. A fresh tool shell may not inherit them, so re-run the setup in every fresh shell, or set the variables in the session or launcher environment.
+    - Give any worker or subagent this same setup before its first package-manager command.
+
+Optional, only for installing managed uv tools or Pythons (not needed for uvx):
+
+{persistent}
+
+If cleanup is blocked, move the path under tmp/_archived/<reason>/ instead of deleting it.
+Do not replace HOME or CODEX_HOME, disable the hooks, or route around their checks."""
 
 
 # -- Hook I/O -------------------------------------------------------------
@@ -207,11 +273,19 @@ def load_rules(rules_path: Path) -> list[dict]:
     return rules
 
 
-def match_rule(command: str, rules: list[dict]) -> dict | None:
-    """The first pattern rule this command trips, or None. Order matters."""
+def match_rule(command: str, rules: list[dict]) -> tuple[dict, str, str] | None:
+    """The first pattern rule this command trips, or None. Order matters.
+
+    Returns the rule, the text its pattern matched, and the whole command line
+    that text sits on, so the denial can quote exactly what to change.
+    """
     for rule in rules:
-        if rule["_compiled"].search(command):
-            return rule
+        match = rule["_compiled"].search(command)
+        if match:
+            start = command.rfind("\n", 0, match.start()) + 1
+            end = command.find("\n", match.end())
+            line = command[start : end if end != -1 else len(command)]
+            return rule, match.group(0).strip(), line.strip()
     return None
 
 
@@ -315,17 +389,27 @@ def project_root(payload: dict) -> Path:
     return Path(raw).resolve()
 
 
-def is_outside(raw: str, root: Path) -> bool:
-    """True when this path is scratch space the reviewer cannot see."""
+def resolve(raw: str) -> Path:
+    """The path with symlinks followed where the filesystem allows."""
     candidate = Path(raw)
     try:
-        resolved = candidate.resolve()
+        return candidate.resolve()
     except OSError:
-        resolved = candidate
+        return candidate
 
-    if resolved == root or root in resolved.parents:
+
+def is_inside(raw: str, root: Path) -> bool:
+    """True when this path sits in the project checkout."""
+    resolved = resolve(raw)
+    return resolved == root or root in resolved.parents
+
+
+def is_outside(raw: str, root: Path) -> bool:
+    """True when this path is scratch space the reviewer cannot see."""
+    if is_inside(raw, root):
         return False  # inside the project, always fine
 
+    resolved = resolve(raw)
     text = str(resolved)
     if any(text == r or text.startswith(r + "/") for r in FORBIDDEN_ROOTS):
         return True
@@ -339,6 +423,52 @@ def outside_paths(command: str, root: Path) -> list[str]:
         for token in re.findall(r"[^\s'\"`]+", command)
         if token.startswith("/") and is_outside(token, root)
     ]
+
+
+# -- Project-local preflight ----------------------------------------------
+def shell_name() -> str:
+    """The user's shell, so the setup is pasteable as printed."""
+    return Path(os.environ.get("SHELL") or "sh").name
+
+
+def export_lines(root: Path, env: dict[str, str], shell: str) -> list[str]:
+    """One assignment per variable, in the syntax of this shell."""
+    template = "set -gx {} {}" if shell == "fish" else "export {}={}"
+    return [template.format(name, shlex.quote(str(root / rel))) for name, rel in env.items()]
+
+
+def diagnostics(root: Path) -> list[str]:
+    """Each cache variable's current value against where it should point.
+
+    Reads only the variables named in CACHE_ENV, all of which hold paths, so
+    nothing secret from the environment can reach the model.
+    """
+    lines = []
+    for name, rel in CACHE_ENV.items():
+        current = os.environ.get(name)
+        if not current:
+            verdict = "unset"
+        elif is_inside(current, root):
+            verdict = f"{current} (in the project)"
+        else:
+            verdict = f"{current} (OUTSIDE the project)"
+        lines.append(f"{name}: {verdict}; expected {root / rel}")
+    return lines
+
+
+def preflight(root: Path) -> str:
+    """The complete setup that lets the next command comply in one retry."""
+    shell = shell_name()
+    dirs = [root / "tmp", *(root / rel for rel in CACHE_ENV.values())]
+    setup = [f"mkdir -p {' '.join(shlex.quote(str(d)) for d in dirs)}"]
+    setup += export_lines(root, CACHE_ENV, shell)
+    indent = lambda lines: "\n".join(f"    {line}" for line in lines)  # noqa: E731
+    return PREFLIGHT_GUIDANCE.format(
+        root=root,
+        setup=indent(setup),
+        diagnostics=indent(diagnostics(root)),
+        persistent=indent(export_lines(root, PERSISTENT_ENV, shell)),
+    )
 
 
 # -- Questions to the user ------------------------------------------------
@@ -393,21 +523,29 @@ def decide(payload: dict, rules: list[dict], root: Path) -> str | None:
 
         verb = find_delete_verb(command)
         if verb is not None:
-            return f"Blocked: `{verb}` deletes a path.\n\n{DELETE_GUIDANCE}"
+            return f"Blocked by rule `no-deletions`: `{verb}` deletes a path.\n\n{DELETE_GUIDANCE}"
 
         strays = outside_paths(command, root)
         if strays:
             shown = "\n".join(f"  {p}" for p in sorted(set(strays))[:5])
-            return f"Blocked: this command touches paths outside the project:\n{shown}\n\n{SCRATCH_GUIDANCE}"
+            return (
+                f"Blocked by rule `no-out-of-project-paths`: this command touches paths outside the project:\n"
+                f"{shown}\n\n{SCRATCH_GUIDANCE}\n\n{preflight(root)}"
+            )
 
-        rule = match_rule(command, rules)
-        if rule is not None:
-            return str(rule["message"])
+        hit = match_rule(command, rules)
+        if hit is not None:
+            rule, matched, line = hit
+            reason = (
+                f"Blocked by rule `{rule.get('name', 'unnamed')}`, which matched `{matched}` in:\n"
+                f"    {line}\n\n{rule['message']}"
+            )
+            return f"{reason}\n\n{preflight(root)}" if rule.get("preflight") else reason
 
     elif tool in TOOLS_WITH_PATHS:
         target = tool_input.get("file_path") or tool_input.get("notebook_path") or ""
         if target and is_outside(target, root):
-            return f"Blocked: `{target}` is outside the project.\n\n{SCRATCH_GUIDANCE}"
+            return f"Blocked by rule `no-out-of-project-paths`: `{target}` is outside the project.\n\n{SCRATCH_GUIDANCE}"
 
     elif tool == "AskUserQuestion":
         problems = question_problems(tool_input)

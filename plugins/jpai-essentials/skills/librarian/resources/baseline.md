@@ -104,14 +104,8 @@ Both compliant; the repo declares its pick in `docs/CONVENTIONS.md`:
   A scoped log sits beside each subtree it governs, and the nearest log up the tree wins.
 - **File-per-decision** (`adrs/` or `docs/adr/` or `docs/decisions/`): diffable, linkable, explicit supersession; the scale default.
   Carry an index (`README.md` table: number, title, status, date).
-- Migration between layouts is a librarian APPLY operation: mechanical, content-preserving, index regenerated, inbound `ADR-NNNN` citations kept resolvable.
-
 **Layout is where records live; format is what one record looks like.** The two are separate dialect lines, and a repo declares each.
-The preferred format for a single record is [adr_template.md](adr_template.md).
-It is a metadata table, then `## Decision` holding the lens (Given / We prefer / Because / Unless), then `## Consequences`.
-It applies to both layouts, as a file in file-per-decision and as a section in a single-file log.
 
-Treat it as the rung-3 default, per the authority ladder.
-A declared or consistently observed local format outranks it, and an existing record is never rewritten to match.
-The audit uses it to name what a **structurally** incomplete record is missing (no status, no decision statement, no reasoning).
-It never judges how good the reasoning is.
+The librarian checks only that the surface exists, sits where the dialect says, and is linked from AGENTS.md.
+Everything inside it belongs to the `adr` skill: the record format, setting a surface up, migrating between layouts, and the compliance audit.
+A missing surface, or one that may not comply, is reported with a pointer to `/adr setup` or `/adr audit`.

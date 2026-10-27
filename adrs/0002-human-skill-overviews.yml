@@ -1,0 +1,29 @@
+id: ADR-0002
+slug: human-skill-overviews
+title: Give every canonical skill a dual-density human overview
+description: Human entry points separate from runtime skill instructions
+plan_id:
+status: accepted
+accepted_on: '2026-10-26'
+last_changed_on: '2026-10-26'
+tags:
+- documentation
+group: repository-conventions
+provenance: Explicit maintainer requirements for repository agent files, skill overviews and documentation
+  conventions.
+enforced_in:
+- skills/*/README.md
+- Makefile
+relates_to: []
+decision:
+  given: Each skill needs a human overview without forcing readers through its runtime operating manual.
+  we_prefer: a concise README with a visible workflow overview and collapsed detailed Mermaid diagram over a
+    single dense diagram
+  because: readers can choose the amount of workflow detail while agents retain a separate runtime contract
+  unless: the maintainer explicitly replaces the README or diagram contract for a skill
+consequences:
+  pros:
+  - Every skill has a predictable human entry point.
+  - Diagram gates check parsing, complexity and contrast.
+  cons:
+  - Workflow changes require keeping both diagram densities current.

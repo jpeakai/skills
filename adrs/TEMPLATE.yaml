@@ -1,0 +1,24 @@
+id: ADR-0004
+slug: short-decision-name
+title: State the decision as a short assertion
+plan_id:
+description: A short routing summary without a final full stop
+status: proposed
+accepted_on: '2026-10-26'
+last_changed_on: '2026-10-26'
+tags:
+- documentation
+provenance: Describe the requirement or evidence behind the decision.
+enforced_in:
+- path/to/the/enforcing/surface
+relates_to: []
+decision:
+  given: Describe the context and relevant facts.
+  we_prefer: Name the preferred choice over the alternative.
+  because: Explain why the preference follows from the context.
+  unless: Name the condition that would reopen the decision.
+consequences:
+  pros:
+  - Describe the benefit.
+  cons:
+  - Describe the cost.

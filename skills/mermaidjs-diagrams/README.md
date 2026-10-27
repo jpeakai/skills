@@ -4,7 +4,7 @@ Render and maintain Mermaid.JS diagrams with **visual-clarity enforcement**.
 
 ## Features
 
-- **Render** `.md` files containing ```` ```mermaid ```` fences to PNG. Two
+- **Render** `.md` files containing Mermaid code fences to PNG. Two
   variants by default, dark+transparent and default+white, because a diagram
   has to read on a dark host and a light host and one image cannot do both.
   Every artifact is verified as a decodable PNG: a renderer exiting 0 without
@@ -30,6 +30,23 @@ Render and maintain Mermaid.JS diagrams with **visual-clarity enforcement**.
   Font Awesome for flowcharts.
 
 ## How it fits together
+
+```mermaid
+flowchart LR
+    S["Diagram source"]:::input --> P["Reference palette"]:::rule
+    P --> L["Parse, complexity and contrast gates"]:::process
+    L --> D["Readable inline diagrams"]:::output
+    D -->|optional export| R["Verified image variants"]:::output
+    classDef input fill:#1e40af,stroke:#93c5fd,color:#fff,stroke-width:2px
+    classDef process fill:#6d28d9,stroke:#c4b5fd,color:#fff,stroke-width:2px
+    classDef output fill:#047857,stroke:#6ee7b7,color:#fff,stroke-width:2px
+    classDef rule fill:#334155,stroke:#cbd5e1,color:#fff,stroke-width:2px
+```
+
+Author readable diagrams first, then export images only when the destination needs them.
+
+<details>
+<summary>Complete workflow and supporting components</summary>
 
 ```mermaid
 flowchart LR
@@ -92,6 +109,8 @@ complexity and color contrast, both run by `@jpeakai/mermaidjs-lint`, before
 rendering. Reference docs (dotted)
 supply the rules each stage enforces.*
 
+</details>
+
 ## Quick start
 
 ```bash
@@ -103,5 +122,5 @@ make -C .claude/skills/mermaidjs-diagrams/scripts cli-demo
 
 See [`SKILL.md`](SKILL.md) for usage, [`resources/`](resources/) for deep dives,
 [render triage](resources/render_troubleshooting.md) when a render fails for
-reasons that aren't the diagram, and [`scripts/CLAUDE.md`](scripts/CLAUDE.md)
+reasons that aren't the diagram, and [`scripts/AGENTS.md`](scripts/AGENTS.md)
 for the maintenance guide.

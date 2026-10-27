@@ -1,7 +1,7 @@
 ---
 name: librarian
-description: "Repo documentation organisation: the canonical document set (README, CONTRIBUTING, CODING_STANDARDS, agent file, ADR surface, GLOSSARY) exists and cross-links, and every doc (and every section in a doc) lives where its content says it belongs. Modes: (1) AUDIT (default): report missing, misfiled and misnamed docs and sections as a shelving plan; (2) APPLY: execute it with history-preserving moves and link rewrites; (3) INIT: bootstrap docs/CONVENTIONS.md from the repo's own dialect or a named flavour (minimal/standard/rigorous); (4) INDEX: curate YAML siblings so docs are queryable with jq/yq and schema-gated. Use when asked to organise repo docs, check doc layout or placement, add missing canonical docs, relocate or rename docs, make docs machine-readable or generate YAML indexes for markdown, adopt an okf-yaml/okf-yml/OKF ADR surface, or on 'librarian'. Skip when the ask is prose quality, staleness/drift, or within-one-file readability; content-quality skills own those."
-argument-hint: "[audit | apply | init [minimal|standard|rigorous] | index [okf-yaml|okf-yml]] [paths] (default: audit whole repo)"
+description: "Repo documentation organisation: the canonical document set (README, CONTRIBUTING, CODING_STANDARDS, agent file, ADR surface, GLOSSARY) exists and cross-links, and every doc (and every section in a doc) lives where its content says it belongs. Modes: (1) AUDIT (default): report missing, misfiled and misnamed docs and sections as a shelving plan; (2) APPLY: execute it with history-preserving moves and link rewrites; (3) INIT: bootstrap docs/CONVENTIONS.md from the repo's own dialect or a named flavour (minimal/standard/rigorous); (4) INDEX: curate YAML siblings so docs are queryable with jq/yq and schema-gated. Use when asked to organise repo docs, check doc layout or placement, add missing canonical docs, relocate or rename docs, make docs machine-readable or generate YAML indexes for markdown, or on 'librarian'. Skip when the ask is prose quality, staleness/drift, or within-one-file readability; content-quality skills own those. Skip for what is inside the ADR surface: the adr skill owns it."
+argument-hint: "[audit | apply | init [minimal|standard|rigorous] | index] [paths] (default: audit whole repo)"
 user-invocable: true
 ---
 
@@ -20,24 +20,20 @@ Resources (read on first use):
   Load for init, and during audit when the repo lacks a conventions file.
 - [resources/flavours.md](resources/flavours.md): the named convention presets (minimal / standard / rigorous) and the graduation triggers for scale-up elements.
   Load for init, and during audit to check whether the repo has outgrown its declared flavour.
-- [resources/adr_template.md](resources/adr_template.md): the preferred shape of one ADR, for either layout.
-  The shape is a metadata table, then a Decision lens of Given / We prefer / Because / Unless, then Consequences.
-  Load when an ADR surface is created, migrated, or found structurally incomplete.
 - [resources/glossary_template.md](resources/glossary_template.md): the preferred shape of GLOSSARY.md (four-line intro, relationship diagram, one alphabetical H2 per Title Case term) and its structural findings.
   Load when GLOSSARY.md is created or audited.
 - [resources/coding_standards_template.md](resources/coding_standards_template.md): the preferred shape of CODING_STANDARDS.md, its seven baseline tenets and its structural findings.
   Load when CODING_STANDARDS.md is created or audited.
-- [resources/adr_decision_theory.md](resources/adr_decision_theory.md): the maintainer's definition of what a decision record captures (Facts, Value System, Lens, Decisional Balance, the Regulating Condition).
-  Load with the template when authoring or migrating records, so the shape is filled with the right kind of content.
 - [resources/structured_siblings.md](resources/structured_siblings.md): the machine-readable layout in general.
   It covers authored-YAML records with generated markdown, or generated YAML indexes beside authored markdown, plus the adoption triggers and verification gate.
   Load for index mode, and during audit only when the repo already has generated siblings.
-- [resources/adr_okf_yaml.md](resources/adr_okf_yaml.md): the named `okf-yaml` ADR-surface convention.
-  It holds the record schema, the typed relation vocabulary, OKF conformance of the generated markdown, the shelving-plan finding table, and the migration operation.
-  Load when `okf-yaml` is named as an argument, when `docs/CONVENTIONS.md` declares it, or when an ADR surface is observed to follow it. `okf-yml` names the same convention: accept either spelling wherever the name is read, and write `okf-yaml` in everything the skill emits.
 - [resources/evidence.md](resources/evidence.md): research citations and counter-evidence behind the baseline (dated; check freshness before extending doctrine).
 - `resources/learned/` (if present): prior user adjudications on placement rulings.
   Treat as already-decided; do not re-litigate.
+
+The ADR surface is one document of the core set, and this skill only checks that it exists, sits where the dialect says, and is linked.
+What happens inside it (record shape, setup, layout migration, the `okf-yaml` convention, compliance) belongs to the `adr` skill.
+Point at `/adr setup` for a missing surface and `/adr audit` for one that may not comply; never load that skill's files.
 
 ## Mode selection
 
@@ -48,9 +44,8 @@ Resources (read on first use):
 - `init`: generate `docs/CONVENTIONS.md` describing the repo's existing dialect and wire the root AGENTS.md reference to it.
 - `index`: curate machine-readable YAML siblings for a document set: generate them, verify the round trip, and record the arrangement as a dialect line.
   Mutating; generated files only.
-  Takes an optional named convention: `index okf-yaml adrs/` adopts or migrates to the [`okf-yaml` ADR surface](resources/adr_okf_yaml.md).
-  `index okf-yml adrs/` names the same convention.
-  Bare `index` indexes markdown in place without changing how anyone authors.
+  It indexes markdown in place without changing how anyone authors.
+  Asked for `index okf-yaml` (or `okf-yml`), say that convention belongs to `/adr migrate okf-yaml` and stop.
 - A path argument scopes audit/apply to that subtree (monorepo package case); the dialect is still resolved from the repo root downward.
 
 ## Step 0: Discover the dialect (every mode)
@@ -93,12 +88,9 @@ Against the resolved dialect + baseline §1-§2:
 
 - Required set present?
   (README, CONTRIBUTING, CODING_STANDARDS.md, AGENTS.md + CLAUDE.md stub, ADR surface, GLOSSARY.md; dialect-required extras.)
-- ADR records structurally complete?
-  Status, a decision statement, and the reasoning must be present.
-  Missing parts are a finding against [resources/adr_template.md](resources/adr_template.md).
-  The *quality* of the reasoning never is.
-  Where the surface declares or demonstrably follows a **named convention**, judge against that convention's own finding table instead.
-  For `okf-yaml`, that is [resources/adr_okf_yaml.md](resources/adr_okf_yaml.md).
+- ADR surface present?
+  A missing one is a 🔴 finding whose operation is `/adr setup`.
+  Its internal compliance is never judged here: the plan carries one 🟣 line recommending `/adr audit`.
 - GLOSSARY.md structurally complete?
   Judge against the finding table in [resources/glossary_template.md](resources/glossary_template.md), never a definition's accuracy.
 - CODING_STANDARDS.md carries every baseline tenet, mapped for every language the repo ships?
@@ -110,7 +102,6 @@ Against the resolved dialect + baseline §1-§2:
   - Root AGENTS.md → CONVENTIONS.md when it exists.
   - README → CONTRIBUTING.
   - CONTRIBUTING and AGENTS.md → CODING_STANDARDS.md.
-  - ADR index covers all scoped logs.
 - Locations recognised?
   (health-file precedence, baseline §3.)
 - Flavour still fits?
@@ -157,12 +148,9 @@ Execute the plan mechanically, one numbered finding per commit-sized step:
    Never reword cargo in transit: if a moved section looks wrong or stale, flag it for a content-quality pass; do not fix it here.
 4. **Created stubs are minimal**: title, one-sentence charter, the required cross-links, and an explicit `<!-- librarian stub: content pending -->` marker.
    Authoring real content is out of scope.
-   An ADR-surface stub also carries the record template for its layout from [resources/adr_template.md](resources/adr_template.md).
-   File-per-decision gets it as `adrs/TEMPLATE.md`.
-   A single-file log gets it as a closing `## Template` section in `ADRs.md`.
-   That way the first real record is written in the Given / We prefer / Because / Unless shape.
-5. **ADR operations keep citations resolvable**: renumbering is forbidden; layout migration (log ↔ file-per-decision) preserves ids and regenerates the index.
-   Reformatting records to [resources/adr_template.md](resources/adr_template.md) is a separate, opt-in operation: it moves existing text under the template's headings and never rewrites a decision's substance.
+   The ADR surface is never stubbed here: its row's operation is `/adr setup`, which writes the surface with its template.
+5. **ADR files are not moved here**: renumbering, layout migration and reformatting records are `/adr migrate` operations.
+   A whole surface moving to a new location is still a librarian move, and its ids and citations travel unchanged.
 6. **Verify before done**:
    - Every moved/renamed path resolves from every inbound link (grep the old path returns only stubs/history).
    - Required cross-links exist.
@@ -178,7 +166,7 @@ Then infer each Dialect line from what the repo already does.
 This is rung 2 evidence: observed conventions outrank the preset.
 Fill remaining gaps from the flavour, marking those lines as defaulted so the maintainer can veto.
 Build the Layout map covering every doc-bearing path plus rows for missing required docs.
-Wire the root AGENTS.md references (CONVENTIONS.md, ADR surface, GLOSSARY.md obligations, CODING_STANDARDS.md) in the same change, and write its sibling `CLAUDE.md` as exactly `@AGENTS.md`.
+Wire the root AGENTS.md references (CONVENTIONS.md, GLOSSARY.md obligations, CODING_STANDARDS.md, and the ADR surface when one exists) in the same change, and write its sibling `CLAUDE.md` as exactly `@AGENTS.md`.
 An existing full `CLAUDE.md` moves into `AGENTS.md` first (`git mv`), then the stub takes its place.
 A missing GLOSSARY.md is written from [resources/glossary_template.md](resources/glossary_template.md) with its seed terms.
 A missing CODING_STANDARDS.md is written from [resources/coding_standards_template.md](resources/coding_standards_template.md).
@@ -186,8 +174,8 @@ It carries all seven baseline tenets, then one section per language mapping each
 Map each tenet to the tools the repo already uses.
 A tenet with no enforcing tool yet is written as a gap for the maintainer to fill, never guessed.
 Coding rules already sitting in CONTRIBUTING or AGENTS.md move into it (smell P8).
-A missing ADR surface is created in the declared layout as a stub.
-The stub carries that layout's record template from [resources/adr_template.md](resources/adr_template.md) (`adrs/TEMPLATE.md`, or a closing `## Template` section in `ADRs.md`).
+A missing ADR surface is not created here.
+Record the chosen layout as a Dialect line, and end the report by pointing at `/adr setup` to create the surface in that layout.
 Show the draft before writing when running interactively.
 
 ## Index mode
@@ -199,9 +187,7 @@ Read [resources/structured_siblings.md](resources/structured_siblings.md) first:
    Absent one, report that plain markdown is correct and stop; more structure is not a finding.
 2. **Pick the arrangement and say which.** Authored-YAML (records become data, markdown is generated) or indexed-markdown (markdown stays authoritative, YAML is generated beside it).
    Default to indexed-markdown: it changes nothing about how anyone authors, and it is reversible by deleting the artifacts.
-   A **named convention** short-circuits this choice.
-   `okf-yaml`, spelled either way, selects authored-YAML with a fixed schema, relation vocabulary and bundle layout.
-   Follow [resources/adr_okf_yaml.md](resources/adr_okf_yaml.md) from there, including its migration operation and verification gate.
+   Authored-YAML decision records are the `okf-yaml` convention, which belongs to `/adr migrate okf-yaml`, not to this mode.
 3. **Generate.** For indexed-markdown, one index per document:
 
    ```sh
@@ -209,15 +195,6 @@ Read [resources/structured_siblings.md](resources/structured_siblings.md) first:
    ```
 
    `--json` emits the same index for `jq` instead of `yq`; `--check` reconstructs the markdown and exits non-zero on any drift.
-
-   For `okf-yaml`, copy `resources/okf_yaml/record.schema.json` and `scripts/templates/` into the repo, then render:
-
-   ```sh
-   uv run --no-project --with PyYAML --with Jinja2 --with jsonschema \
-     .claude/skills/librarian/scripts/okf_render.py <bundle-dir>
-   ```
-
-   Validation runs first and hard: an invalid record stops the build rather than producing markdown nothing checked.
 4. **Verify across the whole corpus, not a sample.** Every document must pass `--check`.
    A document that fails is reported with the construct that broke it; never "fix" the document to suit the tool.
 5. **Wire the regeneration.** A make target, and a banner in each generated file naming its generator.
@@ -233,7 +210,8 @@ Generated siblings are build artifacts: exempt from naming and placement smells,
 - **Dialect beats baseline. Declared beats observed. User beats all.** Prior adjudications in `resources/learned/` are already-decided.
 - **Audit is read-only**; only apply, init and index mutate.
   Init writes only missing core documents and the reference lines that wire them.
-  The core documents are CONVENTIONS.md, the AGENTS.md + CLAUDE.md pair, GLOSSARY.md, CODING_STANDARDS.md, and the ADR surface with its template.
+  The core documents init writes are CONVENTIONS.md, the AGENTS.md + CLAUDE.md pair, GLOSSARY.md and CODING_STANDARDS.md.
+  The ADR surface is also core, but `/adr setup` writes it.
   Index writes only generated artifacts and never edits a source document to suit the generator.
 - Respect the repo's file-size conventions when extracting (a target file near its size ceiling gets a new sibling, not a forced append).
 - Report which authority rung answered each contested question so the user can audit the librarian's own reasoning.

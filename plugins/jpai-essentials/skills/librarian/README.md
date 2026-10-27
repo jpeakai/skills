@@ -38,9 +38,10 @@ In Claude Code:
 /librarian init standard        # scaffold a named flavour (minimal|standard|rigorous)
 /librarian apply                # execute the approved shelving plan
 /librarian index docs/          # curate queryable YAML siblings for a document set
-/librarian index okf-yaml adrs/ # adopt or migrate to the named okf-yaml ADR surface
-/librarian index okf-yml adrs/  # the same convention; either spelling of the name works
 ```
+
+The ADR surface's contents (record shape, setup, migration, `okf-yaml`, compliance) belong to the `adr` skill.
+The librarian checks only that the surface exists and is linked, and points at `/adr setup` or `/adr audit`.
 
 Driving the indexer directly (no agent needed):
 
@@ -50,11 +51,6 @@ bun run .claude/skills/librarian/scripts/md2yaml.ts docs/guide.md --out docs/gui
 
 # the gate: reconstruct the markdown from the index and fail on any drift
 bun run .claude/skills/librarian/scripts/md2yaml.ts docs/guide.md --check
-
-# the other direction: render an okf-yaml bundle from its authored YAML records
-uv run --no-project --with PyYAML --with Jinja2 --with jsonschema \
-  .claude/skills/librarian/scripts/okf_render.py \
-  .claude/skills/librarian/resources/okf_yaml/example
 ```
 
 The escape hatch is querying a whole corpus with `jq`, because `--json` emits the same index:
@@ -70,6 +66,23 @@ jq -r '.file as $f | [..|objects|select(.type=="code")]|.[]|"\($f): \(.lang // "
 
 
 ## Architecture
+
+```mermaid
+flowchart LR
+    D["Repository docs"]:::input --> C["Resolve local conventions"]:::process
+    C --> A["Audit placement and links"]:::process
+    A --> P["Shelving plan"]:::output
+    P -->|when authorized| F["Loss-free changes"]:::output
+    classDef input fill:#1e40af,stroke:#93c5fd,color:#fff,stroke-width:2px
+    classDef process fill:#6d28d9,stroke:#c4b5fd,color:#fff,stroke-width:2px
+    classDef output fill:#047857,stroke:#6ee7b7,color:#fff,stroke-width:2px
+    classDef rule fill:#334155,stroke:#cbd5e1,color:#fff,stroke-width:2px
+```
+
+Local conventions determine what belongs where; audit produces a plan before changes.
+
+<details>
+<summary>Complete workflow and supporting components</summary>
 
 ```mermaid
 flowchart TD
@@ -95,6 +108,8 @@ flowchart TD
     class L,S,V accent
 ```
 
+</details>
+
 Every mode starts by resolving what "compliant" means for *this* repo.
 A declared `docs/CONVENTIONS.md` dialect beats observed conventions, which beat the researched baseline.
 The skill then audits against document charters and executes only loss-free, history-preserving operations.
@@ -104,17 +119,12 @@ It emits generated siblings and refuses to ship any it cannot reconstruct the or
 ## Reference
 
 - Operating manual (modes, authority ladder, audit steps, apply invariants): [SKILL.md](SKILL.md)
-- Universal compliance baseline (required set, locations, naming, ADR and agent-file rules): [resources/baseline.md](resources/baseline.md)
+- Universal compliance baseline (required set, locations, naming, ADR-surface presence and agent-file rules): [resources/baseline.md](resources/baseline.md)
 - Misplacement smell catalog (M1-M10 whole-doc, P1-P8 within-file): [resources/misplacement_smells.md](resources/misplacement_smells.md)
 - docs/CONVENTIONS.md template + bootstrapping guidance: [resources/conventions_template.md](resources/conventions_template.md)
 - Flavour presets (minimal / standard / rigorous) + graduation triggers: [resources/flavours.md](resources/flavours.md)
-- Preferred shape of one ADR (metadata, Decision lens, Consequences): [resources/adr_template.md](resources/adr_template.md)
+- Visual guide to choosing flavours and reading graduation recommendations: [resources/flavours-diagrammed.md](resources/flavours-diagrammed.md)
 - Machine-readable layouts in general, adoption triggers, output shape and gotchas: [resources/structured_siblings.md](resources/structured_siblings.md)
-- The named `okf-yaml` ADR surface (record schema, relation vocabulary, finding table, migration): [resources/adr_okf_yaml.md](resources/adr_okf_yaml.md)
-- Its shipped artifacts:
-  - The contract: [`resources/okf_yaml/record.schema.json`](resources/okf_yaml/record.schema.json)
-  - A worked bundle, doubling as the golden fixture: [`resources/okf_yaml/example/`](resources/okf_yaml/example)
-  - The generator: `scripts/okf_render.py` + `scripts/templates/`
 - Research citations and counter-evidence (dated): [resources/evidence.md](resources/evidence.md)
 
 Requirements:
@@ -122,7 +132,6 @@ Requirements:
 - `git`, for history-preserving moves and inbound-link greps.
 - Subagent support, for partial-misplacement reading on large repos.
 - Index mode only: `bun` for the markdown indexer (`make -C .claude/skills/librarian/scripts install`).
-- Index mode only: `uv` for the `okf-yaml` generator, whose dependencies are declared inline via PEP-723 and resolved on first run.
 
 No mode makes network calls or uses a paid API, beyond index mode's first-run dependency install.
 Audit and init are cheap.
@@ -144,10 +153,9 @@ Index writes only generated artifacts.
 | A later audit flags the generated `.yml` files as duplication | The arrangement wasn't recorded: add it and the generated-path glob to `docs/CONVENTIONS.md`, and audits treat them as build artifacts. |
 | `bun: command not found` on index mode | Index mode is the only mode needing bun: install it, or use the other three modes, which are prose-only. |
 | Generated siblings drifted from their sources | Regeneration wasn't wired to a make target: a command someone has to remember is a stale index. |
-| `okf_render.py` exits 1 with "records did not validate" | Working as designed: an invalid record stops the build rather than producing markdown nothing checked. Fix the `.yml`, never the generated `.md`. |
-| A generated frontmatter field reads `None` | A null value reached a template without a guard. Omit the key when the value is null; `plan_id: None` parses as the *string* `'None'`. |
+| Init leaves no ADR surface | Working as designed: init records the layout and points at `/adr setup`, which writes the surface with its template. |
 
 ## For maintainers
 
-Design rationale, decision log, and extension checklist: [CLAUDE.md](CLAUDE.md).
+Design rationale, decision log, and extension checklist: [AGENTS.md](AGENTS.md).
 Every mode and argument permutation, diagrammed: [ARCHITECTURE.md](ARCHITECTURE.md).

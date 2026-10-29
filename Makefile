@@ -65,6 +65,7 @@ skills-ci:
 DOCS := README.md CONTRIBUTING.md CODING_STANDARDS.md GLOSSARY.md AGENTS.md \
         docs/CONVENTIONS.md plugins/README.md hooks/README.md $(wildcard rules/*.md)
 SKILL_READMES := $(wildcard skills/*/README.md)
+PLUGIN_READMES := $(wildcard plugins/*/README.md)
 
 # The prose gate and the diagram gate are both published packages,
 # @jpeakai/prose-gates and @jpeakai/mermaidjs-lint, deliberately unpinned: the
@@ -77,8 +78,8 @@ PROSE_GATES := @jpeakai/prose-gates@latest
 MERMAID_GATES := @jpeakai/mermaidjs-lint@latest
 
 docs-ci:
-	bunx $(PROSE_GATES) $(DOCS)
-	bunx $(MERMAID_GATES) $(DOCS) $(SKILL_READMES)
+	bunx $(PROSE_GATES) $(DOCS) $(PLUGIN_READMES)
+	bunx $(MERMAID_GATES) $(DOCS) $(SKILL_READMES) $(PLUGIN_READMES)
 
 # The real install test: clones HEAD and installs both packs into throwaway
 # Claude and Codex sandboxes. Kept out of `ci` because it drives two external

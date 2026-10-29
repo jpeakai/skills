@@ -21,11 +21,14 @@
   Keep each plugin's Claude and Codex manifests consistent.
 - Preserve `skills/richdocs/vendor/` as an upstream-owned snapshot.
   Refresh it through the documented procedure rather than patching individual files.
+- Keep `evals/` only in canonical skills; exclude it from vendor snapshots and plugin output.
 - Every authored `AGENTS.md` has a regular sibling `CLAUDE.md` containing only `@AGENTS.md`.
   Preserve existing instructions and accepted decision arguments when moving agent files.
 - Every canonical skill has a concise human overview in `README.md`.
   Include an always-visible Mermaid overview and a more detailed diagram inside `<details>`.
   Keep README guidance distinct from the runtime instructions in `SKILL.md`.
+- Every `plugins/<name>/README.md` follows the same overview and diagram format.
+  Maintain it alongside plugin composition and link to its included skill READMEs.
 - Keep examples generic under the [agnostic skill](skills/agnostic/SKILL.md).
   Do not add client names, private repository paths or extraction history to maintained documentation.
 

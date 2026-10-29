@@ -6,8 +6,8 @@ See [Editing](#editing) before changing a file in this directory.
 
 | Plugin | Skills | Hook |
 |---|---|---|
-| [`jpai-essentials`](jpai-essentials) | `librarian`, `adr`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `design-profiles`, `concise-decisions`, `agnostic`, `tickety-boo`, `snr-pr` | yes |
-| [`jpai-delivery`](jpai-delivery) | `snr-pr`, `concise-decisions`, `tickety-boo` | no |
+| [`jpai-essentials`](jpai-essentials/README.md) | `librarian`, `adr`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `design-profiles`, `concise-decisions`, `agnostic`, `tickety-boo`, `snr-pr` | yes |
+| [`jpai-delivery`](jpai-delivery/README.md) | `snr-pr`, `concise-decisions`, `tickety-boo` | no |
 
 The decision, review-feedback and ticketing skills are in both packs deliberately.
 Each supports documentation and delivery work.

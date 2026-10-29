@@ -13,7 +13,20 @@ sections, but each hunk has one primary section and cross-links elsewhere.
 Record repository, base and head revisions, diff command, and evidence limits.
 For a PR, compare its merge base with the head, not a moving branch name.
 Inventory every changed path, including deletions, renames, tests, and generated
-mirrors. Map each path or hunk to a section; explain mechanical changes there.
+mirrors. Map each in-scope path or hunk to a section; explain mechanical changes there.
+
+For GitHub PRs, default to files remaining to be reviewed.
+Use `gh api graphql --paginate` to query the authenticated `viewer { login }`
+and `pullRequest.files.nodes { path viewerViewedState }`.
+Paginate `files(first: 100, after: $endCursor)` with
+`pageInfo { hasNextPage endCursor }` and an `$endCursor: String` query variable.
+Include `UNVIEWED` and `DISMISSED` files (changed since last viewed).
+Omit `VIEWED` files from detailed review, retaining prerequisites as labelled context.
+Record the viewer and briefly account for viewed exclusions.
+If none remain, report that. An explicit full-PR request includes every file.
+If viewed state is unavailable, cover the full diff and disclose that limitation.
+GitHub viewed state is separate from Richdocs page-local section controls;
+generating a companion or toggling its controls does not mark GitHub files viewed.
 
 Every change section includes:
 
@@ -48,7 +61,7 @@ after prerequisites; explain cycles before splitting by responsibility. Each
 group reuses earlier concepts plus the new concept it introduces. Start with
 scope, then list related files within each change section, before its BEFORE
 and AFTER material. Sort filepaths within the section and attach hunk evidence
-there. Keep coverage complete across the section lists, including generated
+there. Keep in-scope coverage complete across the section lists, including generated
 mirrors and mechanical changes. Do not collect files into one upfront table.
 
 ## 4. Diagram selection
@@ -82,7 +95,7 @@ dumps, and callers introduced before contracts. Reviewed does not mean approved.
 
 ## 7. Done checklist
 
-- Every changed path/hunk has a primary group or explained mechanical mapping.
+- Every changed path/hunk has a primary group, explained mechanical mapping, or viewed exclusion.
 - Every group has revision-backed BEFORE/AFTER at both densities, snippets,
   takeaway, validation, and a reviewer decision.
 - Data and event cues have the applicable additional diagram pairs.

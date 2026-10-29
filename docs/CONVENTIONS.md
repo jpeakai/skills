@@ -10,6 +10,7 @@ Consult it before creating, moving or renaming documentation.
 - Docs taxonomy: flat lowercase kebab-case topic files under `docs/` (standard default).
 - Ticketing: repository workflow lives in `docs/TICKETING.md` (explicitly requested).
 - Skill documentation: `skills/<name>/README.md` is a concise human overview with dual-density Mermaid diagrams (explicitly requested).
+- Plugin documentation: `plugins/<name>/README.md` uses the same overview format and links its included skills (explicitly requested).
 - Agent files: `AGENTS.md` is canonical; its sibling `CLAUDE.md` contains only `@AGENTS.md` (explicitly requested).
 - Root ADR surface: `okf-yaml` in `adrs/NNNN-slug.yml`, rendered into Markdown, an index and a graph viewer (explicitly requested).
 - Scoped decisions: existing skill-local logs remain in their current layout and retain accepted arguments (observed).
@@ -51,6 +52,7 @@ Consult it before creating, moving or renaming documentation.
 | `skills/richdocs/vendor/` | Upstream-owned reference snapshot | Maintainers | Documented refresh runs |
 | `hooks/README.md` | Hook behavior and configuration | Consumers | Hook contract changes |
 | `plugins/README.md` | Plugin composition and generation | Consumers and maintainers | Composition changes |
+| `plugins/*/README.md` | Human plugin overviews, included skills and workflow diagrams | Plugin consumers | Plugin composition or behaviour changes |
 | `plugins/*/skills/`, `plugins/*/hooks/` | Generated canonical mirrors | Installed agents | `make fix` runs |
 | `codex-conf/` | Codex configuration references | Consumers | Configuration changes |
 | `rules/` | Reusable operating rules | Agents | Rule contracts change |

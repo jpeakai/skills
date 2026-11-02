@@ -4,10 +4,11 @@
 // ── Imports (stdlib first) ──────────────────────────────────────────────────
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 
-// A port of the design-profiles skill's profile_resolver.py. This skill never
+// A port of the design-profiles skill's profile_resolver.mjs. This skill never
 // imports another skill's code, so it carries its own copy (DT-TOOL-1); the
 // repository tests hold the two to the same answers on the same profile.
 //
@@ -16,14 +17,14 @@ import { parseArgs } from "node:util";
 //   2  ~/.design-profiles/<name>/
 //   3  <project>/.{codex,claude}/skills/<skill>/resources/profile/<name>/
 //   4  ~/.{codex,claude}/skills/<skill>/resources/profile/<name>/
-//   5  this skill's own palettes (resolveProfile returns null)
+//   5  prebuilt OsakaNights (the caller handles resolveProfile returning null)
 
 // ── Configuration ───────────────────────────────────────────────────────────
 export const STORE = ".design-profiles";
 export const DEFAULT_FILE = ".default-profile";
 export const TOKENS_FILE = "design-tokens.json";
 export const EXT = "ai.jpeak.design-profiles";
-export const SKILL = "mermaidjs-diagrams";
+export const SKILL = "richdocs";
 const HARNESSES = [".codex", ".claude"];
 
 export type Flat = Record<string, unknown>;
@@ -178,16 +179,48 @@ export const mermaidConfig = (doc: ProfileDoc, mode: string): MermaidConfig => {
   return { theme: "base", themeVariables };
 };
 
-// The lint's canvas flags: the page a profile's diagrams are drawn on, per mode.
-// `--profile` here is the lint's HOST profile (GitHub), not a design profile.
-export const lintFlags = (doc: ProfileDoc): string[] => [
-  "--profile",
-  "github",
-  "--canvas-light",
-  String(readTokens(doc, "light")["surface.mermaid.background"]),
-  "--canvas-dark",
-  String(readTokens(doc, "dark")["surface.mermaid.background"]),
-];
+export const PREBUILT_PROFILE = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "../resources/themes/osakanights/design-tokens.json",
+);
+// Native remark configuration. Use the published CLI with --config, not retired canvas flags.
+export const lintConfig = (
+  doc: ProfileDoc,
+): {
+  plugins: [[string, { options: { canvas: { light: string; dark: string } } }]];
+} => ({
+  plugins: [
+    [
+      join(
+        dirname(fileURLToPath(import.meta.url)),
+        "node_modules/@jpeakai/remark-lint-slopstopper/dist/src/remark/plugin.js",
+      ),
+      {
+        options: {
+          canvas: {
+            light: String(readTokens(doc, "light")["surface.mermaid.background"]),
+            dark: String(readTokens(doc, "dark")["surface.mermaid.background"]),
+          },
+        },
+      },
+    ],
+  ],
+});
+export const palette = (doc: ProfileDoc, mode: string) => {
+  const flat = readTokens(doc, mode);
+  return {
+    mode,
+    canvas: flat["surface.mermaid.background"],
+    foreground: flat["color.text"],
+    border: flat["color.border.bold"],
+    categorical: Object.entries(group(flat, "color.chart.categorical"))
+      .sort(([a], [b]) => Number(a) - Number(b))
+      .map(([hue, color]) => ({ hue, color })),
+    palettes: Object.fromEntries(
+      Object.entries(group(flat, "color.chart.palettes")).sort(([a], [b]) => a.localeCompare(b)),
+    ),
+  };
+};
 
 // ── CLI ─────────────────────────────────────────────────────────────────────
 const HELP = [
@@ -197,9 +230,10 @@ const HELP = [
   "With no --design-profile, .design-profiles/.default-profile names one.",
   "",
   "Commands:",
-  "  status          Which profile resolves, or that this skill's own palettes apply",
+  "  status          Which profile resolves, or that prebuilt OsakaNights applies",
   "  mermaid-config  Print an mmdc config (theme base + themeVariables) for --mode",
-  "  lint-flags      Print the @jpeakai/mermaidjs-lint canvas flags for the profile",
+  "  lint-config     Print native Slopstopper remark JSON configuration",
+  "  palette         Print baked categorical and five-shade colors for --mode",
   "",
   "Options:",
   "  --design-profile NAME  Profile name; resolves ./.design-profiles, ~/.design-profiles, then skill tiers",
@@ -220,16 +254,17 @@ export const main = (argv: string[], roots: Roots = { project: process.cwd(), ho
   });
   const command = positionals[0];
   if (values.help || command === undefined) return HELP;
-  if (!["status", "mermaid-config", "lint-flags"].includes(command)) throw new Error(`unknown command '${command}'`);
+  if (!["status", "mermaid-config", "lint-config", "palette"].includes(command))
+    throw new Error(`unknown command '${command}'`);
   const path = resolveProfile(values["design-profile"] ?? null, SKILL, roots);
   if (command === "status") {
-    return path === null ? "profile: none (this skill's own palettes apply)" : `profile: ${path}`;
+    return path === null
+      ? "profile: prebuilt osakanights (resources/themes/osakanights/themes.css)"
+      : `profile: ${path}`;
   }
-  if (path === null) {
-    throw new Error("no design profile: pass --design-profile NAME, or set .design-profiles/.default-profile");
-  }
-  const doc = loadProfile(path);
-  if (command === "lint-flags") return lintFlags(doc).join(" ");
+  const doc = loadProfile(path ?? PREBUILT_PROFILE);
+  if (command === "lint-config") return JSON.stringify(lintConfig(doc), null, 2);
+  if (command === "palette") return JSON.stringify(palette(doc, values.mode ?? defaultMode(doc)), null, 2);
   return JSON.stringify(mermaidConfig(doc, values.mode ?? defaultMode(doc)), null, 2);
 };
 

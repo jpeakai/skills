@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -45,6 +46,8 @@ THEMES_DIR = SKILL_DIR / "resources" / "themes"
 # The brand a plain `md2html.py doc.md` renders with (ADR-018). A named theme,
 # not raw tokens, so the default output is fully branded (fonts + chrome + canvas).
 DEFAULT_THEME = "osakanights"
+PREBUILT_PROFILE = THEMES_DIR / DEFAULT_THEME / "profile" / "design-tokens.json"
+PREBUILT_CSS = THEMES_DIR / DEFAULT_THEME / "themes.css"
 
 # Optional PROJECT-LOCAL theme overrides, resolved relative to the cwd (run from
 # repo root). A theme dir here supersedes the skill's built-in of the same name and
@@ -70,11 +73,6 @@ VIEWER_ZOOM_CSS = ASSETS_DIR / "viewer-zoom.css"
 
 DEFAULT_OUT = Path("tmp/richdocs")
 
-# The baked fallback palette IS the default brandpack — read, never re-declared.
-# A second hand-maintained copy would drift (this retires the ADR-004 hazard).
-FALLBACK_TOKENS: dict[str, object] = json.loads(
-    DEFAULT_TOKENS.read_text(encoding="utf-8")
-)
 
 # Pinned CDN versions (jsdelivr). marked + mermaid load eagerly; cytoscape /
 # dagre / plotly / deck.gl are injected lazily on first use so plain docs stay
@@ -127,17 +125,22 @@ def brandpack_from_profile(doc: dict[str, Any]) -> dict[str, object]:
     """Map a design profile onto this skill's brandpack keys. A rename, nothing computed.
 
     Curation baked every surface into the profile, so each key here reads one token.
-    Layout values a profile does not carry (radius, node shape, status labels) are
+    Layout values a profile does not carry (node shape, status labels) are
     this skill's own constants. Categories take the categorical slots in order, as
     `canvas.plotly.<mode>.series` (ADR-023).
     """
-    themes, cyto, plotly, deck, status = {}, {}, {}, {}, {}
+    themes, cyto, plotly, deck, status, mermaid = {}, {}, {}, {}, {}, {}
     for mode in profile_resolver.modes(doc):
         flat = profile_resolver.read_tokens(doc, mode)
         css = profile_resolver.group(flat, "surface.css")
         cy = profile_resolver.group(flat, "surface.cytoscape")
         pl = profile_resolver.group(flat, "surface.plotly")
         dg = profile_resolver.group(flat, "surface.deckgl")
+        mermaid[mode] = profile_resolver.group(flat, "surface.mermaid")
+        radius = flat.get("dimension.radius")
+        radius_css = (
+            f"{radius['value']:g}{radius['unit']}" if radius is not None else "12px"
+        )
 
         def ramp(name: str, src: dict[str, Any] = pl) -> list[Any]:
             return profile_resolver.series(src, name)
@@ -151,7 +154,7 @@ def brandpack_from_profile(doc: dict[str, Any]) -> dict[str, object]:
             "border": css["border"],
             "onAccent": css["on-accent"],
             "link": css["link"],
-            "radius": "12px",
+            "radius": radius_css,
             "pill": "999px",
         }
         cyto[mode] = {
@@ -214,28 +217,54 @@ def brandpack_from_profile(doc: dict[str, Any]) -> dict[str, object]:
             "mono": flat["font.family.mono"],
         },
         "themes": themes,
-        "canvas": {"cytoscape": cyto, "plotly": plotly, "deckgl": deck},
+        "canvas": {
+            "cytoscape": cyto,
+            "plotly": plotly,
+            "deckgl": deck,
+            "mermaid": mermaid,
+        },
         "status": status,
     }
 
 
+FALLBACK_TOKENS: dict[str, object] = brandpack_from_profile(
+    json.loads(PREBUILT_PROFILE.read_text(encoding="utf-8"))
+)
+
+
 def profile_css(doc: dict[str, Any]) -> str:
-    """The theme.css a profile implies: only its web-font stylesheet, if it names one."""
-    url = profile_resolver.extension(doc).get("fontStylesheet")
-    return f"@import url('{url}');\n" if url else ""
+    """Load every profile font stylesheet, including a separate heading font."""
+    meta = profile_resolver.extension(doc)
+    urls = meta.get("fontStylesheets")
+    if urls is None:
+        url = meta.get("fontStylesheet")
+        urls = [url] if url else []
+    return "".join(f"@import url('{url}');\n" for url in dict.fromkeys(urls))
 
 
-def load_profile(path: Path, out_root: Path = PROJECT_PROFILES_DIR) -> Theme:
+def load_profile(
+    path: Path,
+    out_root: Path = PROJECT_PROFILES_DIR,
+    *,
+    name: str | None = None,
+    css_path: Path | None = None,
+) -> Theme:
     """Write a profile's brandpack under `out_root/<name>/` and return it as a Theme."""
     doc = json.loads(path.read_text(encoding="utf-8"))
-    name = path.parent.name
+    name = path.parent.name if name is None else name
     target = out_root / name / "design-tokens.json"
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(
         json.dumps(brandpack_from_profile(doc), indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
-    return Theme(name=name, tokens_path=target, css=profile_css(doc), kind="profile")
+    css_path = path.with_name("theme.css") if css_path is None else css_path
+    css = (
+        css_path.read_text(encoding="utf-8") if css_path.is_file() else profile_css(doc)
+    )
+    # The viewer's provider uses data-theme; project CSS uses shadcn's .dark selector.
+    css = re.sub(r"(?m)^\.dark\s*\{", ":root[data-theme=dark] {", css)
+    return Theme(name=name, tokens_path=target, css=css, kind="profile")
 
 
 def resolve_profile_theme(
@@ -251,13 +280,19 @@ def resolve_profile_theme(
 
     An explicit --profile always wins. An explicit --theme or --tokens is a choice
     the default profile never overrides. Otherwise `.default-profile` applies, and
-    with none this returns None and the built-in themes run as before. A profile
+    with none the generated OsakaNights profile applies. A profile
     that was asked for and cannot be found fails loudly.
     """
     if profile_arg is None and (theme_arg or tokens_arg is not None):
         return None
     path = profile_resolver.resolve_profile(profile_arg, PROFILE_SKILL, project, home)
-    return load_profile(path, out_root) if path else None
+    return (
+        load_profile(path, out_root)
+        if path
+        else load_profile(
+            PREBUILT_PROFILE, out_root, name=DEFAULT_THEME, css_path=PREBUILT_CSS
+        )
+    )
 
 
 def theme_search_dirs(project_dir: Path = PROJECT_THEMES_DIR) -> list[Path]:
@@ -339,26 +374,34 @@ def resolve_default_theme(tokens: dict[str, object] | None) -> str:
     return value if value in ("light", "dark") else ""
 
 
-def lint_canvas_flags(tokens_path: Path) -> list[str]:
-    """The mermaid lint flags that score a brand's diagrams on the page it draws.
-
-    The viewer draws every diagram inside `.rd-canvas`, whose background is the
-    brand's `surface` (viewer.css), so page-backed colours (translucent fills, edge
-    label boxes, sequence message text and lifelines) sit on `surface`, not on
-    GitHub's page. `--profile github` is explicit because the viewer honours declared
-    label colours, and the lint refuses a canvas under mkdocs-material (ADR-027).
-    A brandpack with no `themes.<mode>.surface` crashes: there is no page to score on.
-    """
+def lint_canvas_config(tokens_path: Path) -> dict[str, object]:
+    """Native Slopstopper remark configuration for the viewer's actual diagram surfaces."""
     tokens = json.loads(tokens_path.read_text(encoding="utf-8"))
     themes = tokens["themes"]
-    return [
-        "--profile",
-        "github",
-        "--canvas-light",
-        themes["light"]["surface"],
-        "--canvas-dark",
-        themes["dark"]["surface"],
-    ]
+    plugin = (
+        SCRIPT_DIR
+        / "node_modules"
+        / "@jpeakai"
+        / "remark-lint-slopstopper"
+        / "dist"
+        / "src"
+        / "remark"
+        / "plugin.js"
+    )
+    return {
+        "plugins": [
+            [
+                str(plugin),
+                {
+                    "options": {
+                        "canvas": {
+                            mode: themes[mode]["surface"] for mode in ("light", "dark")
+                        }
+                    }
+                },
+            ]
+        ]
+    }
 
 
 def _embed_json(value: object) -> str:
@@ -666,11 +709,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--title", help="Page title (default: doc stem)")
     parser.add_argument(
-        "--lint-flags",
+        "--lint-config",
         action="store_true",
         help=(
-            "Print the @jpeakai/mermaidjs-lint flags that score this brand's page "
-            "(--profile github --canvas-light SURFACE --canvas-dark SURFACE) and exit "
+            "Print native @jpeakai/remark-lint-slopstopper remark JSON configuration "
+            "with this brand's diagram canvases and exit "
             "without rendering"
         ),
     )
@@ -699,10 +742,8 @@ def main(args: argparse.Namespace) -> None:
         print(f"error: design tokens file not found: {tokens_path}", file=sys.stderr)
         raise SystemExit(1)
 
-    if args.lint_flags:
-        # Unquoted on purpose: the line is piped to `xargs bunx ...`, which splits
-        # it on whitespace. Brand colours hold no spaces.
-        print(" ".join(lint_canvas_flags(tokens_path)))
+    if args.lint_config:
+        print(json.dumps(lint_canvas_config(tokens_path), indent=2))
         return
 
     out_dir = Path(args.out)

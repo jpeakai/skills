@@ -2,6 +2,7 @@
 // reader, and the Mermaid config and lint flags it builds from a real profile.
 
 import { describe, expect, test } from "bun:test";
+import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,7 +11,7 @@ import {
   defaultProfileName,
   extension,
   group,
-  lintFlags,
+  lintConfig,
   loadProfile,
   main,
   mermaidConfig,
@@ -170,19 +171,46 @@ describe("a real profile", () => {
   });
 
   test("the lint flags put diagrams on the profile's background", () => {
-    expect(lintFlags(doc)).toEqual([
-      "--profile",
-      "github",
-      "--canvas-light",
-      String(readTokens(doc, "light")["color.surface"]),
-      "--canvas-dark",
-      String(readTokens(doc, "dark")["color.surface"]),
-    ]);
+    const [plugin, options] = lintConfig(doc).plugins[0];
+    expect(String(plugin)).toEndWith("remark-lint-slopstopper/dist/src/remark/plugin.js");
+    expect(options).toEqual({
+      options: {
+        canvas: {
+          light: String(readTokens(doc, "light")["color.surface"]),
+          dark: String(readTokens(doc, "dark")["color.surface"]),
+        },
+      },
+    });
     expect(extension(doc).profile).toBe("osakanights");
   });
 });
 
 describe("cli", () => {
+  test("the published CLI loads generated canvas options and blocks unreadable text", () => {
+    const dir = mkdtempSync(join(SCRATCH, "lint-"));
+    const config = join(dir, "remark.json");
+    const source = join(dir, "source.md");
+    writeFileSync(config, main(["lint-config"], roots()));
+    for (const [foreground, status] of [
+      ["#000000", 0],
+      ["#ffffff", 1],
+    ] as const) {
+      writeFileSync(
+        source,
+        `# Diagram\n\n\`\`\`mermaid\nflowchart LR\n A[Readable label]\n style A fill:#ffffff,color:${foreground},stroke:#000000\n\`\`\`\n`,
+      );
+      const result = spawnSync(
+        "bunx",
+        ["--no-install", "@jpeakai/remark-lint-slopstopper", "--json", "--mermaid-only", "--config", config, source],
+        { cwd: SCRIPT_DIR, encoding: "utf8" },
+      );
+      expect(result.status).toBe(status);
+      const report = JSON.parse(result.stdout);
+      expect(
+        report.files[0].messages.some((message: { ruleId: string }) => message.ruleId === "contrast-text-below-aa"),
+      ).toBe(status === 1);
+    }
+  }, 30000);
   test("help when asked or with no command", () => {
     expect(main([], roots())).toContain("Usage: design_profile.ts");
     expect(main(["--help"], roots())).toContain("mermaid-config");
@@ -190,12 +218,12 @@ describe("cli", () => {
 
   test("status says which applies", () => {
     const r = roots();
-    expect(main(["status"], r)).toBe("profile: none (this skill's own palettes apply)");
+    expect(main(["status"], r)).toContain("prebuilt osakanights");
     const path = store(r.project, "b");
     expect(main(["status", "--design-profile", "b"], r)).toBe(`profile: ${path}`);
   });
 
-  test("mermaid-config and lint-flags read the named or default profile", () => {
+  test("mermaid-config and lint-config read the named or default profile", () => {
     const r = roots();
     store(r.project, "b");
     const dark = JSON.parse(main(["mermaid-config", "--design-profile", "b", "--mode", "dark"], r));
@@ -203,11 +231,15 @@ describe("cli", () => {
     setDefault(r.project, "b");
     const byDefault = JSON.parse(main(["mermaid-config"], r));
     expect(byDefault.themeVariables.darkMode).toBe(true); // osakanights defaults to dark
-    expect(main(["lint-flags"], r)).toStartWith("--profile github --canvas-light #");
+    expect(JSON.parse(main(["lint-config"], r)).plugins[0][1].options.canvas.light).toStartWith("#");
   });
 
-  test("a command that needs a profile fails without one", () => {
-    expect(() => main(["mermaid-config"], roots())).toThrow("no design profile");
+  test("the prebuilt profile supplies the default theme and palette", () => {
+    expect(JSON.parse(main(["mermaid-config"], roots())).theme).toBe("base");
+    expect(main(["status"], roots())).toContain("prebuilt osakanights");
+    const colors = JSON.parse(main(["palette"], roots()));
+    expect(Object.keys(colors.categorical).length).toBe(10);
+    expect(Object.keys(colors.palettes).length).toBe(50);
     expect(() => main(["frobnicate"], roots())).toThrow("unknown command");
   });
 });

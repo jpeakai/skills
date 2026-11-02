@@ -31,7 +31,10 @@ make docs-ci
 make adr-ci
 ```
 
-Run the affected skill's `scripts/Makefile` `ci` target when changing its executable code. `make skills-ci` runs every opted-in skill gate. `make ci` additionally requires a clean, committed tree and checks generated-file drift. `make harness-ci` clones HEAD into isolated harness installs; it verifies committed changes and depends on both external CLIs.
+Run the affected skill's `scripts/Makefile` `ci` target when changing its executable code.
+`make skills-ci` runs every opted-in skill gate.
+`make ci` additionally requires a clean, committed tree and checks generated-file drift.
+`make harness-ci` clones HEAD into isolated harness installs; it verifies committed changes and depends on both external CLIs.
 
 Live evaluation suites run only when an explicit eval path is supplied.
 They may start billed agent sessions, so routine validation uses the repository's default test paths.

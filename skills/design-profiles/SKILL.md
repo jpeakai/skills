@@ -1,19 +1,20 @@
 ---
 name: design-profiles
-description: "Curate a brand design profile once and paint every surface with it: chrome CSS, Cytoscape, Plotly, Mermaid, deck.gl and draw.io, in light and dark. Turns a seed (as little as one brand hue, or a scraped accent hex) into a semantically complete IR, scores every text pairing against WCAG AA, and builds one DTCG 2025.10 design-tokens.json that richdocs and mermaidjs-diagrams read from the shared .design-profiles/ store. Use when asked to create, tune, rebuild or set a default brand profile, theme or design tokens. Stdlib Python, no network."
-argument-hint: "[init <name> --hue H | --accent HEX | --example BRAND] | [curate|build|all|status|set-default] [name]"
+description: "Generate a shared design profile from one shadcn preset code, a brand hue, or an accent color. Export theme.css with font loading and/or DTCG design-tokens.json, including light and dark modes, ten-by-five chart palettes, and baked rendering surfaces for richdocs and mermaidjs-diagrams. Use to create, tune, rebuild or select design profiles and design tokens. Preset imports require Bun or Node and network access; saved profiles rebuild offline under Node.js or Bun without Python."
+argument-hint: "[preset CODE --name NAME --format css|tokens|both] | [init NAME --hue H | --accent HEX | --example BRAND] | [curate|build|all|status|set-default] [NAME]"
 user-invocable: true
 ---
 
 # design-profiles: one brand, every surface
 
-A profile is three files in a shared store. Only the last is read at runtime.
+A profile keeps editable inputs and generated outputs in one shared store.
 
 ```text
 .design-profiles/<name>/
   seed.json            optional: a few parameters and one brand hue
   ir.json              every role and every surface, light and dark (hand-editable)
   design-tokens.json   one DTCG 2025.10 resolver document (hand-editable, never regenerates anything)
+  theme.css            portable CSS, including font loading for preset profiles
 ```
 
 `richdocs` and `mermaidjs-diagrams` look for a profile first and fall back to their
@@ -23,6 +24,7 @@ own built-in themes when there is none. They say which they used.
 
 | The user wants | Run |
 |---|---|
+| A profile from a shadcn preset code | `bun <skill>/scripts/shadcn.mjs CODE`; see [preset imports](resources/shadcn-presets.md) |
 | A profile from one brand hue | `init <name> --hue 295`, then `all <name>` |
 | A profile from a brand's accent colour (scraped or given) | `init <name> --accent '#5c4295'`, then `all <name>` |
 | One of the shipped brands as a starting point | `init <name> --example osakanights`, then `all <name>` |
@@ -35,15 +37,15 @@ own built-in themes when there is none. They say which they used.
 Every command runs from the project root:
 
 ```bash
-uv run --no-project .claude/skills/design-profiles/scripts/profiles.py <command> [name ...] [--store DIR | --user]
+node .claude/skills/design-profiles/scripts/profiles.mjs <command> [name ...] [--store DIR | --user]
 ```
 
 Example, a profile from one hue, made the default for every consumer:
 
 ```bash
-uv run --no-project .claude/skills/design-profiles/scripts/profiles.py init acme --hue 200
-uv run --no-project .claude/skills/design-profiles/scripts/profiles.py all acme
-uv run --no-project .claude/skills/design-profiles/scripts/profiles.py set-default acme
+node .claude/skills/design-profiles/scripts/profiles.mjs init acme --hue 200 --radius 8px
+node .claude/skills/design-profiles/scripts/profiles.mjs all acme
+node .claude/skills/design-profiles/scripts/profiles.mjs set-default acme
 ```
 
 `--store` defaults to `./.design-profiles`; `--user` uses `~/.design-profiles`.
@@ -56,7 +58,7 @@ uv run --no-project .claude/skills/design-profiles/scripts/profiles.py set-defau
 | `init <name> --accent HEX` | states the hex's exact OKLCH lightness, chroma and hue |
 | `init <name> --example BRAND` | copies a shipped seed: `fernline`, `freshgreens`, `gandalf`, `locomotif`, `osakanights`, `v2ai` |
 | `curate [name ...]` | `seed.json` → `ir.json`: imputes what is absent, keeps what is stated, scores contrast |
-| `build [name ...]` | `ir.json` → `design-tokens.json`, a pure transform |
+| `build [name ...]` | `ir.json` → `design-tokens.json` and `theme.css`, a pure transform |
 | `all [name ...]` | `curate` then `build` |
 | `status [name ...]` | the store, the default profile, and each profile's files, contrast verdicts and staleness |
 | `set-default <name>` | writes `.design-profiles/.default-profile` |
@@ -65,16 +67,39 @@ uv run --no-project .claude/skills/design-profiles/scripts/profiles.py set-defau
 `curate` exits non-zero when a default caused a text pairing below AA. That is a
 defect in this skill, not in the user's profile: report it.
 
+## One preset string
+
+Install the adapter's dependencies once, then generate both output formats:
+
+```bash
+bun install --cwd .claude/skills/design-profiles/scripts --frozen-lockfile
+bun .claude/skills/design-profiles/scripts/shadcn.mjs b5cR4pgAc --name demo
+```
+
+The default name is `preset-CODE` when `--name` is omitted.
+Use `--format css`, `--format tokens`, or the default `--format both`.
+The adapter uses `shadcn/preset` (singular) to decode and `shadcn/registry` to resolve CSS values and font metadata.
+It installs no application components.
+The saved seed includes the resolved snapshot, so later `curate`, `build`, and `all` commands need no network.
+Read [preset imports](resources/shadcn-presets.md) for chart formulas, font loading, and output tokens.
+
 ## The seed
 
-Only `brand.hue` is required. Everything else has a default with a cited source
-(`DEFAULTS` in `scripts/profiles.py`). The parameters a scraped brand usually states:
+Hue and accent seeds require only `brand.hue`. Everything else has a default with a cited source
+(`DEFAULTS` in `scripts/profiles.mjs`). Scraped inputs usually state brand accents, fonts, and radius.
+
+`radius` states a nonnegative CSS corner radius in `px` or `rem`; `0` preserves square corners.
+`radius.dark` optionally overrides the dark mode value.
+`init --radius VALUE [--radius-dark VALUE]` writes these inputs to the seed.
+All shipped examples state their theme's radius explicitly.
+The resolved `dimension.radius` token and CSS `--radius` preserve the value and unit.
 
 ```json
 {
   "brand.hue": 295.044, "brand.chroma": 0.131, "brand.lightness": 0.45,
   "brand.dark.hue": 295.159, "brand.dark.chroma": 0.109, "brand.dark.lightness": 0.801,
   "mode.default": "dark",
+  "radius": "12px",
   "font.body": "'Fira Sans', sans-serif",
   "font.stylesheet": "https://fonts.googleapis.com/css2?family=Fira+Sans"
 }
@@ -103,16 +128,22 @@ color.surface.sunken            color.text                  color.border
 color.surface                   color.text.subtle           color.border.bold
 color.surface.raised            color.text.subtlest         color.border.brand
                                 color.text.inverse
-color.background.brand.bold     color.link                  color.chart.categorical.1…12
+color.background.brand.bold     color.link                  color.chart.categorical.01…10
 color.background.brand.subtlest color.border.selected       color.border.focused
 color.background.selected       color.text.selected
 color.text.danger / .warning / .success
 font.family.display / .body / .mono
+color.chart.palettes.01.1…10.5
 ```
 
 Surfaces, each baked by curation so no consumer computes one:
-`surface.css`, `surface.cytoscape`, `surface.plotly`, `surface.mermaid`
+`surface.css`, `surface.shadcn`, `surface.cytoscape`, `surface.plotly`, `surface.mermaid`
 (`themeVariables`), `surface.deckgl`, `surface.drawio`.
+
+`surface.shadcn` maps every profile onto shadcn's background/foreground, action, chart, sidebar, font and radius variables.
+Imported preset values win over fallback mappings.
+Legacy chrome collisions export as `--profile-accent` and `--profile-border`.
+The IR records every projection as an alias or derived value, including typed font and radius aliases for DTCG and lineage.
 
 ## Finding a profile
 
@@ -128,4 +159,4 @@ A consumer resolves a name through five tiers, first hit wins:
 
 With no name, `.default-profile` names one and it resolves the same way. A name
 that resolves nowhere fails loudly. The resolver and reader are
-`scripts/profile_resolver.py`; each consumer carries its own copy.
+`scripts/profile_resolver.mjs`; each consumer carries a compatible reader, checked against the canonical module.

@@ -80,13 +80,13 @@ def check_the_skills_gates_pass(output: CaseOutput) -> None:
     for i, fence in enumerate(facets.visible_fences(doc)):
         single = scratch / f"overview_{i}.mmd"
         single.write_text(fence, encoding="utf-8")
-        low = lint(str(single), "--preset", "low", "--profile", "github")
+        low = lint(str(single), "--preset", "low-density")
         assert low.returncode == 0, (
             f"visible fence {i} is over the overview budget (<=12 nodes, VCS <=25):\n{low.stdout}"
         )
 
     # One run: parse, the detailed budget (the default high preset), and contrast.
-    whole = lint(str(output.path(TARGET)), "--profile", "github")
+    whole = lint(str(output.path(TARGET)))
     assert whole.returncode == 0, (
         f"the file fails the lint (a fence unparseable, over the detailed budget of <=35 nodes and "
         f"VCS <=60, or below contrast):\n{whole.stdout}{whole.stderr}"

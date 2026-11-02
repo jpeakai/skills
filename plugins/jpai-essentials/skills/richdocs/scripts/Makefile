@@ -9,8 +9,8 @@ PY_SCRIPTS = serve stencil md2html showcase themecheck
 # Private scripts: maintenance helpers for the skill itself (none yet)
 PRIVATE_PY_SCRIPTS =
 
-# Copied byte-for-byte from the design-profiles skill (DT-TOOL-1); never edited
-# here. Its tests live with the canonical copy; md2html's tests exercise it here.
+# Python compatibility reader for design-profiles' canonical .mjs resolver.
+# Root contract tests check agreement; md2html's tests exercise it here.
 COPIED_PY_SCRIPTS = profile_resolver
 
 PY_SRC = $(addsuffix .py,$(PY_SCRIPTS)) $(addprefix test_,$(addsuffix .py,$(PY_SCRIPTS))) \

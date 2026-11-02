@@ -4,9 +4,9 @@ DT-TOOL-1 has every consumer carry its own copy of the profile resolver and DTCG
 reader, never an import of another skill's code. Copies drift, so this suite is
 the one place that reads across skills and holds them together:
 
-* richdocs' ``profile_resolver.py`` is byte-identical to the canonical one;
-* mermaidjs-diagrams' TypeScript port reads a profile exactly as Python does;
-* the test-fixture profiles are what design-profiles builds today;
+* richdocs' Python compatibility reader agrees with the canonical JavaScript reader;
+* mermaidjs-diagrams' TypeScript reader agrees with both;
+* legacy fixture profiles still read consistently across runtimes;
 * the example seeds still state each richdocs brand's exact accents.
 
     uv run pytest tests/test_design_profile_copies.py
@@ -24,12 +24,10 @@ import pytest
 
 REPO = Path(__file__).resolve().parent.parent
 CANONICAL = REPO / "skills/design-profiles/scripts"
-sys.path.insert(0, str(CANONICAL))
+sys.path.insert(0, str(REPO / "skills/richdocs/scripts"))
 
 import profile_resolver  # noqa: E402
-import profiles  # noqa: E402
 
-PYTHON_COPIES = [REPO / "skills/richdocs/scripts/profile_resolver.py"]
 FIXTURES = [
     REPO / "skills/richdocs/scripts/testdata/osakanights/design-tokens.json",
     REPO / "skills/mermaidjs-diagrams/scripts/testdata/osakanights/design-tokens.json",
@@ -38,11 +36,23 @@ FIXTURES = [
 TS_PORT = REPO / "skills/mermaidjs-diagrams/scripts/design_profile.ts"
 
 
-@pytest.mark.parametrize("copy", PYTHON_COPIES, ids=lambda p: str(p.relative_to(REPO)))
-def test_python_copies_are_byte_identical(copy: Path) -> None:
-    assert copy.read_bytes() == (CANONICAL / "profile_resolver.py").read_bytes(), (
-        f"{copy.relative_to(REPO)} drifted from the design-profiles resolver; copy it over again"
+def node_json(source: str, *args: str) -> object:
+    run = subprocess.run(
+        ["node", "--input-type=module", "-e", source, *args],
+        cwd=CANONICAL, capture_output=True, text=True, check=True,
     )
+    return json.loads(run.stdout)
+
+
+@pytest.mark.parametrize("mode", ["light", "dark"])
+def test_python_compatibility_reader_matches_javascript(mode: str, built: Path) -> None:
+    expected = node_json(
+        'import {readFileSync} from "node:fs"; '
+        'import {read_tokens} from "./profile_resolver.mjs"; '
+        'console.log(JSON.stringify(read_tokens(JSON.parse(readFileSync(process.argv[1])), process.argv[2])));',
+        str(built), mode,
+    )
+    assert profile_resolver.read_tokens(json.loads(built.read_text()), mode) == expected
 
 
 @pytest.fixture(scope="module")
@@ -50,15 +60,37 @@ def built(tmp_path_factory: pytest.TempPathFactory) -> Path:
     folder = tmp_path_factory.mktemp("store") / "osakanights"
     folder.mkdir()
     shutil.copy(CANONICAL.parent / "resources/examples/osakanights/seed.json", folder / "seed.json")
-    profiles.curate_profile(folder)
-    return profiles.build_profile(folder)
+    subprocess.run(
+        ["node", str(CANONICAL / "profiles.mjs"), "all", "osakanights", "--store", str(folder.parent)],
+        capture_output=True, text=True, check=True,
+    )
+    return folder / "design-tokens.json"
+
+
+@pytest.mark.parametrize("consumer", [
+    "skills/mermaidjs-diagrams",
+    "skills/richdocs",
+    "skills/richdocs/vendor/mermaidjs-diagrams",
+])
+def test_prebuilt_theme_matches_producer(consumer: str, built: Path) -> None:
+    theme = REPO / consumer / "resources/themes/osakanights"
+    tokens = theme / ("profile/design-tokens.json" if consumer == "skills/richdocs" else "design-tokens.json")
+    assert tokens.read_bytes() == built.read_bytes()
+    assert (theme / "themes.css").read_bytes() == built.with_name("theme.css").read_bytes()
 
 
 @pytest.mark.parametrize("fixture", FIXTURES, ids=lambda p: str(p.relative_to(REPO)))
-def test_fixtures_are_what_design_profiles_builds_today(fixture: Path, built: Path) -> None:
-    assert fixture.read_text(encoding="utf-8") == built.read_text(encoding="utf-8"), (
-        f"rebuild the osakanights example and copy design-tokens.json over {fixture.relative_to(REPO)}"
-    )
+def test_legacy_fixtures_still_read_consistently(fixture: Path, built: Path) -> None:
+    doc = json.loads(fixture.read_text(encoding="utf-8"))
+    for mode in ("light", "dark"):
+        expected = node_json(
+            'import {readFileSync} from "node:fs"; '
+            'import {read_tokens} from "./profile_resolver.mjs"; '
+            'console.log(JSON.stringify(read_tokens(JSON.parse(readFileSync(process.argv[1])), process.argv[2])));',
+            str(fixture), mode,
+        )
+        assert profile_resolver.read_tokens(doc, mode) == expected
+        assert profile_resolver.read_tokens(json.loads(built.read_text()), mode)["dimension.radius"] == {"value": 12, "unit": "px"}
 
 
 @pytest.mark.parametrize("mode", ["light", "dark"])
@@ -88,4 +120,8 @@ def test_example_seeds_state_each_brands_exact_accents(seed: Path) -> None:
     stated = json.loads(seed.read_text(encoding="utf-8"))
     for mode, prefix in (("light", "brand"), ("dark", "brand.dark" if "brand.dark.hue" in stated else "brand")):
         lch = (stated[f"{prefix}.lightness"], stated[f"{prefix}.chroma"], stated[f"{prefix}.hue"])
-        assert profiles.hex_of(lch) == brand["themes"][mode]["accent"].lower()
+        actual = node_json(
+            'import {hex_of} from "./profiles.mjs"; console.log(JSON.stringify(hex_of(JSON.parse(process.argv[1]))));',
+            json.dumps(lch),
+        )
+        assert actual == brand["themes"][mode]["accent"].lower()

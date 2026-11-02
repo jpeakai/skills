@@ -9,10 +9,47 @@ apply to the next related decision.
 This file holds ADR-014 onwards, newest first. The founding records, ADR-001 to
 ADR-013, are in [`adr-log-foundations.md`](adr-log-foundations.md).
 
+### ADR-031: the default is a compiled design profile
+
+- **Status:** accepted; supersedes ADR-028's manually maintained default-theme fallback.
+- **Decision:** prefer the selected or project-default design profile, otherwise
+  load prebuilt `themes/osakanights/themes.css` and matching DTCG tokens.
+  Preserve explicit named-theme and raw-token choices.
+  Root `make profile-themes` compiles the fallback through the design-profiles CLI.
+  Map baked Mermaid variables onto `base`, and rerender source when mode changes.
+  Adapt the generated CSS dark selector to the viewer's `data-theme` provider.
+  Category, shade, compound, entity and sequence advice delegates to the vendored profile-driven guide.
+- **Lens:** consume compiled profile values rather than maintaining a second palette authority.
+
+### ADR-030: one native source lint CLI
+
+- **Status:** accepted; supersedes ADR-025's lint package and ADR-027's canvas-flag mechanism.
+- **Decision:** use pinned `bunx @jpeakai/remark-lint-slopstopper@0.1.2` for
+  Markdown structure, prose and Mermaid policies before rendering.
+  Generate native remark JSON with `--lint-config`, using the local installed plugin and actual diagram canvases.
+  Keep the package's Mermaid dependency aligned with the viewer.
+  Verify host overrides and border contrast separately; Slopstopper 0.1.2 does not certify them.
+  Its fixes apply to prose, not diagrams.
+- **Lens:** preserve supported coverage and state replacement limitations explicitly.
+
+### ADR-029: consumer readers preserve behavior across runtimes
+
+- **Status:** accepted; supersedes ADR-028's byte-identical resolver clause.
+- **Context:** design-profile production runs in Node.js-compatible ES modules,
+  while the Richdocs HTML generator runs in Python.
+- **Decision:** keep the local Python compatibility reader self-contained.
+  Cross-language tests compare resolved values with the canonical JavaScript reader
+  and the Mermaid TypeScript reader, including generated fixture profiles.
+  The profile-first lookup and brandpack mapping from ADR-028 remain.
+- **Consequences:** profile generation needs no Python subprocess; consuming a
+  saved profile through Richdocs keeps its existing Python entry point.
+- **Lens:** compare behavior across runtimes; require byte identity only for
+  readers implemented in the same language and maintained as literal copies.
+
 
 ### ADR-028 — A design profile is read first; the built-in themes are the fallback
 
-- **Status:** accepted (2026-10)
+- **Status:** accepted (2026-10); resolver-copy clause superseded by ADR-029.
 - **Context:** a brand had to be hand-authored once per skill: a richdocs
   brandpack here, prose palettes in mermaidjs-diagrams. The `design-profiles`
   skill now curates one profile per brand into a shared `.design-profiles/`

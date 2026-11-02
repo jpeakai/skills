@@ -42,21 +42,21 @@ If you only remember two things:
 
 No diagram gate lives in this directory any more. Parse, complexity and
 contrast, sequence diagrams included, run from the published package
-`@jpeakai/mermaidjs-lint` (ADR-004, ADR-006), and `SKILL.md` tells agents to
-run `bunx @jpeakai/mermaidjs-lint`.
+`@jpeakai/remark-lint-slopstopper` (ADR-004, ADR-006), and `SKILL.md` tells agents to
+run `bunx @jpeakai/remark-lint-slopstopper`.
 
 | File | Language | Purpose |
 |------|----------|---------|
 | `color_contrast.ts` | TypeScript | WCAG + APCA calculator for arbitrary CSS color pairs, with `--over` compositing. Kept: the package has no ad-hoc pair calculator. |
-| `design_profile.ts` | TypeScript | Reads a design profile: the five-tier cascade, `.default-profile`, the DTCG reader, and the `mermaid-config` / `lint-flags` / `status` commands. A port of the design-profiles resolver (ADR-008). Fixture: `testdata/osakanights/design-tokens.json`. |
+| `design_profile.ts` | TypeScript | Reads a design profile: the five-tier cascade, `.default-profile`, the DTCG reader, and the `mermaid-config` / `lint-config` / `status` commands. A port of the design-profiles resolver (ADR-008). Fixture: `testdata/osakanights/design-tokens.json`. |
 | `render_mermaid.sh` | Bash | Renders both standard variants (dark+transparent, default+white) via `mmdc`, resolving a browser, classifying failures, self-rectifying the remediable ones, and verifying the PNGs. Modes: `--doctor`, `--verify`, `--classify`. |
 
 ### Retired
 
 | File | Language | Superseded by |
 |------|----------|---------------|
-| `mermaid_complexity.ts` and its test | TypeScript | `@jpeakai/mermaidjs-lint` parse and complexity rules (ADR-004) |
-| `mermaid_contrast.ts` and its test | TypeScript | `@jpeakai/mermaidjs-lint` contrast rules, sequence diagrams included (ADR-004, ADR-006) |
+| `mermaid_complexity.ts` and its test | TypeScript | `@jpeakai/remark-lint-slopstopper` parse and complexity rules (ADR-004) |
+| `mermaid_contrast.ts` and its test | TypeScript | `@jpeakai/remark-lint-slopstopper` contrast rules, sequence diagrams included (ADR-004, ADR-006) |
 
 Both scripts left the tree once nothing needed them (ADR-006); they remain in
 git history. A new diagram rule or fix belongs in the package, not here.
@@ -118,7 +118,7 @@ Convenience targets:
 | `ci` | `format-check + lint + typecheck + test-cov + docs` (non-mutating gate) |
 | `fix` | `format + lint-fix` (auto-apply everything fixable) |
 | `docs` | Regenerates `resources/examples/README.md` via `_update_examples_readme.py` |
-| `cli-demo` | Runs `@jpeakai/mermaidjs-lint` and `color_contrast.ts` against fixture inputs |
+| `cli-demo` | Runs `@jpeakai/remark-lint-slopstopper` and `color_contrast.ts` against fixture inputs |
 | `install-ts` | `bun install` into this directory's `node_modules` |
 | `clean` | Removes caches (`__pycache__`, `.pytest_cache`, `.mypy_cache`, `.ruff_cache`, `htmlcov`, `.coverage`) |
 
@@ -606,6 +606,33 @@ profile.
 
 **Lens.** *Read a shared artifact through a local copy of its reader, and keep
 the meaning of every existing flag; add a command rather than overload one.*
+
+### ADR-009: one source audit uses Slopstopper
+
+**Status:** accepted; supersedes the package and flag choices in ADR-004, ADR-006 and ADR-007.
+
+**Decision.** Use `bunx @jpeakai/remark-lint-slopstopper` for authored Markdown, prose and Mermaid policies.
+Its standalone CLI loads both custom policy groups; the package root is only the recommended remark preset.
+Custom canvases use generated native remark configuration, not retired host-profile or canvas CLI flags.
+Pin the local dependency for configuration and rendering-version checks.
+Retain the explicit pair calculator and visual verification for borders and host-overridden labels, which Slopstopper 0.1.2 does not certify.
+The CLI fixes verified prose only and accepts Markdown inputs; diagrams remain source edits.
+
+**Lens.** Verify replacement CLI contracts and audit coverage rather than translating unsupported flags by name.
+
+### ADR-010: profile-driven colors with a compiled OsakaNights fallback
+
+**Status:** accepted; supersedes ADR-008's prose-palette fallback.
+
+**Decision.** Delegate curation to design-profiles where available and consume its baked categorical roots and five-shade families.
+Without a selected or default profile, read local `resources/themes/osakanights/themes.css` and matching DTCG tokens.
+Root `make profile-themes` compiles the fallback with the producer's actual CLI.
+Keep the skill self-contained at runtime and verify compiled copies against fresh producer output.
+Preserve category identity across views; resolve values before emitting Mermaid styles.
+Use renderer-supported compound, entity-row and sequence-group mechanisms, inspect both modes and keep verification images local.
+Publish native Mermaid source rather than image replacements.
+
+**Lens.** A shared producer owns palette values; consumers own semantic assignments and renderer verification.
 
 ## Related
 

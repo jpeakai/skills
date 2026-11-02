@@ -28,16 +28,13 @@ start unreviewed. Theme changes and navigation retain state in the current page.
 Print includes folded content and hides controls. Sidebar-layout preferences
 are separate from review state.
 
-Run `bunx @jpeakai/mermaidjs-lint@0.7.0` (parse, complexity and contrast,
-sequence diagrams included) before `md2html.py`, as shown in the SKILL.md
-Mermaid gate. Pass the canvas flags of the theme you render with, so
-page-backed colours (sequence messages, lifelines, loop text and human `actor`
-labels) are scored on that theme's light and dark `surface`, the page the
-viewer draws diagrams on:
+Run the unified Slopstopper CLI on the source before rendering.
+Use native remark configuration for the same selected profile or theme and its diagram canvases:
 
 ```bash
-uv run --no-project .claude/skills/richdocs/scripts/md2html.py SOURCE.md --theme NAME --lint-flags \
-  | xargs bunx @jpeakai/mermaidjs-lint@0.7.0 SOURCE.md
+mkdir -p tmp/richdocs
+uv run --no-project .claude/skills/richdocs/scripts/md2html.py SOURCE.md --theme NAME --lint-config > tmp/richdocs/lint-config.json
+bunx @jpeakai/remark-lint-slopstopper@0.1.2 SOURCE.md --config tmp/richdocs/lint-config.json
 ```
 
 Render live and

@@ -5,8 +5,9 @@
 # ///
 """Find a design profile and read its design-tokens.json. Stdlib only.
 
-The design-profiles skill owns this file. Every skill that reads profiles carries
-its own byte-identical copy and never imports another skill's code (DT-TOOL-1).
+Compatibility reader for design-profiles' canonical profile_resolver.mjs.
+Cross-language contract tests check matching values without importing another
+skill's runtime code (DT-TOOL-1, DT-RUNTIME-1).
 
 A profile name resolves through five tiers, first hit wins (DT-LOC-1):
 
@@ -205,4 +206,6 @@ def group(flat: dict[str, Any], prefix: str) -> dict[str, Any]:
 def series(flat: dict[str, Any], prefix: str) -> list[Any]:
     """Numbered tokens `prefix.1 … prefix.N` as an ordered list."""
     items = group(flat, prefix)
-    return [items[str(i)] for i in range(1, len(items) + 1) if str(i) in items]
+    return [
+        items[key] for key in sorted((key for key in items if key.isdigit()), key=int)
+    ]

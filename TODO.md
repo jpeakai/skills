@@ -1,0 +1,7 @@
+- shadcn update the richdocs base HTML/JS/CSS
+- update the showcase to be shadcn
+- test the design profiles across all themes for all of showcase.
+- test the mermaidjs evals again.
+- update slopstopper linter for any failures.
+- clean out from skills anything that slopstopper handles now.
+- update the skills to be v2ai flavored variant ready for richdocs.

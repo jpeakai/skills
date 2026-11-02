@@ -37,6 +37,12 @@ Every route uses local conventions and the documented current-user identity.
 <summary>Complete routing and stopping conditions</summary>
 
 ```mermaid
+---
+config:
+  themeVariables:
+    textColor: '#010101'
+    edgeLabelBackground: '#ffffff'
+---
 flowchart LR
     R["Read root or docs/TICKETING.md"]:::input --> E{"Present and sufficient?"}:::process
     E -->|no| S["Report missing conventions"]:::rule

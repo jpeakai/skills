@@ -1,12 +1,12 @@
 # Design-token refactor
 
-One design-token architecture shared by `skills/richdocs/` and `skills/mermaidjs-diagrams/`, so a
-brand profile is curated once and paints every surface they render: chrome CSS, Cytoscape, Plotly,
-Mermaid, deck.gl and draw.io, in light and dark.
+Generate one design profile from a shadcn preset string and share it across rendering surfaces in light and dark.
+Resolve its theme and fonts, expand its chart seed into ten five-shade palettes, and export CSS or DTCG tokens.
+Hue and accent seeds remain available for offline authoring.
 
-**Status:** implemented. M0 to M6 in [`MIGRATION.md`](MIGRATION.md) are done: the
-producer is [`skills/design-profiles/`](../../../skills/design-profiles/), and `richdocs`
-and `mermaidjs-diagrams` read its profiles first.
+**Status:** the producer and consumers are implemented, including the preset adapter and chart expansion.
+The [skill overview](../../../skills/design-profiles/README.md) shows the complete pipeline.
+Implementation steps are in [MIGRATION.md](MIGRATION.md).
 
 ## Architecture
 
@@ -27,26 +27,27 @@ and `mermaidjs-diagrams` read its profiles first.
                      maximises WCAG               no design knowledge
 ```
 
-Three artifacts, two transforms. Gates run at curation, never at load. A stated value is final;
-rules only impute what a profile does not state.
+Preset resolution precedes the seed and IR pipeline.
+The saved seed contains resolved theme and font metadata, so curation and build remain offline.
+Build writes `theme.css` with font loading and/or `design-tokens.json`.
+Gates run at curation, never at load.
+A stated value remains final.
 
 ## Files
 
 | Path | Holds |
 |---|---|
-| [`DECISIONS.md`](DECISIONS.md) | The fifteen decisions. **Canonical.** |
+| [`DECISIONS.md`](DECISIONS.md) | Scoped decisions and the preset import contract. |
 | [`CURATION.md`](CURATION.md) | Seed → IR, stage by stage, with defaults |
 | [`MIGRATION.md`](MIGRATION.md) | The build sequence, M0 to M6 |
 | [`review/pr25-design-profiles.md`](review/pr25-design-profiles.md) | The PR 25 review companion; [`.html`](review/pr25-design-profiles.html) is its self-contained render |
 | [`reference/osakanights.design-tokens.json`](reference/osakanights.design-tokens.json) | The target `design-tokens.json` shape (DT-DTCG-1), built from osakanights before surfaces and fonts were added |
 
-The prototype spike was promoted into `skills/design-profiles/scripts/profiles.py` (M2)
-and retired with its richdocs projection (M6); it remains in git history. Run the tool
-from the repo root:
+Run the preset workflow from the repository root:
 
 ```bash
-uv run --no-project skills/design-profiles/scripts/profiles.py init acme --example osakanights
-uv run --no-project skills/design-profiles/scripts/profiles.py all acme
+bun install --cwd skills/design-profiles/scripts --frozen-lockfile
+bun skills/design-profiles/scripts/shadcn.mjs b5cR4pgAc --name demo
 ```
 
 ## Role vocabulary (DT-ROLES-1)
@@ -63,6 +64,11 @@ color.text.danger / .warning / .success
 ```
 
 `accent` is retired as a role name.
+
+All profiles default to ten categorical roots and `color.chart.palettes.<hue>.<shade>` for fifty expanded colors.
+Hue indexes use `01` through `10`; shade indexes use `1` through `5`.
+Existing profiles migrate their names and preserve stated edits when rebuilt.
+The [preset reference](../../../skills/design-profiles/resources/shadcn-presets.md) defines formulas, outputs, and font loading.
 
 ## Ground rules
 

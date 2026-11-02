@@ -37,7 +37,8 @@ claude plugin update jpai-essentials@jpeakai
 claude plugin update jpai-delivery@jpeakai
 ```
 
-An update applies on restart, so start a new session afterwards. `claude plugin list` shows the version each pack is on.
+An update applies on restart, so start a new session afterwards.
+`claude plugin list` shows the version each pack is on.
 
 ### Codex
 
@@ -58,7 +59,8 @@ codex plugin add jpai-delivery@jpeakai
 ```
 
 Codex has no update command, because it caches each version of a plugin in its own directory.
-Adding a pack again installs the version the refreshed snapshot now carries. `codex plugin list` shows the version each pack is on.
+Adding a pack again installs the version the refreshed snapshot now carries.
+`codex plugin list` shows the version each pack is on.
 
 ### npx skills
 
@@ -124,6 +126,12 @@ The packs under `plugins/` are **generated** from them.
 [`plugins/composition.yaml`](plugins/composition.yaml) declares what each pack composes, and `scripts/sync_plugins.py` copies it in.
 
 ```mermaid
+---
+config:
+  themeVariables:
+    textColor: '#010101'
+    edgeLabelBackground: '#ffffff'
+---
 flowchart LR
     SK["skills/<br/>canonical skills"]:::src
     HK["hooks/<br/>tool_coach"]:::src
@@ -151,12 +159,19 @@ flowchart LR
     classDef host  fill:#334155,stroke:#cbd5e1,color:#ffffff,stroke-width:2px
 ```
 
-*Edit blue, declare amber, never touch green.* Both packs install into both agents.
+*Edit blue, declare amber, never touch green.*
+Both packs install into both agents.
 
 <details>
 <summary>📋 Complete diagram — every skill, both marketplaces, and the gates</summary>
 
 ```mermaid
+---
+config:
+  themeVariables:
+    textColor: '#010101'
+    edgeLabelBackground: '#ffffff'
+---
 flowchart TB
     subgraph canon["Canonical source — edit here"]
         AD[adr]:::src
@@ -256,7 +271,9 @@ Those execute on a machine that has never seen this repo, so a shared manifest w
 [`tests/test_publication_contract.py`](tests/test_publication_contract.py) asserts what a marketplace enforces when this repo is published, parametrised over every skill so a new one is covered without touching the file.
 
 Every rule in it came from a real failed or warned sync, and each names the incident.
-It exists because nothing else available locally catches these. `claude plugin validate --strict` passes on a tree that fails the sync. `make harness-ci` installs both packs happily while the tree is in breach, and the published marketplace schema declares no length limit at all.
+It exists because nothing else available locally catches these.
+`claude plugin validate --strict` passes on a tree that fails the sync.
+`make harness-ci` installs both packs happily while the tree is in breach, and the published marketplace schema declares no length limit at all.
 So the description caps it checks are observed rather than documented, and the sync's own wording is quoted beside each one.
 
 ```sh

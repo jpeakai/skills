@@ -11,7 +11,7 @@
 # A design profile (from the design-profiles skill) is read first: the one
 # --design-profile names, else the one .design-profiles/.default-profile names.
 # Its Mermaid themeVariables reach mmdc as a config, light for the white variant
-# and dark for the transparent one. With no profile, mmdc's own themes apply.
+# and dark for the transparent one. With no project profile, prebuilt OsakaNights applies.
 #
 # Rendering drives a real Chromium, so it can fail for reasons unrelated to the
 # diagram. This script senses the environment, classifies failures, applies the
@@ -311,17 +311,12 @@ design_profile() {
 }
 CONFIG_LIGHT=""
 CONFIG_DARK=""
-if [ ${#DESIGN_PROFILE[@]} -gt 0 ] || [ -f ".design-profiles/.default-profile" ] \
-  || [ -f "$HOME/.design-profiles/.default-profile" ]; then
-  mkdir -p "$MERMAID_RUNTIME_DIR"
-  CONFIG_LIGHT="$MERMAID_RUNTIME_DIR/design-profile-light.json"
-  CONFIG_DARK="$MERMAID_RUNTIME_DIR/design-profile-dark.json"
-  design_profile mermaid-config --mode light > "$CONFIG_LIGHT"
-  design_profile mermaid-config --mode dark > "$CONFIG_DARK"
-  echo "Design $(design_profile status)"
-else
-  echo "Design profile: none (mmdc's own dark and default themes)"
-fi
+mkdir -p "$MERMAID_RUNTIME_DIR"
+CONFIG_LIGHT="$MERMAID_RUNTIME_DIR/design-profile-light.json"
+CONFIG_DARK="$MERMAID_RUNTIME_DIR/design-profile-dark.json"
+design_profile mermaid-config --mode light > "$CONFIG_LIGHT"
+design_profile mermaid-config --mode dark > "$CONFIG_DARK"
+echo "Design $(design_profile status)"
 
 mkdir -p "$NPM_CONFIG_CACHE"
 

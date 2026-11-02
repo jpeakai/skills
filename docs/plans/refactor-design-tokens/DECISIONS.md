@@ -179,3 +179,104 @@ A stated value feeds everything derived after it. Delete a value (or its `origin
 - Target shape: [`reference/osakanights.design-tokens.json`](reference/osakanights.design-tokens.json).
 - Rejected: a format document with `light`/`dark` groups (no mode semantics, prefixed aliases).
 - **Unless** no DTCG tool ever reads the file and a bare dictionary lookup is all a consumer needs.
+
+## DT-PRESET-1: one shadcn code resolves a complete profile input
+
+Use the public `shadcn/preset` decoder and `shadcn/registry` APIs through an optional JavaScript adapter.
+The decoder selects options; registry data supplies actual CSS values and font metadata.
+Save that resolved data in the seed so Python curation and rebuilds remain offline.
+Preserve supplied colors, alpha, font families, and radius as stated values.
+
+For preset profiles, this specialises DT-ACCENT-1, DT-WALK-1, and DT-WALK-2:
+
+- Chart expansion starts from each mode's original `chart-1`, independently of the primary brand accent.
+- Compute ten hue roots with `360 / φ²` golden-angle steps.
+- Transfer the resolved five-shade ramp's lightness, chroma, and shortest signed hue offsets to every root.
+- Reduce only chroma to fit sRGB; keep lightness and hue.
+- Keep original shadcn chart tokens separate from generated categorical and sequential palettes.
+- Record contrast without claiming that golden-angle spacing guarantees WCAG or color-vision thresholds.
+
+This expansion is a profile generator rule, not an upstream shadcn derivation.
+Hue and accent seeds retain their existing offline rules and twelve-slot walk.
+Build remains a pure IR serialisation, with CSS, DTCG, or both as output choices.
+CSS carries font loading; DTCG carries font-family tokens and stylesheet URLs.
+Consumers read baked values without fetching a preset or generating colors at load.
+
+- **Because** a reusable preset string should supply the whole design, including charts and typography, without repeated manual setup.
+- **Unless** the preset format or public APIs stop exposing the theme and font data needed for a complete saved snapshot.
+
+## DT-NUM-1: preset hue indexes use two digits
+
+Generated preset categorical and palette hue indexes use `01` through `10` in IR, DTCG, CSS, selectors, and contrast reports.
+Shade indexes remain `1` through `5`, matching the original shadcn chart slots.
+Normalising older preset profiles updates names and aliases without discarding stated values.
+Legacy hue and accent profile names remain compatible with existing consumers.
+
+- **Because** fixed-width hue indexes preserve lexical ordering and keep ten-palette references consistent.
+- **Unless** the maintained palette count exceeds two-digit indexes.
+
+## DT-RUNTIME-1: design-profile scripts are Node.js-compatible ES modules
+
+The producer, canonical resolver, and preset expander are .mjs modules running under Node.js or Bun.
+This supersedes DT-PRESET-1's Python runtime wording; the saved-input and offline-build contracts remain.
+The network adapter calls the expander directly, with no Python or uv subprocess.
+Saved profiles rebuild using Node.js standard APIs and no installed packages.
+Keep curation, stated edits, chart numbering, fonts, radius, DTCG and CSS output behavior consistent across runtimes.
+Consumer skills remain self-contained under DT-TOOL-1.
+Python and TypeScript compatibility readers are checked for resolved-value agreement rather than byte identity.
+Bun runs formatting, lint, strict JavaScript type checks, schema tests and coverage gates.
+
+## DT-RADIUS-1: every seed supports explicit corner radius
+
+Hue and accent seeds accept `radius` as a nonnegative px/rem CSS dimension, including zero.
+An optional `radius.dark` overrides dark mode; otherwise both modes share `radius`.
+The default is `12px` for inputs that omit it, preserving existing profile chrome.
+Every shipped example states the corresponding built-in theme's radius explicitly.
+Preset snapshots use the same parser with their registry CSS values.
+Curate this input as `dimension.radius`; export it in DTCG and as CSS `--radius`.
+Keep stated radius edits across rebuilds, preserving their unit and square corners.
+Graph-specific corner geometry remains an independent consumer mapping.
+
+## DT-PRECISION-1: retain complete OKLCH coordinates
+
+Keep full floating-point coordinates through curation, aliases, CSS and DTCG export.
+Do not quantise IR coordinates to four decimals: this can change a channel in the stored sRGB fallback.
+Surface aliases carry their source coordinates; newly composited opaque colors receive coordinates during curation.
+Build continues to serialise curated values and preserves a hex edit when its recorded coordinates are stale.
+Round contrast reports for display, not the color data used to render.
+
+## DT-CHART-1: every profile has categorical roots and five-shade palettes
+
+This supersedes DT-PRESET-1's twelve-slot exception and DT-NUM-1's legacy naming exception for hue and accent profiles.
+It also supersedes DT-WALK-1 and DT-WALK-2's default twelve slots, rounded angle, equal-chroma floor and per-slot contrast solving.
+Default to ten categorical roots numbered `01` through `10`, with exact `360 / φ²` hue steps.
+Hue and accent profiles start from each mode's brand fill and preserve its lightness, fitting sRGB by reducing chroma only.
+For each root, scale the measured five-shade reference lightness/chroma ratios and apply its hue offsets.
+The reference recipe is documented in the preset reference; it is our curation rule, not a formula provided by shadcn.
+Preset imports retain their own supplied five-shade ramp and absolute offset transfer under DT-PRESET-1.
+Both paths emit `color.chart.palettes.<hue>.<shade>`, default sequential aliases, CSS palette selectors, and adjacent contrast reports.
+Explicit walk settings remain supported; preserve stated roots and shades through rebuilds.
+Normalise older numeric hue names and aliases; retire surplus imputed chart slots without discarding stated edits.
+Golden-angle spacing and shade construction do not guarantee a WCAG or color-vision threshold.
+
+## DT-SHADCN-1: exported CSS is a superset of the shadcn theme-variable contract
+
+Every profile supplies shadcn's background/foreground pairs, actions, borders, inputs, focus rings, five chart slots, sidebar tokens and radius in both modes.
+The CSS also retains font loading, expanded chart palettes and profile chrome variables.
+Curate the projections under `surface.shadcn`; preserve imported preset values and unknown supplied variables.
+Fallback mappings use existing semantic roles, with the default sequential palette supplying `chart-1` through `chart-5`.
+Reserve `--accent` for shadcn interaction styling and `--border` for the shadcn border; prefix colliding legacy chrome variables with `profile-`.
+Font and radius aliases carry explicit DTCG types, overriding the surface group's inherited color type.
+Record projection dependencies so lineage includes the `surface.shadcn` group and traces fonts, radius and chart inputs.
+CSS build resolves recorded aliases without inventing design values; older incomplete IR must be curated before CSS export.
+The compatibility contract covers theme variables, not framework-specific Tailwind imports or directives.
+
+## DT-CONSUMER-1: consumers ship a compiled profile fallback
+
+This supersedes DT-TOOL-1's independently authored fallback palettes for Mermaid and default Richdocs output.
+Resolve a requested or project-default profile first, preserving explicit Richdocs theme and token selections.
+Otherwise consume the prebuilt OsakaNights profile under each skill's `resources/themes/osakanights/` directory.
+Generate `themes.css` and matching DTCG tokens together through the design-profiles CLI during `make fix`.
+Consumers read baked values and delegate curation to design-profiles where available.
+Keep runtime readers self-contained and verify prebuilt artifacts against producer output.
+Preserve Richdocs' explicit brand themes and original showcase.

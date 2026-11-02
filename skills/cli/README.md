@@ -51,6 +51,12 @@ demand. All patterns inherit the same conventions (fail-loud, root discovery, pa
 assets, stdout/stderr discipline).
 
 ```mermaid
+---
+config:
+  themeVariables:
+    textColor: '#010101'
+    edgeLabelBackground: '#ffffff'
+---
 graph TD
     F["cli-foundations<br/>skeleton, root discovery, packaged assets"]
     V["static-spa-viewer<br/>SPA, themes, Cytoscape/Plotly"]

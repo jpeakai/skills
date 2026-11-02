@@ -21,7 +21,7 @@ has its own fix; fixing one never fixes another.
 
 **Only the fourth sends you back to edit the diagram.** The first rule of
 triage is refusing to "fix" a syntax-clean diagram because the browser could
-not start. A diagram that passed `@jpeakai/mermaidjs-lint` has already been
+not start. A diagram that passed `@jpeakai/remark-lint-slopstopper` has already been
 through Mermaid's canonical parser — if that gate is green, a render failure is
 almost certainly environmental.
 
@@ -78,7 +78,7 @@ Run it in probe-only mode to see what the current host offers before you
 commit to a render:
 
 ```bash
-bash .claude/skills/mermaidjs-diagrams/scripts/render_mermaid.sh --doctor
+bash .claude/skills/richdocs/vendor/mermaidjs-diagrams/scripts/render_mermaid.sh --doctor
 ```
 
 ## Exit 0 is not proof of an image
@@ -108,7 +108,7 @@ mkdir -p "$NPM_CONFIG_CACHE"
 
 # BROWSER_MISSING — reuse a browser some other tool already installed.
 # `sed`, not `awk '{print $2}'`: system browser paths contain spaces.
-browser="$(bash .claude/skills/mermaidjs-diagrams/scripts/render_mermaid.sh --doctor | sed -n 's/^browser: //p')"
+browser="$(bash .claude/skills/richdocs/vendor/mermaidjs-diagrams/scripts/render_mermaid.sh --doctor | sed -n 's/^browser: //p')"
 if [ "$browser" != "<none resolved>" ]; then
   export PUPPETEER_EXECUTABLE_PATH="$browser"
   export PUPPETEER_SKIP_DOWNLOAD=true
@@ -118,7 +118,7 @@ fi
 
 # SANDBOX_DENIED — re-run ONLY the render in a browser-capable class.
 # The lint below needs no such permission; keep it in the restricted class.
-bunx @jpeakai/mermaidjs-lint doc.md
+bunx @jpeakai/remark-lint-slopstopper doc.md
 ```
 
 Any browser you resolve is a candidate, not a contract. Prove it with one real

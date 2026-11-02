@@ -57,7 +57,8 @@ flowchart LR
     classDef deny  fill:#be123c,stroke:#fecdd3,color:#ffffff,stroke-width:2px
 ```
 
-*A denial carries a redirect, not a dead end.* Same shape in both agents.
+*A denial carries a redirect, not a dead end.*
+Same shape in both agents.
 
 <details>
 <summary>📋 Complete diagram — the checks, the wire format, and both harnesses</summary>
@@ -111,7 +112,15 @@ Failure is loud: a broken rules file exits 1 rather than silently allowing the c
 </details>
 
 Structural checks parse the command into argv with `shlex`.
-That catches forms a regex misses: elevated commands, argument expansion, absolute executable paths, environment prefixes, pipelines and deletion commands.
+That catches forms a regex misses:
+
+- elevated commands
+- argument expansion
+- absolute executable paths
+- environment prefixes
+- pipelines
+- deletion commands
+
 Pattern rules live in the JSON file and need no code change to add.
 Heredoc bodies are stripped before any check runs, so writing *documentation about* a blocked command is never itself blocked.
 Full behaviour and rationale are in the module docstrings of `tool_coach.py` and `tool_coach_rules.json`.
@@ -162,7 +171,8 @@ It, too, is shared verbatim:
 
 This is the documented plugin convention.
 A plugin's `hooks/hooks.json` is auto-discovered at the plugin root and merged into the session's hook config when the plugin is enabled.
-No reference from `plugin.json` is needed, the same way `skills/` is auto-discovered. `${CLAUDE_PLUGIN_ROOT}` resolves to this plugin's install directory.
+No reference from `plugin.json` is needed, the same way `skills/` is auto-discovered.
+`${CLAUDE_PLUGIN_ROOT}` resolves to this plugin's install directory.
 (Confirmed against [Claude Code plugin docs](https://code.claude.com/docs/en/plugins) and [hooks reference](https://code.claude.com/docs/en/hooks), September 2026.)
 
 ### Codex CLI
@@ -190,7 +200,8 @@ It mirrors Claude Code's `PreToolUse` contract closely enough to be wire-compati
 `.codex-plugin/plugin.json` in this repo declares `"hooks": "./hooks/hooks.json"`, the bare-string form exercised by that first unit test.
 So the one file above wires the one script into both agents.
 
-**Provenance note.** All of the above came from reading Codex's own source, not from stable public documentation.
+**Provenance note.**
+All of the above came from reading Codex's own source, not from stable public documentation.
 The source read was the `openai/codex` repository at commit `c9c7b73c`, September 2026.
 The evidence covers its hooks, plugin, core-plugin and hook-configuration modules, plus unit tests for the manifest shape used here.
 Public docs were not an option, because `developers.openai.com/codex` was unreachable from the environment used for this research.

@@ -1,7 +1,7 @@
 # Curation: seed → IR
 
 Turns a few stated parameters into a semantically complete `ir.json`. Every stage is settled;
-`skills/design-profiles/scripts/profiles.py` implements every stage.
+`skills/design-profiles/scripts/profiles.mjs` implements every stage.
 
 Invariants: curation imputes what is absent and never overwrites what is stated (DT-BUILD-1,
 DT-PROV-1). A stated value is final and unconstrained: a brand may choose green for `danger`.
@@ -9,8 +9,15 @@ DT-PROV-1). A stated value is final and unconstrained: a brand may choose green 
 ## Stage 0: the seed
 
 Optional. Only the brand hue is required. The full parameter set, each with its default and source,
-is `DEFAULTS` in `skills/design-profiles/scripts/profiles.py`. A scraped brand usually states `brand.hue`, `brand.chroma`,
+is `DEFAULTS` in `skills/design-profiles/scripts/profiles.mjs`. A scraped brand usually states `brand.hue`, `brand.chroma`,
 `brand.lightness`, plus `brand.dark.*` when its dark accent differs.
+
+A preset seed instead holds the resolved registry snapshot under `preset`.
+The JavaScript adapter decodes the string with `shadcn/preset` and resolves colors and fonts through `shadcn/registry`.
+`shadcn_profile.mjs` maps these values to stated semantic roles before curation.
+Hue and accent seeds state `radius` using the same nonnegative px/rem/zero input.
+An optional `radius.dark` overrides dark mode; both emit the typed `dimension.radius` token.
+It preserves original alpha and OKLCH coordinates for export.
 
 Scrape heuristics: `background|bg|surface|canvas` → ground; `accent|brand|primary|cta|highlight` →
 brand hue.
@@ -48,13 +55,24 @@ Produces `color.background.brand.bold`, `.subtlest`, `color.border.brand`, `colo
 - `offset.background.selected` defaults to 0.07 (M3's `secondaryContainer` sits 0.068 L from its
   surface).
 
-## Stage 4: categorical walk (DT-WALK-1, DT-WALK-2)
+## Stage 4: categorical roots and five-shade palettes (DT-CHART-1)
 
-1. Slot 1 is the brand hue in OKLCH; each next slot adds 137.5°.
-2. Solve lightness per slot and mode for 3:1 on every ground.
-3. Chroma is `min(max in-gamut, walk.chromaCeiling)`. Gamut-map by reducing chroma, holding L and H.
+1. Default to ten roots, numbered `01` through `10`, with `360 / φ²` golden-angle hue steps.
+2. Hue and accent profiles start from the mode's brand fill, retaining root lightness rather than solving chart marks to 3:1.
+3. Reduce chroma only to fit sRGB; keep lightness and hue.
+4. Scale the measured five-shade reference recipe to each categorical root, producing fifty palette colors.
+5. Alias the default sequential ramp to palette `01`.
 
 Equal hue angles are not equal perceptual steps; separation is uneven by nature.
+
+For preset profiles, DT-PRESET-1 starts from each mode's original `chart-1`.
+Each root gets five shades by transferring the source ramp's lightness, chroma, and shortest hue offsets.
+Chroma-only gamut mapping fits each derived color to sRGB.
+The source `chart-1` through `chart-5` remain separate from these generated palettes.
+See the [preset reference](../../../skills/design-profiles/resources/shadcn-presets.md#expand-chart-colors-into-ten-palettes) for the formulas.
+The same reference defines the scaled fallback recipe used when no imported five-shade ramp exists.
+Chart contrast is reported, not guaranteed by the hue walk.
+Retain full OKLCH coordinates in the IR and exports; round contrast reports only.
 
 ## Stage 5: status colours
 
@@ -71,6 +89,9 @@ Conventional hues, not walk slots, each solved to 4.5:1 on its ground:
 
 Curation writes each surface into the IR as a group; build only serialises.
 
+For preset profiles, the IR also includes font stylesheet URLs, imported shadcn colors, radius, and expanded chart palettes.
+Build exports portable CSS and/or DTCG tokens from this complete IR.
+
 | Group | Shape |
 |---|---|
 | `surface.cytoscape` | `{selector, style}[]`: node fill/border/label, edge, compound, selected |
@@ -79,6 +100,7 @@ Curation writes each surface into the IR as a group; build only serialises.
 | `surface.deckgl` | RGBA arrays |
 | `surface.drawio` | container and stencil fill/stroke per shape class |
 | `surface.css` | chrome custom properties |
+| `surface.shadcn` | complete shadcn theme variables, with typed font and radius aliases |
 
 No prior art exists for this in any charting or diagram library. Mermaid derives its palette from
 `primaryColor` by hue rotation (`secondaryColor` at h −120, `tertiaryColor` at −160, `cScale1` =

@@ -22,7 +22,7 @@ Consult it before creating, moving or renaming documentation.
   - `adrs/graph.json`
   - `adrs/graph.html`
 - ADR regeneration: `make adrs`; validation and freshness: `make adr-ci`.
-- Prose gate scope: root `prose-gates.config.json` anchors discovery to this repository and its glossary (observed tool requirement).
+- Documentation audits use Slopstopper's standalone CLI with explicit file scope and native remark configuration when needed.
 - Glossary: root `GLOSSARY.md`, alphabetical H2 terms and a relationship diagram (standard default).
 - Coding standards: root `CODING_STANDARDS.md`, seven baseline tenets mapped to observed tools and explicit enforcement gaps (standard default).
 - Proposals: no separate RFC surface (standard default).

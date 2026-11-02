@@ -1,116 +1,23 @@
-# Shared Makefile for all design-profiles skill scripts (pure Python).
-# Run from repo root: make -C skills/design-profiles/scripts <target>
+# Node.js-compatible modules; Bun runs the development gates.
+JS_SRC = profiles.mjs profile_resolver.mjs shadcn_profile.mjs shadcn.mjs
+TEST_SRC = profiles.test.ts profile_resolver.test.ts shadcn_profile.test.ts shadcn.test.ts
+BIOME = bunx --bun @biomejs/biome
 
-# ── Python source ──────────────────────────────────────────────────────────
-
-# Public Python scripts (referenced in SKILL.md). profile_resolver is the file
-# every consumer skill carries its own copy of (DT-TOOL-1).
-PY_SCRIPTS = profiles profile_resolver
-
-# Private scripts: maintenance helpers for the skill itself (none yet)
-PRIVATE_PY_SCRIPTS =
-
-PY_SRC = $(addsuffix .py,$(PY_SCRIPTS)) $(addprefix test_,$(addsuffix .py,$(PY_SCRIPTS))) \
-         $(addsuffix .py,$(PRIVATE_PY_SCRIPTS)) $(addprefix test_,$(addsuffix .py,$(PRIVATE_PY_SCRIPTS))) \
-         conftest.py
-
-# ── Paths ──────────────────────────────────────────────────────────────────
-
-THIS_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-
-# --no-project prevents uv from discovering the root pyproject.toml,
-# which would otherwise inject unrelated coverage config and deps.
-UV = uv run --no-project
-
-# Isolate pytest from any root pyproject.toml config (addopts, plugins).
-PYTEST_ARGS = -v -c /dev/null --rootdir .
-
-.PHONY: all help clean \
-        format format-py \
-        format-check format-check-py \
-        lint lint-py \
-        lint-fix lint-fix-py \
-        typecheck typecheck-py \
-        test test-py \
-        test-cov test-cov-py \
-        ci fix
-
-# Default target
-all: format lint typecheck test-cov
-
-# ── Format ─────────────────────────────────────────────────────────────────
-
-format: format-py
-
-format-py: $(PY_SRC)
-	$(UV) --with ruff ruff format $(PY_SRC)
-
-format-check: format-check-py
-
-format-check-py: $(PY_SRC)
-	$(UV) --with ruff ruff format --check $(PY_SRC)
-
-# ── Lint ───────────────────────────────────────────────────────────────────
-
-lint: lint-py
-
-lint-py: $(PY_SRC)
-	$(UV) --with ruff ruff check --line-length 120 $(PY_SRC)
-
-lint-fix: lint-fix-py
-
-lint-fix-py: $(PY_SRC)
-	$(UV) --with ruff ruff check --fix --line-length 120 $(PY_SRC)
-
-# ── Typecheck ──────────────────────────────────────────────────────────────
-
-typecheck: typecheck-py
-
-# mypy resolved hermetically via `uv run --with mypy` — no system install assumed.
-typecheck-py: $(addsuffix .py,$(PY_SCRIPTS) $(PRIVATE_PY_SCRIPTS))
-	$(UV) --with mypy mypy $(addsuffix .py,$(PY_SCRIPTS) $(PRIVATE_PY_SCRIPTS)) --ignore-missing-imports --strict
-
-# ── Test ───────────────────────────────────────────────────────────────────
-
-test: test-py
-
-# PEP-723 entry points — deps declared in each test file itself
-test-py:
-	$(UV) test_profiles.py $(PYTEST_ARGS)
-	$(UV) test_profile_resolver.py $(PYTEST_ARGS)
-
-test-cov: test-cov-py
-
-test-cov-py:
-	$(UV) test_profiles.py $(PYTEST_ARGS) \
-		--cov=profiles --cov-report=term-missing --cov-fail-under=90
-	$(UV) test_profile_resolver.py $(PYTEST_ARGS) \
-		--cov=profile_resolver --cov-report=term-missing --cov-fail-under=90
-
-# ── CI / Fix / Misc ────────────────────────────────────────────────────────
-
-# Run all checks with coverage enforcement (CI standard).
+.PHONY: all ci fix format format-check lint lint-fix typecheck test test-cov
+all: ci
 ci: format-check lint typecheck test-cov
-
-# Run all auto-fixers (local development)
 fix: format lint-fix
-
-# Clean up cache and temp files
-clean:
-	rm -f *.pyc
-	rm -rf __pycache__ .pytest_cache .mypy_cache .ruff_cache htmlcov .coverage
-
-# Show help
-help:
-	@echo "Composite targets:"
-	@echo "  all          - format + lint + typecheck + test-cov (default)"
-	@echo "  format       - Auto-format source"
-	@echo "  format-check - Check formatting without modifying (CI-safe)"
-	@echo "  lint         - Lint source (non-mutating)"
-	@echo "  lint-fix     - Lint and auto-fix"
-	@echo "  typecheck    - Type check public scripts (mypy --strict)"
-	@echo "  test         - Run tests"
-	@echo "  test-cov     - Run tests with coverage (>=90%)"
-	@echo "  ci           - format-check + lint + typecheck + test-cov"
-	@echo "  fix          - format + lint-fix"
-	@echo "  clean        - Remove temp files and caches"
+format:
+	$(BIOME) format --write $(JS_SRC) $(TEST_SRC)
+format-check:
+	$(BIOME) format $(JS_SRC) $(TEST_SRC)
+lint:
+	$(BIOME) lint --error-on-warnings $(JS_SRC) $(TEST_SRC)
+lint-fix:
+	$(BIOME) lint --write $(JS_SRC) $(TEST_SRC)
+typecheck:
+	./node_modules/.bin/tsc --project tsconfig.json
+test:
+	bun test $(TEST_SRC)
+test-cov:
+	bun test $(TEST_SRC) --coverage --coverage-threshold=0.90

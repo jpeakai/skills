@@ -21,7 +21,7 @@ has its own fix; fixing one never fixes another.
 
 **Only the fourth sends you back to edit the diagram.** The first rule of
 triage is refusing to "fix" a syntax-clean diagram because the browser could
-not start. A diagram that passed `@jpeakai/mermaidjs-lint` has already been
+not start. A diagram that passed `@jpeakai/remark-lint-slopstopper` has already been
 through Mermaid's canonical parser — if that gate is green, a render failure is
 almost certainly environmental.
 
@@ -118,7 +118,7 @@ fi
 
 # SANDBOX_DENIED — re-run ONLY the render in a browser-capable class.
 # The lint below needs no such permission; keep it in the restricted class.
-bunx @jpeakai/mermaidjs-lint doc.md
+bunx @jpeakai/remark-lint-slopstopper doc.md
 ```
 
 Any browser you resolve is a candidate, not a contract. Prove it with one real

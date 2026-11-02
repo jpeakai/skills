@@ -119,9 +119,11 @@ function showError(el, err) {
 // API is absent in a few older engines.
 function renderAllMermaid() {
   if (mermaidSources.length === 0) return Promise.resolve();
+  var profileVariables = TOKENS.canvas.mermaid && TOKENS.canvas.mermaid[currentTheme()];
   window.mermaid.initialize({
     startOnLoad: false,
-    theme: currentTheme() === "dark" ? "dark" : "default",
+    theme: profileVariables ? "base" : (currentTheme() === "dark" ? "dark" : "default"),
+    themeVariables: profileVariables ? Object.assign({}, profileVariables, { darkMode: currentTheme() === "dark", fontFamily: TOKENS.fonts.body }) : {},
     fontFamily: TOKENS.fonts.body,
     securityLevel: "loose"
   });

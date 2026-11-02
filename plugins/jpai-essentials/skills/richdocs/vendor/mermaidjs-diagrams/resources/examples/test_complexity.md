@@ -1,12 +1,12 @@
 # Mermaid Complexity — Lint Test Fixtures
 
 Each ```mermaid fence below is a named scenario designed to exercise one
-specific rule of `@jpeakai/mermaidjs-lint`. Run with the
+specific rule of `@jpeakai/remark-lint-slopstopper`. Run with the
 **high-density preset** (the default) to see the expected findings:
 
 ```bash
-bunx @jpeakai/mermaidjs-lint \
-  .claude/skills/mermaidjs-diagrams/resources/examples/test_complexity.md
+bunx @jpeakai/remark-lint-slopstopper \
+  .claude/skills/richdocs/vendor/mermaidjs-diagrams/resources/examples/test_complexity.md
 ```
 
 ## Expected lint output

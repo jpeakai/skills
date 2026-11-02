@@ -1,0 +1,17 @@
+{
+  "name": "design-profiles-scripts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "preset": "node shadcn.mjs",
+    "test": "bun test profiles.test.ts profile_resolver.test.ts shadcn_profile.test.ts shadcn.test.ts"
+  },
+  "dependencies": {
+    "shadcn": "4.23.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "ajv": "^8.17.1",
+    "typescript": "^5"
+  }
+}

@@ -2,7 +2,8 @@
 
 Paths are relative to `skills/`.
 
-**Status:** done, M0 to M6. The table below is the state the plan started from.
+**Status:** M0 to M7 are implemented.
+M7 adds preset import and CSS export to the existing profile pipeline.
 
 ## Where things stood
 
@@ -26,10 +27,11 @@ current schema (`project_richdocs()`). That projection is the stand-in this plan
 | M4 | `richdocs` reads a profile first, else its built-ins | M1, M2 |
 | M5 | `mermaidjs-diagrams` reads a profile first, else its palettes; re-vendor into richdocs | M1, M2 |
 | M6 | Retire the prototype's projection | M4, M5 |
+| M7 | Resolve a preset string, expand chart palettes, and export CSS and DTCG | M1, M2 |
 
 ### M0: the skill
 
-`skills/design-profiles/` with `SKILL.md`, a `CLAUDE.md` maintainer guide, and `scripts/`. Register it
+`skills/design-profiles/` with `SKILL.md`, an `AGENTS.md` maintainer guide, its `CLAUDE.md` import, and `scripts/`. Register it
 in `plugins/composition.yaml` under `jpai-essentials` and run `uv run scripts/sync_plugins.py`.
 
 ### M1: surface expansion
@@ -40,12 +42,12 @@ DTCG carries them and no skill computes one. The lineage Sankey's second stage t
 ### M2: the real tool and store
 
 - Promote `curate_profile()`, `score_contrast()` and the build into `design-profiles/scripts/`,
-  keeping the `argparse` subcommands. Drop the `hue-` prototype profiles.
+  keeping the CLI subcommands. Drop the `hue-` prototype profiles.
 - Build writes **one** resolver document per DT-DTCG-1, replacing the prototype's three
   `dtcg/*.json` files. Validate the output against the 2025.10 resolver schema in a test.
 - Store: `.design-profiles/<name>/{seed.json, ir.json, design-tokens.json}`.
 - One resolver for the five-tier cascade (DT-LOC-1) and `.default-profile`, plus the DTCG reader.
-  Each consumer carries its **own copy**, never an import.
+  Each consumer carries its **own compatible reader**, never an import.
 
 ### M3: built-in brands
 
@@ -79,3 +81,18 @@ examples, so any can be curated into a profile.
 ### M6: retire the projection
 
 Delete `project_richdocs()`; M4's on-read mapping replaces it.
+
+### M7: preset import and chart expansion
+
+`design-profiles/scripts/shadcn.mjs` resolves one code through public `shadcn/preset` and `shadcn/registry` APIs.
+Its saved snapshot supplies stated colors, alpha, fonts, and radius to `shadcn_profile.mjs`.
+The Node.js-compatible curation pipeline expands each mode's original chart ramp into ten categorical roots and fifty sequential colors.
+The importer requests no application components.
+
+Build selects CSS, DTCG tokens, or both.
+CSS includes font stylesheet imports and the original shadcn custom properties.
+DTCG includes typed colors, font families, radius, rendering surfaces, and font stylesheet metadata.
+Richdocs loads all listed body and heading font stylesheets.
+
+Validation covers the real decoder, live registry resolution, offline snapshot rebuilds, color expansion, source-value preservation, and manual IR edits.
+The producer gate, consumer font test, plugin mirror validation, and documentation gates check the complete change.

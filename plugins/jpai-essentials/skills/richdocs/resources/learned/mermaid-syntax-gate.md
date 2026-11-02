@@ -14,7 +14,7 @@
 - **The check (deterministic, free):**
 
   ```bash
-  bunx @jpeakai/mermaidjs-lint SOURCE.md
+  bunx @jpeakai/remark-lint-slopstopper SOURCE.md
   ```
 
   `parse-diagram-unparseable … yielded 0 nodes` = the fence is invalid

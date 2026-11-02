@@ -1,13 +1,12 @@
 # plugins/
 
 Installable packs, grouped by the job they do.
-Skill and hook copies are generated from the canonical trees at the repo root.
-Plugin READMEs and manifests are maintained here.
+Everything here is **generated** from the canonical trees at the repo root.
 See [Editing](#editing) before changing a file in this directory.
 
 | Plugin | Skills | Hook |
 |---|---|---|
-| [`jpai-essentials`](jpai-essentials/README.md) | `librarian`, `adr`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `concise-decisions`, `agnostic`, `tickety-boo`, `snr-pr` | yes |
+| [`jpai-essentials`](jpai-essentials/README.md) | `librarian`, `adr`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `design-profiles`, `concise-decisions`, `agnostic`, `tickety-boo`, `snr-pr` | yes |
 | [`jpai-delivery`](jpai-delivery/README.md) | `snr-pr`, `concise-decisions`, `tickety-boo` | no |
 
 The decision, review-feedback and ticketing skills are in both packs deliberately.
@@ -19,9 +18,16 @@ It stays canonical in [`../skills/cli`](../skills/cli) and is installed manually
 
 ## How a pack is built
 
-`../skills/` and `../hooks/` are the source of truth. `composition.yaml` declares which skills each pack composes, and [`../scripts/sync_plugins.py`](../scripts/sync_plugins.py) copies them in.
+`../skills/` and `../hooks/` are the source of truth.
+`composition.yaml` declares which skills each pack composes, and [`../scripts/sync_plugins.py`](../scripts/sync_plugins.py) copies them in.
 
 ```mermaid
+---
+config:
+  themeVariables:
+    textColor: '#010101'
+    edgeLabelBackground: '#ffffff'
+---
 flowchart LR
     CF["composition.yaml<br/>declares the grouping"]:::cfg
     SK["../skills/"]:::src
@@ -44,7 +50,8 @@ flowchart LR
     classDef gate fill:#be123c,stroke:#fecdd3,color:#ffffff,stroke-width:2px
 ```
 
-*One direction only.* Content flows canonical → pack; the gate only ever reports.
+*One direction only.*
+Content flows canonical → pack; the gate only ever reports.
 
 <details>
 <summary>📋 Complete diagram — what a pack contains and who reads which part</summary>
@@ -102,7 +109,8 @@ Only a pack that sets `hooks: true` in `composition.yaml` gets a `hooks/` direct
 Symlinks are the obvious way to compose packs from one canonical tree, and Claude Code handles them.
 It follows links at load time and reports every skill.
 
-Codex does not. `codex plugin add` copies the plugin into `$CODEX_HOME/plugins/cache/<marketplace>/<plugin>/<version>` and skips symlink entries, because its path handling refuses components containing a symlink.
+Codex does not.
+`codex plugin add` copies the plugin into `$CODEX_HOME/plugins/cache/<marketplace>/<plugin>/<version>` and skips symlink entries, because its path handling refuses components containing a symlink.
 The failure is silent and total: the plugin installs, reports `installed, enabled`, and carries an **empty** `skills/` directory.
 Nothing errors on any surface.
 
@@ -122,14 +130,14 @@ The cost is working-tree disk, not history.
 
 ## Editing
 
-**Never edit a file under `plugins/*/skills/` or `plugins/*/hooks/`.** It is generated output, and the next sync overwrites it.
+**Never edit a file under `plugins/*/skills/` or `plugins/*/hooks/`.**
+It is generated output, and the next sync overwrites it.
 
 | To do this | Change this | Then run |
 |---|---|---|
 | Change a skill | `../skills/<name>/` | `make fix` |
 | Change the hook | `../hooks/` | `make fix` |
 | Add or remove a skill from a pack | [`composition.yaml`](composition.yaml) | `make fix` |
-| Update a plugin overview | that pack's `README.md` | `make docs-ci` |
 | Change a pack's name, version or blurb | that pack's two `plugin.json` files | `make ci` |
 
 Each pack carries two manifests, one per ecosystem:
@@ -150,5 +158,6 @@ make harness-ci   # real install into both harnesses
 
 `make ci` runs `make fix` first, so a canonical skill edited without re-syncing fails the build rather than shipping a stale pack.
 
-The last one clones HEAD into a temp directory, then installs both packs into a throwaway `CLAUDE_CONFIG_DIR` and a throwaway `CODEX_HOME`. `HOME` is replaced as well, because Codex reads personal skills from `~/.agents/skills`, which `CODEX_HOME` does not cover.
+The last one clones HEAD into a temp directory, then installs both packs into a throwaway `CLAUDE_CONFIG_DIR` and a throwaway `CODEX_HOME`.
+`HOME` is replaced as well, because Codex reads personal skills from `~/.agents/skills`, which `CODEX_HOME` does not cover.
 It then asserts each skill reaches the model-visible prompt and that no external skill root leaked into the sandbox.

@@ -63,6 +63,9 @@ def test_invisible_chart_series_is_caught() -> None:
     pack = json.loads(
         (themecheck.THEMES_DIR / "v2ai" / "design-tokens.json").read_text("utf-8")
     )
+    pack.pop(
+        "waivers", None
+    )  # Exercise the strict default, not an identity-fill exception.
     pack["canvas"]["plotly"]["light"]["series"][0] = "#fefefe"  # white-on-white
     pack["canvas"]["plotly"]["light"]["plot"] = "#ffffff"
     failures = themecheck.check_theme("x", pack)
@@ -87,6 +90,7 @@ def test_series_contrast_waiver_is_honoured_but_cvd_is_not() -> None:
     pack = json.loads(
         (themecheck.THEMES_DIR / "v2ai" / "design-tokens.json").read_text("utf-8")
     )
+    pack.pop("waivers", None)
     pack["canvas"]["plotly"]["light"]["plot"] = "#ffffff"
     pack["canvas"]["plotly"]["light"]["series"] = [
         "#eeeeee"

@@ -1,0 +1,2384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pr25-design-profiles</title>
+<script>
+  // Pre-paint theme resolution, deliberately inline and blocking so the page
+  // never flashes the wrong theme:
+  //   localStorage (explicit user toggle) -> tokens.defaultTheme -> prefers-color-scheme -> light
+  //
+  // defaultTheme is baked in at generation time rather than read from the token
+  // file, because the token file is fetched later — long after first paint.
+  (function () {
+    var t = null;
+    try { t = localStorage.getItem("richdocs-theme"); } catch (e) {}
+    if (t !== "light" && t !== "dark") { t = "dark"; }
+    if (t !== "light" && t !== "dark") {
+      t = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    document.documentElement.setAttribute("data-theme", t);
+  })();
+</script>
+<style>/* Viewer chrome. Every colour/font comes from design-tokens.json via the
+   --rd-* custom properties that applyTokenCss() injects at runtime — never
+   hardcode a hex here (ADR-004). The one exception is .rd-error, which must
+   stay visible even when token loading is what failed. */
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--rd-bg);
+  color: var(--rd-fg);
+  font-family: var(--rd-font-body);
+  line-height: 1.65;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────── */
+header.rd-header {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; align-items: baseline; gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  background: var(--rd-surface);
+  border-bottom: 1px solid var(--rd-border);
+}
+header.rd-header h1 { font-size: 1rem; margin: 0; }
+header.rd-header .rd-meta {
+  color: var(--rd-muted); font-size: 0.75rem; font-family: var(--rd-font-mono);
+}
+header.rd-header button {
+  background: var(--rd-bg); color: var(--rd-fg);
+  border: 1px solid var(--rd-border); border-radius: var(--rd-radius, 8px);
+  padding: 0.25rem 0.7rem; cursor: pointer; font-size: 0.85rem;
+}
+header.rd-header #rd-theme-toggle { margin-left: auto; }
+header.rd-header button[hidden] { display: none; }
+header.rd-header button:focus-visible { outline: 2px solid var(--rd-link, var(--rd-accent)); outline-offset: 2px; }
+
+/* ── Document body ───────────────────────────────────────────────────── */
+/* The layout row and the sidebar live in viewer-toc.css (ADR-021, ADR-022).
+   Without a sidebar, main keeps its centred 52rem column exactly as before. */
+main { flex: 1 1 auto; min-width: 0; max-width: 52rem; margin: 0 auto; padding: 1.5rem 1rem 5rem; }
+
+/* Headings wear the brand's display face, declared as `fonts.display` in the
+   brandpack. Falls back to the body face when a brand has only one. */
+main h1, main h2, main h3, main h4 {
+  font-family: var(--rd-font-display, var(--rd-font-body));
+  line-height: 1.25;
+}
+main h2 { border-bottom: 1px solid var(--rd-border); padding-bottom: 0.3rem; }
+/* Links use the TEXT-SAFE accent, never the fill. A brand whose fill is a
+   bright yellow would be illegible here. */
+main a { color: var(--rd-link, var(--rd-accent)); }
+main img { max-width: 100%; }
+
+main code {
+  font-family: var(--rd-font-mono); font-size: 0.875em;
+  background: var(--rd-surface); border: 1px solid var(--rd-border);
+  border-radius: calc(var(--rd-radius, 8px) / 2); padding: 0.1em 0.35em;
+}
+main pre {
+  background: var(--rd-surface); border: 1px solid var(--rd-border);
+  border-radius: var(--rd-radius, 8px); padding: 0.9rem 1rem; overflow-x: auto;
+}
+main pre code { background: none; border: none; padding: 0; }
+
+main blockquote {
+  margin: 1rem 0; padding: 0.25rem 1rem;
+  border-left: 3px solid var(--rd-accent);   /* a RULE, not text — the fill is fine here */
+  color: var(--rd-muted); background: var(--rd-surface);
+}
+
+/* Wide tables scroll inside their own container; the page never scrolls sideways.
+   max-width pins the wrap to the content column even when the table inside is
+   wider, so the scrollbar belongs to the wrap, never the page. The slightly
+   smaller face (same 0.875em scale as `main code`) buys wide tables more
+   columns before they overflow at all. */
+.rd-table-wrap { overflow-x: auto; max-width: 100%; }
+main table { border-collapse: collapse; margin: 1rem 0; width: 100%; font-size: 0.875em; }
+main th, main td {
+  border: 1px solid var(--rd-border); padding: 0.4rem 0.7rem; text-align: left;
+}
+main th { background: var(--rd-surface); }
+
+/* ── Rich blocks ─────────────────────────────────────────────────────── */
+.rd-canvas {
+  background: var(--rd-surface); border: 1px solid var(--rd-border);
+  border-radius: var(--rd-radius, 8px); margin: 1rem 0;
+}
+.rd-mermaid { display: flex; justify-content: center; padding: 0.75rem; }
+
+/* Mermaid sizes each label's <foreignObject> from its own text measurement, and a
+   <foreignObject> establishes an SVG viewport that CLIPS by default. That measurement
+   runs a few percent short against a brand webfont, so labels lose their last glyph
+   or two ("Cloud Run: dev" → "Cloud Run: de"), silently, and only in themes carrying
+   a webfont. The node shape around the label is drawn far wider than the text, so
+   there is ample room to paint into: the box is the only thing cutting. Turning the
+   clip off renders the full label. Labels are centred, so any overshoot spills
+   evenly rather than lopsidedly. Do not "fix" this by widening flowchart
+   wrappingWidth — that changes where every diagram wraps, and the clip remains. */
+.rd-mermaid foreignObject { overflow: visible; }
+
+/* Hardcoded red on purpose: a token failure must still render visibly. */
+.rd-error {
+  border: 1px solid #dc2626; color: #dc2626;
+  border-radius: 8px; padding: 0.75rem 1rem; margin: 1rem 0;
+  font-family: var(--rd-font-mono); font-size: 0.85rem; white-space: pre-wrap;
+}
+
+/* Diagrams open full screen on click; the modal lives in viewer-zoom.css (ADR-024).
+   Only the in-page cue stays here: charts and graphs are not click-to-open. */
+#rd-article img,
+#rd-article svg { cursor: zoom-in; }
+#rd-article .rd-plotly svg { cursor: auto; }
+
+/* Syntax tokens retain the code surface and adapt when the page theme flips. */
+:root {
+  --rd-code-keyword: #5b21b6;
+  --rd-code-string: #065f46;
+  --rd-code-comment: #475569;
+  --rd-code-number: #9f1239;
+}
+:root[data-theme=dark] {
+  --rd-code-keyword: #c4b5fd;
+  --rd-code-string: #a7f3d0;
+  --rd-code-comment: #cbd5e1;
+  --rd-code-number: #fda4af;
+}
+.hljs-keyword, .hljs-selector-tag, .hljs-literal, .hljs-section, .hljs-title { color: var(--rd-code-keyword); }
+.hljs-string, .hljs-regexp, .hljs-addition, .hljs-quote { color: var(--rd-code-string); }
+.hljs-comment, .hljs-meta { color: var(--rd-code-comment); }
+.hljs-number, .hljs-deletion, .hljs-symbol, .hljs-bullet { color: var(--rd-code-number); }
+.hljs-strong { font-weight: bold; }
+.hljs-emphasis { font-style: italic; }
+</style>
+<!-- Sidebar and section folds, shared verbatim with the showcase (ADR-022). -->
+<style>/* Heading sidebar and section folds (ADR-021, ADR-022). Shared verbatim by the
+   doc viewer and the theme showcase, which both inline viewer-toc.js. Every
+   colour comes from the --rd-* custom properties; never a hex here (ADR-004). */
+
+/* The layout row only matters once viewer-toc.js marks the page .rd-has-toc.
+   Without a sidebar, the content column stays centred exactly as before. */
+.rd-layout { display: flex; align-items: flex-start; }
+
+/* Land a heading just below the sticky header, not underneath it. viewer-toc.js
+   measures the header into --rd-header-h. */
+.rd-has-toc :is(h1, h2, h3, h4)[id] {
+  scroll-margin-top: calc(var(--rd-header-h, 3rem) + 0.75rem);
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────────────── */
+#rd-toc { display: none; }
+.rd-has-toc #rd-toc {
+  display: block;
+  position: sticky; top: var(--rd-header-h, 3rem);
+  flex: 0 0 16rem; width: 16rem;
+  height: calc(100vh - var(--rd-header-h, 3rem));
+  overflow-y: auto; overscroll-behavior: contain;
+  padding: 0 0.6rem 2rem 0.75rem;
+  border-right: 1px solid var(--rd-border);
+  font-size: 0.85rem; line-height: 1.4;
+}
+.rd-toc-head {
+  position: sticky; top: 0; z-index: 1;
+  display: flex; align-items: center; gap: 0.5rem;
+  min-height: 2.75rem; margin-bottom: 0.4rem;
+  background: var(--rd-bg);
+  border-bottom: 1px solid var(--rd-border);
+}
+.rd-toc-title {
+  flex: 1; font-weight: 600; color: var(--rd-fg);
+  font-family: var(--rd-font-display, var(--rd-font-body));
+}
+#rd-toc-collapse {
+  display: inline-grid; place-items: center;
+  flex: 0 0 1.75rem; width: 1.75rem; height: 1.75rem; padding: 0;
+  color: var(--rd-fg); background: var(--rd-surface);
+  border: 1px solid var(--rd-border); border-radius: var(--rd-pill, 999px);
+  font: inherit; font-size: 1.1rem; line-height: 1; cursor: pointer;
+}
+#rd-toc-collapse > span { transition: transform 160ms ease; }
+
+/* Wide and collapsed: a rail that keeps only the expand control, so the article
+   gets the room back and the way in stays exactly where it was. */
+.rd-has-toc[data-toc=closed] #rd-toc {
+  flex-basis: 2.9rem; width: 2.9rem; overflow: hidden; padding: 0 0.5rem;
+}
+.rd-has-toc[data-toc=closed] .rd-toc-head { justify-content: center; border-bottom: 0; }
+.rd-has-toc[data-toc=closed] .rd-toc-title,
+.rd-has-toc[data-toc=closed] #rd-toc-list { display: none; }
+.rd-has-toc[data-toc=closed] #rd-toc-collapse > span { transform: rotate(180deg); }
+
+/* ── Contents tree ───────────────────────────────────────────────────── */
+#rd-toc ol { list-style: none; margin: 0; padding: 0; }
+#rd-toc ol ol { margin-left: 0.8rem; padding-left: 0.35rem; border-left: 1px solid var(--rd-border); }
+#rd-toc ol[hidden] { display: none; }
+.rd-toc-row { display: flex; align-items: flex-start; min-width: 0; }
+.rd-toc-spacer { flex: 0 0 1.35rem; }
+.rd-toc-branch {
+  flex: 0 0 1.35rem; width: 1.35rem; height: 1.35rem; margin-top: 0.2rem; padding: 0;
+  display: inline-grid; place-items: center;
+  color: var(--rd-muted); background: transparent; border: 0;
+  border-radius: calc(var(--rd-radius, 8px) / 2); cursor: pointer;
+}
+/* A drawn chevron, so it never depends on the brand's webfont having the glyph. */
+.rd-toc-branch::before {
+  content: ""; width: 0.38rem; height: 0.38rem;
+  border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+  transform: translateY(-20%) rotate(45deg); transition: transform 160ms ease;
+}
+.rd-toc-branch[aria-expanded=false]::before { transform: rotate(-45deg); }
+.rd-toc-branch:hover { color: var(--rd-fg); background: var(--rd-surface); }
+#rd-toc a {
+  flex: 1; min-width: 0; display: block; padding: 0.25rem 0.5rem; margin: 1px 0;
+  color: var(--rd-muted); text-decoration: none;
+  border-left: 2px solid transparent; border-radius: 0 4px 4px 0;
+}
+#rd-toc a:hover { color: var(--rd-fg); background: var(--rd-surface); }
+#rd-toc :is(a, button):focus-visible { outline: 2px solid var(--rd-link, var(--rd-accent)); outline-offset: -2px; }
+/* The current entry: text-safe accent for the words, the fill only as a rule. */
+#rd-toc a[aria-current] {
+  color: var(--rd-link, var(--rd-accent)); font-weight: 600;
+  border-left-color: var(--rd-accent); background: var(--rd-surface);
+}
+/* A folded branch holding the current entry says so on its visible parent. */
+.rd-toc-closed > .rd-toc-row > a.rd-toc-trail { color: var(--rd-fg); border-left-color: var(--rd-border); }
+
+/* Narrow: the sidebar becomes a drawer over the article, which keeps its width.
+   Closed is display:none there, so a closed drawer is out of the tab order. */
+@media (max-width: 72rem) {
+  .rd-has-toc #rd-toc, .rd-has-toc[data-toc=closed] #rd-toc { display: none; }
+  .rd-has-toc[data-toc=open] #rd-toc {
+    display: block;
+    position: fixed; left: 0; bottom: 0; z-index: 20;
+    width: min(18rem, 85vw); height: auto;
+    background: var(--rd-bg);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  }
+}
+/* Wide: the rail is the control, so the header button is only for the drawer. */
+@media (min-width: 72.01rem) {
+  .rd-has-toc #rd-toc-toggle { display: none; }
+}
+
+/* ── Section folds ───────────────────────────────────────────────────── */
+/* The button sits beside the heading, baseline-aligned with its first line. */
+.rd-fold-head { display: flex; align-items: baseline; gap: 0.4rem; }
+.rd-fold-head > :is(h1, h2, h3, h4) { flex: 1; min-width: 0; }
+.rd-fold {
+  flex: 0 0 auto; position: relative; top: 0.15rem;
+  display: inline-grid; place-items: center;
+  width: 1.5rem; height: 1.5rem; padding: 0;
+  color: var(--rd-muted); background: transparent;
+  border: 1px solid var(--rd-border); border-radius: var(--rd-radius, 8px);
+  cursor: pointer;
+}
+/* Drawn, like the contents branches, so no brand webfont can shrink or drop it. */
+.rd-fold::before {
+  content: ""; width: 0.42rem; height: 0.42rem;
+  border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+  transform: translateY(-20%) rotate(45deg); transition: transform 160ms ease;
+}
+.rd-fold[aria-expanded=false]::before { transform: rotate(-45deg); }
+.rd-fold:hover, .rd-fold[aria-expanded=false] { color: var(--rd-fg); background: var(--rd-surface); }
+.rd-fold:focus-visible { outline: 2px solid var(--rd-link, var(--rd-accent)); outline-offset: 2px; }
+/* Folded, but NOT display:none. The body keeps its width in the layout, so a
+   chart or diagram re-rendered while folded (a theme flip) still measures a real
+   box; mermaid in particular lays out garbage in a display:none parent.
+   visibility:hidden also drops it from the tab order and the accessibility tree. */
+.rd-fold-body[hidden] {
+  display: block; height: 0; overflow: hidden; visibility: hidden;
+}
+
+/* ── Print ───────────────────────────────────────────────────────────── */
+.rd-review {
+  flex: 0 0 auto; padding: 0.25rem 0.45rem; font: inherit; font-size: 0.75rem;
+  color: var(--rd-fg); background: var(--rd-surface);
+  border: 1px solid var(--rd-border); border-radius: var(--rd-radius, 8px); cursor: pointer;
+}
+.rd-review[aria-pressed=true] { border-color: var(--rd-link, var(--rd-accent)); }
+.rd-review:focus-visible { outline: 2px solid var(--rd-link, var(--rd-accent)); outline-offset: 2px; }
+.rd-review-nav { margin-left: auto; }
+#rd-toc a[data-rd-reviewed=true]::after { content: " ✓"; }
+#rd-toc a[data-rd-reviewed=mixed]::after { content: " ◐"; }
+[data-rd-document-type] { display: none; }
+@media (max-width: 40rem) {
+  .rd-fold-head { flex-wrap: wrap; }
+  .rd-fold-head > :is(h1, h2, h3, h4) { flex-basis: 100%; }
+}
+/* The sidebar and folds are screen navigation. Paper gets every section, in the
+   single-column layout it always had. */
+@media print {
+  #rd-toc, #rd-toc-toggle, .rd-fold, .rd-review { display: none !important; }
+  .rd-fold-body[hidden] { height: auto; overflow: visible; visibility: visible; }
+}
+</style>
+<!-- Full-screen diagrams with deep zoom, shared with the showcase (ADR-024). -->
+<style>/* Full-screen diagram viewer with deep zoom (ADR-024). Shared verbatim by the
+   doc viewer and the theme showcase, which both inline viewer-zoom.js. Every
+   colour comes from the --rd-* custom properties; never a hex here (ADR-004). */
+
+/* The modal wears the page's own theme, so a themed diagram looks the same at
+   full screen as it does in the page. */
+.rd-zoom {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; flex-direction: column;
+  background: var(--rd-bg); color: var(--rd-fg);
+  font-family: var(--rd-font-body);
+}
+.rd-zoom-bar {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--rd-surface); border-bottom: 1px solid var(--rd-border);
+  font-size: 0.85rem;
+}
+.rd-zoom-bar button, .rd-zoom-expand {
+  font: inherit; font-size: 0.8rem; line-height: 1; cursor: pointer;
+  min-width: 2rem; padding: 0.4rem 0.7rem;
+  color: var(--rd-fg); background: var(--rd-bg);
+  border: 1px solid var(--rd-border); border-radius: var(--rd-pill, 999px);
+}
+.rd-zoom-bar button:focus-visible, .rd-zoom-expand:focus-visible {
+  outline: 2px solid var(--rd-link, var(--rd-accent)); outline-offset: 2px;
+}
+.rd-zoom-hint { flex: 1; color: var(--rd-muted); text-align: center; }
+
+.rd-zoom-stage {
+  position: relative; flex: 1; min-height: 0; overflow: hidden;
+  cursor: grab; touch-action: none; user-select: none;
+}
+.rd-zoom-stage.rd-dragging { cursor: grabbing; }
+/* An SVG fills the stage; its viewBox does the zooming, so it stays sharp. */
+.rd-zoom-stage > svg { display: block; width: 100%; height: 100%; max-width: none; }
+.rd-zoom-stage > img { position: absolute; left: 0; top: 0; max-width: none; transform-origin: 0 0; }
+.rd-zoom-cy { position: absolute; inset: 0; cursor: default; }
+body.rd-zoom-open { overflow: hidden; }
+
+/* The graph's own way in: a click inside a graph is for dragging its nodes. */
+.rd-zoom-expand {
+  position: absolute; top: 0.5rem; right: 0.5rem; z-index: 5;
+  opacity: 0.85;
+}
+.rd-zoom-expand:hover { opacity: 1; }
+
+@media print {
+  .rd-zoom, .rd-zoom-expand { display: none !important; }
+}
+</style>
+<!-- Per-brand overrides: webfont @imports, display face, chrome refinements.
+     Comes AFTER viewer.css so a theme can override anything it needs. Empty
+     when no --theme is selected. -->
+<style>/* OsakaNights — theme.css
+ *
+ * The brandpack CHOOSES the faces (fonts.display = Fraunces, fonts.body = Fira
+ * Sans). This file does the two things a JSON file cannot: @import the webfiles,
+ * and express layout — sizes, weights, tracking, rhythm. Loaded after viewer.css,
+ * so it may override anything.
+ *
+ * Origin: synthwave, walking Osaka at 3am after karaoke with friends and with
+ * new friends. Kindness, empathy, hospitality — expressed structurally.
+ * Legibility is a form of kindness: the reader is a welcomed guest, and you do
+ * not make a guest work to understand you.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;700&display=swap');
+
+/* The family arrives via --rd-font-display (from fonts.display). Weight and
+   tracking are layout, so they live here. Fraunces earns its personality through
+   detail (SOFT/WONK axes), not roundness — roundness costs legibility, and
+   legibility is the point. */
+main h1, main h2, main h3, main h4 {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+main h1 { font-size: 2.4rem; line-height: 1.1; }
+main h2 {
+  font-size: 1.75rem;
+  color: var(--rd-accent);
+  border-bottom: 1px solid var(--rd-border);
+  padding-bottom: 0.3rem;
+  margin-top: 2.5rem;
+}
+main h3 { font-size: 1.3rem; margin-top: 1.75rem; }
+
+/* Readability is the product: generous measure, generous leading. */
+main { max-width: 54rem; }
+main p, main li { line-height: 1.7; }
+
+/* Callouts inherit the Signals tier: a blockquote is a kind aside, not a scold. */
+main blockquote {
+  border-left: 3px solid var(--rd-accent);
+  border-radius: 0 8px 8px 0;
+}
+
+/* Pills, not boxes. The one place OsakaNights allows curvature. */
+header.rd-header button {
+  border-radius: 9999px;
+  padding: 0.3rem 0.9rem;
+}
+
+main th {
+  font-family: 'Fira Sans', system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+main code, main pre { border-radius: 8px; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js"></script>
+</head>
+<body>
+<header class="rd-header">
+  <!-- Shown by viewer-toc.js only when the document has enough headings. -->
+  <button id="rd-toc-toggle" type="button" aria-controls="rd-toc" aria-expanded="false" hidden>contents</button>
+  <h1 id="rd-title">pr25-design-profiles</h1>
+  <span class="rd-meta">pr25-design-profiles.md</span>
+  <span class="rd-meta">build 20261024T063146Z</span>
+  <button id="rd-theme-toggle" type="button" aria-label="Toggle theme">theme</button>
+</header>
+<div class="rd-layout">
+  <nav id="rd-toc" aria-label="Contents"></nav>
+  <main><article id="rd-article">Loading…</article></main>
+</div>
+<script>
+window.__DOC_MD__ = "# PR 25 review: one brand profile that paints every surface\n\n<div data-rd-document-type=\"pr-review\"><\/div>\n\nA review companion for [jpeakai/skills#25](https://github.com/jpeakai/skills/pull/25).\nIt walks the change as a dependency story, contracts first and callers last.\nEvery section shows the code **before** and **after**, as a short overview and a folded detail view.\nIt explains the change. It does not claim the change passed review.\n\n## Scope and narrative\n\n| Field | Value |\n|---|---|\n| Repository | `jpeakai/skills` |\n| Base | `7238ef5` (merge base of `origin/main` and the branch) |\n| Head | `78ef9b1` on `feat/design-profiles-plan` |\n| Diff | `git diff 7238ef5 78ef9b1` (103 paths, about 34,600 lines added) |\n| Commits | `72204ca` plan, `fe7f056` implementation, `78ef9b1` merge of `main` |\n\n**Where the lines are.** About 46 paths are written by hand.\n46 more are the generated plugin mirror under `plugins/jpai-essentials/skills/`, and 11 are the vendored copy of mermaidjs-diagrams inside richdocs.\nMost of the line count is data: 4 copies of one 3,237-line test profile, a 2,083-line vendored JSON Schema, and a 1,184-line reference file in the plan.\n\n**Evidence limits.**\nThe richdocs viewer was not opened in a browser with a profile applied.\nNo viewer file changed, so the risk is in the mapped brandpack values, which tests compare key by key.\nA real `mmdc` render with a profile was checked by eye during implementation.\n\nThe story in one picture: a plan fixes the vocabulary, a shared file format and lookup come next, then the producer, then the two consumers, then packaging.\n\n```mermaid\nflowchart LR\n  PLAN[\"Plan and decisions\"]:::input --> FMT[\"File format and lookup\"]:::storage\n  FMT --> CUR[\"Curation and build\"]:::process\n  CUR --> PKG[\"design-profiles skill\"]:::process\n  PKG --> RD[\"richdocs reads it\"]:::output\n  PKG --> MM[\"mermaidjs-diagrams reads it\"]:::output\n  RD --> SHIP[\"Packaging and drift guard\"]:::external\n  MM --> SHIP\n  classDef input fill:#1d4ed8,stroke:#bfdbfe,color:#ffffff\n  classDef process fill:#6d28d9,stroke:#ddd6fe,color:#ffffff\n  classDef output fill:#047857,stroke:#a7f3d0,color:#ffffff\n  classDef storage fill:#92400e,stroke:#fde68a,color:#ffffff\n  classDef external fill:#334155,stroke:#cbd5e1,color:#ffffff\n```\n\nColours mark the role a box plays, the same in every diagram: blue for inputs, violet for processing, green for outputs, amber for stored files, slate for packaging and outside tools.\nDashed boxes are things that did not exist yet.\n**BEFORE** and **AFTER** are always written in the label, never shown by colour alone.\n\n## 1. The plan fixes the vocabulary before any code\n\n**Claim.** Fifteen recorded decisions (`DT-*`) define what a design profile is, so the code that follows has one source to cite.\n**Motivation.** Brand colours were decided three times over: richdocs themes, Mermaid palettes, and chart palettes each had their own.\n**Prerequisites.** None. This is the root of the story.\n\n### Related files\n\n- `docs/plans/refactor-design-tokens/CURATION.md` (new): seed to IR, stage by stage, with defaults\n- `docs/plans/refactor-design-tokens/DECISIONS.md` (new): the fifteen decisions, canonical\n- `docs/plans/refactor-design-tokens/MIGRATION.md` (new): build sequence M0 to M6, now marked done\n- `docs/plans/refactor-design-tokens/README.md` (new): architecture, role vocabulary, ground rules\n- `docs/plans/refactor-design-tokens/reference/osakanights.design-tokens.json` (new): the target file shape\n- `docs/plans/refactor-design-tokens/prototype/` was added in `72204ca` and removed in `fe7f056`, so it is absent from the net diff. It survives in git history and in `tmp/_archived/design-tokens-prototype/`.\n\n### BEFORE (base `7238ef5`)\n\nEach skill owned its colour story. Nothing tied them together.\n\n```mermaid\nflowchart TB\n  RT[\"richdocs themes\"]:::storage --> RV[\"richdocs viewer\"]:::output\n  MP[\"Mermaid hue families\"]:::storage --> MR[\"mmdc renders\"]:::output\n  PP[\"Chart palettes per theme\"]:::storage --> RV\n  NONE[\"No shared plan\"]:::absent\n  classDef storage fill:#92400e,stroke:#fde68a,color:#ffffff\n  classDef output fill:#047857,stroke:#a7f3d0,color:#ffffff\n  classDef absent fill:#f1f5f9,stroke:#475569,color:#1e293b,stroke-dasharray:5 5\n```\n\n<details>\n<summary>BEFORE detail: where colour decisions lived<\/summary>\n\n```mermaid\nflowchart TB\n  T1[\"resources/themes/NAME/design-tokens.json\"]:::storage --> MD[\"md2html.py resolve_brand\"]:::process\n  T2[\"resources/themes/NAME/theme.css\"]:::storage --> MD\n  TC[\"themecheck.py contrast gate\"]:::process --> T1\n  MD --> V[\"viewer.js chrome and canvases\"]:::output\n  CT[\"color_theming.md hue per meaning\"]:::input --> AUTH[\"Author picks classDef colours\"]:::process\n  REC[\"color_palette_recipes.md\"]:::input --> AUTH\n  AUTH --> FENCE[\"mermaid fences\"]:::storage\n  FENCE --> RS[\"render_mermaid.sh -t dark or default\"]:::process\n  RS --> PNG[\"PNG variants\"]:::output\n  NOPLAN[\"No decision record across skills\"]:::absent\n  classDef input fill:#1d4ed8,stroke:#bfdbfe,color:#ffffff\n  classDef process fill:#6d28d9,stroke:#ddd6fe,color:#ffffff\n  classDef output fill:#047857,stroke:#a7f3d0,color:#ffffff\n  classDef storage fill:#92400e,stroke:#fde68a,color:#ffffff\n  classDef absent fill:#f1f5f9,stroke:#475569,color:#1e293b,stroke-dasharray:5 5\n```\n\n<\/details>\n\n### AFTER (implemented, head `78ef9b1`)\n\nOne plan, one pipeline, many readers.\n\n```mermaid\nflowchart TB\n  DEC[\"DECISIONS.md: 15 DT records\"]:::input --> CURD[\"CURATION.md stages\"]:::input\n  DEC --> MIG[\"MIGRATION.md M0 to M6\"]:::input\n  CURD --> PIPE[\"seed to IR to DTCG\"]:::process\n  MIG --> PIPE\n  PIPE --> REF[\"reference design-tokens.json\"]:::storage\n  classDef input fill:#1d4ed8,stroke:#bfdbfe,color:#ffffff\n  classDef process fill:#6d28d9,stroke:#ddd6fe,color:#ffffff\n  classDef storage fill:#92400e,stroke:#fde68a,color:#ffffff\n```\n\n<details>\n<summary>AFTER detail: which decision governs which part<\/summary>\n\n```mermaid\nflowchart TB\n  LOC[\"DT-LOC-1 shared store\"]:::input --> RES[\"profile_resolver.py\"]:::process\n  TOOL[\"DT-TOOL-1 own skill, copies not imports\"]:::input --> RES\n  PIPE[\"DT-PIPE-1 seed, IR, DTCG\"]:::input --> CUR[\"profiles.py Curator\"]:::process\n  BUILD[\"DT-BUILD-1 bake every surface\"]:::input --> CUR\n  REF1[\"DT-REF-1 OKLCH neutrals\"]:::input --> CUR\n  ACC[\"DT-ACCENT-1 one brand hue\"]:::input --> CUR\n  WALK[\"DT-WALK-1 and 2 twelve slots\"]:::input --> CUR\n  BORD[\"DT-BORDER-1 borders\"]:::input --> CUR\n  CON[\"DT-CONTRAST-1 AA by default\"]:::input --> SC[\"score_contrast\"]:::process\n  PROV[\"DT-PROV-1 hand edits kept\"]:::input --> ST[\"stated_values\"]:::process\n  ROLES[\"DT-ROLES-1 role names\"]:::input --> IR[\"ir.json roles\"]:::storage\n  CAT[\"DT-CAT-1 classes take slots\"]:::input --> MMD[\"color_theming.md slots\"]:::output\n  DT[\"DT-DTCG-1 resolver document\"]:::input --> BT[\"build_tokens\"]:::process\n  CVD[\"DT-CVD-1 low priority\"]:::input\n  CUR --> IR\n  ST --> CUR\n  IR --> SC\n  IR --> BT\n  BT --> OUT[\"design-tokens.json\"]:::storage\n  OUT --> RES\n  classDef input fill:#1d4ed8,stroke:#bfdbfe,color:#ffffff\n  classDef process fill:#6d28d9,stroke:#ddd6fe,color:#ffffff\n  classDef output fill:#047857,stroke:#a7f3d0,color:#ffffff\n  classDef storage fill:#92400e,stroke:#fde68a,color:#ffffff\n```\n\n<\/details>\n\n### Evidence\n\n`docs/plans/refactor-design-tokens/README.md` at head, lines 14 to 20:\n\n```text\n  seed.json              ir.json                   design-tokens.json (DTCG)\n  \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500              \u2500\u2500\u2500\u2500\u2500\u2500\u2500                   \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n  OPTIONAL               the root artifact    \u2500\u2500\u25b6   the ONLY file skills\n  a few parameters  \u2500\u2500\u25b6  semantically              read at runtime\n  + one brand hue        complete: every\n                         role, every surface,\n                         light + dark\n```\n\n### Takeaway, validation, risks\n\n- **Takeaway:** every later section cites a `DT-*` id, so a reviewer can check code against intent.\n- **Validation:** `make docs-ci` reports 0 findings over the plan files.\n- **Risk:** the plan stays in `docs/plans/` after it is done. It is marked implemented and points at the skill.\n- **Reviewer decision:** pending.\n\n## 2. One file format and one lookup\n\n**Claim.** A profile is one DTCG 2025.10 resolver document, found by one five-tier lookup that every consumer copies.\n**Motivation.** Consumers must agree on where a profile lives and how to read it, without importing each other's code (DT-TOOL-1).\n**Prerequisites.** Section 1 (DT-LOC-1, DT-DTCG-1, DT-TOOL-1).\n\n### Related files\n\n- `skills/design-profiles/scripts/profile_resolver.py` (new, 208 lines): cascade, `.default-profile`, DTCG reader\n- `skills/design-profiles/scripts/schemas/2025.10/resolver.json` (new): the DTCG resolver schema, vendored for a test\n- `skills/design-profiles/scripts/test_profile_resolver.py` (new, 14 tests)\n\n### BEFORE (base `7238ef5`)\n\nThere was no profile, so there was no lookup. Each consumer read its own files.\n\n```mermaid\nflowchart LR\n  RD[\"richdocs\"]:::process --> TH[\"its own theme folders\"]:::storage\n  MM[\"mermaidjs-diagrams\"]:::process --> PAL[\"its own palettes\"]:::storage\n  NOLOOK[\"No shared lookup\"]:::absent\n  classDef process fill:#6d28d9,stroke:#ddd6fe,color:#ffffff\n  classDef storage fill:#92400e,stroke:#fde68a,color:#ffffff\n  classDef absent fill:#f1f5f9,stroke:#475569,color:#1e293b,stroke-dasharray:5 5\n```\n\n<details>\n<summary>BEFORE detail: the two unrelated lookups<\/summary>\n\n```mermaid\nflowchart TB\n  ARG[\"--theme NAME\"]:::input --> RB[\"resolve_brand\"]:::process\n  TOK[\"--tokens FILE\"]:::input --> RB\n  RB --> SD[\"theme_search_dirs\"]:::process\n  SD --> P1[\"tmp/richdocs/theme/NAME\"]:::storage\n  SD --> P2[\"resources/themes/NAME\"]:::storage\n  RB --> DEF[\"DEFAULT_THEME osakanights\"]:::storage\n  SH[\"render_mermaid.sh\"]:::process --> MT[\"mmdc -t dark\"]:::external\n  SH --> MD[\"mmdc -t default\"]:::external\n  NOREAD[\"No DTCG reader anywhere\"]:::absent\n  classDef input fill:#1d4ed8,stroke:#bfdbfe,color:#ffffff\n  classDef process fill:#6d28d9,stroke:#ddd6fe,color:#ffffff\n  classDef storage fill:#92400e,stroke:#fde68a,color:#ffffff\n  classDef external fill:#334155,stroke:#cbd5e1,color:#ffffff\n  classDef absent fill:#f1f5f9,stroke:#475569,color:#1e293b,stroke-dasharray:5 5\n```\n\n<\/details>\n\n### AFTER (implemented, head `78ef9b1`)\n\nA name, or the default file, walks five tiers. The first hit is read as flat tokens.\n\n```mermaid\nflowchart LR\n  NAME[\"--profile NAME\"]:::input --> RP[\"resolve_profile\"]:::process\n  DFLT[\".default-profile\"]:::input --> RP\n  RP --> HIT[\"design-tokens.json\"]:::storage\n  RP --> T5[\"None: tier 5, own palettes\"]:::output\n  RP --> ERR[\"ProfileError: resolves nowhere\"]:::external\n  HIT --> RT[\"read_tokens per mode\"]:::process\n  RT --> FLAT[\"flat role to value\"]:::output\n  classDef input fill:#1d4ed8,stroke:#bfdbfe,color:#ffffff\n  classDef process fill:#6d28d9,stroke:#ddd6fe,color:#ffffff\n  classDef output fill:#047857,stroke:#a7f3d0,color:#ffffff\n  classDef storage fill:#92400e,stroke:#fde68a,color:#ffffff\n  classDef external fill:#334155,stroke:#cbd5e1,color:#ffffff\n```\n\n<details>\n<summary>AFTER detail: the cascade and the reader<\/summary>\n\n```mermaid\nflowchart TB\n  NAME[\"name argument\"]:::input --> RP[\"resolve_profile\"]:::process\n  RP -->|no name| DPN[\"default_profile_name\"]:::process\n  DPN --> M1[\"project .design-profiles/.default-profile\"]:::storage\n  DPN --> M2[\"home .design-profiles/.default-profile\"]:::storage\n  DPN -->|empty file| EMPTY[\"ProfileError: is empty\"]:::external\n  DPN -->|neither| NONE[\"return None\"]:::output\n  RP --> CD[\"candidate_dirs\"]:::process\n  CD --> C1[\"tier 1 project store\"]:::storage\n  CD --> C2[\"tier 2 home store\"]:::storage\n  CD --> C3[\"tier 3 project skill folder\"]:::storage\n  CD --> C4[\"tier 4 home skill folder\"]:::storage\n  CD -->|no hit| NOWHERE[\"ProfileError lists every path\"]:::external\n  C1 --> DOC[\"resolver document\"]:::storage\n  DOC --> MO[\"modes and default_mode\"]:::process\n  DOC --> EXT[\"extension: profile, fontStylesheet\"]:::process\n  DOC --> RT[\"read_tokens\"]:::process\n  RT --> MER[\"_merge sets of one mode\"]:::process\n  MER --> WALK[\"_walk with inherited type\"]:::process\n  WALK --> AL[\"resolve alias chains\"]:::process\n  AL -->|cycle| CYC[\"error: alias cycle\"]:::external\n  AL --> PL[\"_plain: colour to hex, alpha to 8 digits\"]:::process\n  PL --> FLAT[\"flat tokens, .default collapsed\"]:::output\n  FLAT --> GR[\"group by prefix\"]:::output\n  FLAT --> SE[\"series to ordered list\"]:::output\n  classDef input fill:#1d4ed8,stroke:#bfdbfe,color:#ffffff\n  classDef process fill:#6d28d9,stroke:#ddd6fe,color:#ffffff\n  classDef output fill:#047857,stroke:#a7f3d0,color:#ffffff\n  classDef storage fill:#92400e,stroke:#fde68a,color:#ffffff\n  classDef external fill:#334155,stroke:#cbd5e1,color:#ffffff\n```\n\n<\/details>\n\n### Data model\n\nThe file a consumer reads changed shape. BEFORE is the richdocs brandpack, AFTER is the profile.\n\n```mermaid\nerDiagram\n  BRANDPACK ||--|{ THEME_MODE : \"themes\"\n  BRANDPACK ||--|| CANVAS : \"canvas\"\n  BRANDPACK ||--|| FONTS : \"fonts\"\n```\n\n```mermaid\nerDiagram\n  RESOLVER_DOC ||--|| MODIFIER_MODE : \"modifiers.mode\"\n  MODIFIER_MODE ||--|{ CONTEXT : \"contexts light, dark\"\n  CONTEXT ||--|{ TOKEN_GROUP : \"color, surface, font\"\n  TOKEN_GROUP ||--|{ TOKEN : \"nested leaves\"\n```\n\n<details>\n<summary>Data model detail: BEFORE brandpack keys and AFTER resolver fields<\/summary>\n\nBEFORE, `resources/themes/osakanights/design-tokens.json` at base:\n\n```mermaid\nerDiagram\n  BRANDPACK {\n    string defaultTheme\n  }\n  THEME_MODE {\n    string bg\n    string fg\n    string accent\n    string surface\n    string border\n  }\n  CANVAS {\n    object cytoscape\n    object plotly\n    object deckgl\n  }\n  FONTS {\n    string display\n    string body\n    string mono\n  }\n  BRANDPACK ||--|{ THEME_MODE : \"themes\"\n  BRANDPACK ||--|| CANVAS : \"canvas\"\n  BRANDPACK ||--|| FONTS : \"fonts\"\n```\n\nAFTER, `design-tokens.json` written by `build_tokens`:\n\n```mermaid\nerDiagram\n  RESOLVER_DOC {\n    string schema \"2025.10 resolver.json\"\n    string version \"2025.10\"\n    string name \"profile name\"\n    list resolutionOrder \"ref to modifiers.mode\"\n  }\n  MODIFIER_MODE {\n    string default \"light or dark\"\n    object extensions \"profile, fontStylesheet\"\n  }\n  CONTEXT {\n    string mode \"light or dark\"\n  }\n  TOKEN_GROUP {\n    string type \"color or fontFamily\"\n  }\n  TOKEN {\n    object value \"colour, alias or font list\"\n  }\n  RESOLVER_DOC ||--|| MODIFIER_MODE : \"modifiers.mode\"\n  MODIFIER_MODE ||--|{ CONTEXT : \"contexts\"\n  CONTEXT ||--|{ TOKEN_GROUP : \"color, surface, font\"\n  TOKEN_GROUP ||--|{ TOKEN : \"nested leaves\"\n```\n\n<\/details>\n\n### Evidence\n\n`skills/design-profiles/scripts/profile_resolver.py` at head, lines 70 to 98:\n\n```python\ndef resolve_profile(\n    name: str | None,\n    skill: str,\n    project: Path | None = None,\n    home: Path | None = None,\n) -> Path | None:\n    # docstring omitted\n    project = Path.cwd() if project is None else project\n    home = Path.home() if home is None else home\n    source = \"--profile\"\n    if name is None:\n        name = default_profile_name(project, home)\n        if name is None:\n            return None\n        source = DEFAULT_FILE\n    tried = candidate_dirs(name, skill, project, home)\n    for folder in tried:\n        if (folder / TOKENS_FILE).is_file():\n            return folder / TOKENS_FILE\n    listing = \"\\n\".join(f\"  {d / TOKENS_FILE}\" for d in tried)\n    raise ProfileError(\n        f\"error: design profile {name!r} (from {source}) resolves nowhere. Tried:\\n{listing}\"\n    )\n```\n\n### Takeaway, validation, risks\n\n- **Takeaway:** \"no profile\" and \"a profile you asked for is missing\" are different outcomes. The first is tier 5, the second fails loudly.\n- **Validation:** `test_profile_resolver.py` covers the cascade order, the empty default file, alias cycles and missing modes, at 100% line coverage.\n- **Risk:** `ProfileError` subclasses `SystemExit`, so library callers must not catch broad exceptions around it.\n- **Reviewer decision:** pending.\n\n## 3. Curation bakes every surface; build only serialises\n\n**Claim.** `profiles.py` turns a few seed values into a complete IR covering every role and every surface, then writes the DTCG file with no design logic.\n**Motivation.** Consumers should rename tokens, never compute colours (DT-BUILD-1). Contrast is checked once, at curation.\n**Prerequisites.** Section 2 (the file format and `profile_resolver` reader).\n\n### Related files\n\n- `skills/design-profiles/scripts/profiles.py` (new, 1,564 lines): `Curator`, `score_contrast`, `curate_profile`, `build_tokens`, `build_lineage`, `generate`, CLI\n- `skills/design-profiles/scripts/test_profiles.py` (new, 27 tests)\n\n### BEFORE (base `7238ef5`)\n\nColours were authored by hand per theme, then checked after the fact.\n\n```mermaid\nflowchart LR\n  HAND[\"Hand-authored theme JSON\"]:::input --> GATE[\"themecheck.py\"]:::process\n  GATE --> USE[\"viewer reads it\"]:::output\n  NOCUR[\"No curation step\"]:::absent\n  classDef input fill:#1d4ed8,stroke:#bfdbfe,color:#ffffff\n  classDef process fill:#6d28d9,stroke:#ddd6fe,color:#ffffff\n  classDef output fill:#047857,stroke:#a7f3d0,color:#ffffff\n  classDef absent fill:#f1f5f9,stroke:#475569,color:#1e293b,stroke-dasharray:5 5\n```\n\n<details>\n<summary>BEFORE detail: per-surface colour sources<\/summary>\n\n```mermaid\nflowchart TB\n  THEME[\"themes/NAME/design-tokens.json\"]:::storage --> CH[\"themes.light and themes.dark\"]:::storage\n  THEME --> CY[\"canvas.cytoscape\"]:::storage\n  THEME --> PLT[\"canvas.plotly\"]:::storage\n  THEME --> DK[\"canvas.deckgl\"]:::storage\n  TC[\"themecheck.py\"]:::process --> THEME\n  CTM[\"color_theming.md hue families\"]:::input --> MF[\"classDef per diagram\"]:::storage\n  MMDC[\"mmdc built-in themes\"]:::external --> MR[\"Mermaid output\"]:::output\n  MF --> MR\n  NODRAW[\"No draw.io palette\"]:::absent\n  classDef input fill:#1d4ed8,stroke:#bfdbfe,color:#ffffff\n  classDef process fill:#6d28d9,stroke:#ddd6fe,color:#ffffff\n  classDef output fill:#047857,stroke:#a7f3d0,color:#ffffff\n  classDef storage fill:#92400e,stroke:#fde68a,color:#ffffff\n  classDef external fill:#334155,stroke:#cbd5e1,color:#ffffff\n  classDef absent fill:#f1f5f9,stroke:#475569,color:#1e293b,stroke-dasharray:5 5\n```\n\n<\/details>\n\n### AFTER (implemented, head `78ef9b1`)\n\nThree artifacts, two transforms.\n\n```mermaid\nflowchart LR\n  SEED[\"seed.json\"]:::input --> CUR[\"curate_profile\"]:::process\n  CUR --> IR[\"ir.json\"]:::storage\n  CUR --> SCORE[\"contrast report\"]:::output\n  IR --> BLD[\"build_profile\"]:::process\n  BLD --> DTCG[\"design-tokens.json\"]:::storage\n  IR --> LIN[\"lineage.json\"]:::output\n  classDef input fill:#1d4ed8,stroke:#bfdbfe,color:#ffffff\n  classDef process fill:#6d28d9,stroke:#ddd6fe,color:#ffffff\n  classDef output fill:#047857,stroke:#a7f3d0,color:#ffffff\n  classDef storage fill:#92400e,stroke:#fde68a,color:#ffffff\n```\n\n<details>\n<summary>AFTER detail: Curator stages and build rules<\/summary>\n\n```mermaid\nflowchart TB\n  SEED[\"seed_of: seed or stated params\"]:::input --> RPAR[\"resolve_params with DEFAULTS\"]:::process\n  OLD[\"existing ir.json\"]:::storage --> SV[\"stated_values: hand edits\"]:::process\n  RPAR --> NEU[\"neutrals: surfaces, borders\"]:::process\n  SV --> NEU\n  NEU --> BR[\"brand: solve against grounds\"]:::process\n  BR --> SEC[\"secondary: interaction state\"]:::process\n  SEC --> STA[\"status: danger, warning, success\"]:::process\n  STA --> WK[\"walk: 12 categorical slots\"]:::process\n  WK --> RMP[\"ramps: sequential, diverging\"]:::process\n  RMP --> FN[\"fonts: display, body, mono\"]:::process\n  FN --> SUR[\"surfaces: css, cytoscape, plotly\"]:::process\n  SUR --> SUR2[\"surfaces: deckgl, drawio\"]:::process\n  SUR2 --> MER[\"mermaid: every themeVariables key\"]:::process\n  MER --> IR[\"ir.json with provenance\"]:::storage\n  IR --> SC[\"score_contrast at AA 4.5\"]:::process\n  SC --> REP[\"report: held, new, updated, defect\"]:::output\n  IR --> BT[\"build_tokens\"]:::process\n  BT -->|missing mode| E1[\"error: every permutation\"]:::external\n  BT -->|unedited alias| ALI[\"emit path alias\"]:::process\n  BT -->|OKLCH still matches hex| OK[\"colour with OKLCH\"]:::process\n  ALI --> OUT[\"design-tokens.json\"]:::storage\n  OK --> OUT\n  IR --> BL[\"build_lineage\"]:::process\n  BL --> LIN[\"tmp/design-profiles/NAME/lineage.json\"]:::output\n  GEN[\"generate: seed in, all three out\"]:::process --> IR\n  classDef input fill:#1d4ed8,stroke:#bfdbfe,color:#ffffff\n  classDef process fill:#6d28d9,stroke:#ddd6fe,color:#ffffff\n  classDef output fill:#047857,stroke:#a7f3d0,color:#ffffff\n  classDef storage fill:#92400e,stroke:#fde68a,color:#ffffff\n  classDef external fill:#334155,stroke:#cbd5e1,color:#ffffff\n```\n\n<\/details>\n\n### Evidence\n\n`skills/design-profiles/scripts/profiles.py` at head, lines 952 to 963:\n\n```python\n    def run(self) -> dict[str, Any]:\n        self.neutrals()\n        self.brand()\n        self.secondary()\n        self.status()\n        self.walk()\n        self.ramps()\n        self.fonts()\n        self.surfaces()\n        params = {k: {\"value\": v, \"source\": s} for k, (v, s) in self.p.items()}\n        return {\"$extensions\": {EXT: {\"params\": params}}, **self.ir}\n```\n\nLines 375 to 390 (signature joined onto two lines): every derived colour is solved, not picked. The search walks lightness outward from an anchor until the test passes.\n\n```python\n    def solve(self, hue: float, cmax: float, anchor: float,\n              test: Callable[[str], bool], what: str) -> LCH:\n        \"\"\"The lightness nearest `anchor` whose colour passes `test`, chroma capped at `cmax`.\"\"\"\n        for step in range(int(1 / STEP) + 1):\n            for lightness in sorted({anchor + step * STEP, anchor - step * STEP}):\n                if 0.0 <= lightness <= 1.0:\n                    lch = (lightness, min(max_chroma(lightness, hue), cmax), hue)\n                    if test(hex_of(lch)):\n                        return lch\n        raise SystemExit(f\"error: unsolvable: {what} at hue {hue:.1f}\")\n```\n\nLines 1184 to 1189 (inside `build_tokens`): a stale OKLCH is dropped rather than shipped.\n\n```python\n                # A hand edit made since the last curate leaves the recorded OKLCH stale, so\n                # it is used only when it still produces this exact hex.\n                lch = ext.get(\"oklch\", {}).get(m)\n                if lch is not None and hex_of((lch[0], lch[1], lch[2])) != node[m]:\n                    lch = None\n                branch[leaf] = {\"$value\": dtcg_colour(node[m], lch)}\n```\n\n### Takeaway, validation, risks\n\n- **Takeaway:** a consumer never decides a colour. If a surface looks wrong, the fix is a block in `Curator.surfaces()`.\n- **Validation:** all six examples and a hue-only seed curate with 0 contrast defects; curating twice changes nothing; built output validates against the vendored schema; 99% line coverage.\n- **Risk:** surface keys are flat IR names (`surface.css.page`), which is a judgement call flagged in the PR body.\n- **Reviewer decision:** pending.\n\n## 4. The design-profiles skill package\n\n**Claim.** The producer ships as a normal skill: an operating manual, a maintainer guide, six example seeds, and the same quality gates as richdocs.\n**Motivation.** Agents need a route to create and pick profiles; maintainers need a gate before handoff.\n**Prerequisites.** Sections 2 and 3.\n\n### Related files\n\n- `skills/design-profiles/CLAUDE.md` (new): file map, invariants, how to change the resolver\n- `skills/design-profiles/SKILL.md` (new): route by intent, commands, rules\n- `skills/design-profiles/resources/examples/fernline/seed.json` (new)\n- `skills/design-profiles/resources/examples/freshgreens/seed.json` (new)\n- `skills/design-profiles/resources/examples/gandalf/seed.json` (new)\n- `skills/design-profiles/resources/examples/locomotif/seed.json` (new)\n- `skills/design-profiles/resources/examples/osakanights/seed.json` (new)\n- `skills/design-profiles/resources/examples/v2ai/seed.json` (new)\n- `skills/design-profiles/scripts/.gitignore` (new)\n- `skills/design-profiles/scripts/Makefile` (new, mirrors richdocs: format, lint, mypy strict, tests)\n- `skills/design-profiles/scripts/conftest.py` (new)\n\n### BEFORE (base `7238ef5`)\n\n```mermaid\nflowchart LR\n  BR[\"richdocs brands\"]:::storage --> ONLY[\"usable by richdocs only\"]:::output\n  NOSK[\"No design-profiles skill\"]:::absent\n  classDef storage fill:#92400e,stroke:#fde68a,color:#ffffff\n  classDef output fill:#047857,stroke:#a7f3d0,color:#ffffff\n  classDef absent fill:#f1f5f9,stroke:#475569,color:#1e293b,stroke-dasharray:5 5\n```\n\n<details>\n<summary>BEFORE detail: brands as richdocs-only themes<\/summary>\n\n```mermaid\nflowchart TB\n  F[\"fernline\"]:::storage --> THD[\"richdocs resources/themes\"]:::storage\n  FG[\"freshgreens\"]:::storage --> THD\n  G[\"gandalf\"]:::storage --> THD\n  L[\"locomotif\"]:::storage --> THD\n  O[\"osakanights\"]:::storage --> THD\n  V[\"v2ai\"]:::storage --> THD\n  THD --> MD[\"md2html.py --theme\"]:::process\n  MD --> HTML[\"HTML companion\"]:::output\n  NOMM[\"mermaid renders ignore brands\"]:::absent\n  classDef process fill:#6d28d9,stroke:#ddd6fe,color:#ffffff\n  classDef storage fill:#92400e,stroke:#fde68a,color:#ffffff\n  classDef output fill:#047857,stroke:#a7f3d0,color:#ffffff\n  classDef absent fill:#f1f5f9,stroke:#475569,color:#1e293b,stroke-dasharray:5 5\n```\n\n<\/details>\n\n### AFTER (implemented, head `78ef9b1`)\n\n```mermaid\nflowchart LR\n  EX[\"example seeds\"]:::input --> INIT[\"profiles.py init\"]:::process\n  INIT --> STORE[\".design-profiles/NAME\"]:::storage\n  STORE --> ALL[\"profiles.py all\"]:::process\n  ALL --> STORE\n  SETD[\"set-default\"]:::process --> DF[\".default-profile\"]:::storage\n  classDef input fill:#1d4ed8,stroke:#bfdbfe,color:#ffffff\n  classDef process fill:#6d28d9,stroke:#ddd6fe,color:#ffffff\n  classDef storage fill:#92400e,stroke:#fde68a,color:#ffffff\n```\n\n<details>\n<summary>AFTER detail: CLI subcommands and gates<\/summary>\n\n```mermaid\nflowchart TB\n  HUE[\"--hue H\"]:::input --> INIT[\"init NAME\"]:::process\n  ACC[\"--accent HEX\"]:::input --> INIT\n  EXA[\"--example BRAND\"]:::input --> INIT\n  INIT --> SEED[\"seed.json\"]:::storage\n  SEED --> CUR[\"curate\"]:::process\n  CUR --> IR[\"ir.json\"]:::storage\n  IR --> BLD[\"build\"]:::process\n  BLD --> TOK[\"design-tokens.json\"]:::storage\n  ALL[\"all: curate then build\"]:::process --> CUR\n  IR --> LIN[\"lineage\"]:::process\n  STAT[\"status\"]:::process --> TOK\n  SD[\"set-default\"]:::process --> DEF[\".default-profile\"]:::storage\n  USER[\"--user: home store\"]:::input --> INIT\n  STO[\"--store DIR\"]:::input --> INIT\n  MK[\"Makefile ci\"]:::process --> RUFF[\"ruff format and lint\"]:::external\n  MK --> MYPY[\"mypy strict\"]:::external\n  MK --> PYT[\"pytest with coverage floor 90\"]:::external\n  PYT --> JS[\"jsonschema at test time only\"]:::external\n  classDef input fill:#1d4ed8,stroke:#bfdbfe,color:#ffffff\n  classDef process fill:#6d28d9,stroke:#ddd6fe,color:#ffffff\n  classDef storage fill:#92400e,stroke:#fde68a,color:#ffffff\n  classDef external fill:#334155,stroke:#cbd5e1,color:#ffffff\n```\n\n<\/details>\n\n### Evidence\n\n`skills/design-profiles/resources/examples/osakanights/seed.json` at head (font stylesheet URL shortened):\n\n```json\n{\n  \"brand.hue\": 295.044,\n  \"brand.chroma\": 0.131,\n  \"brand.lightness\": 0.45,\n  \"brand.dark.hue\": 295.159,\n  \"brand.dark.chroma\": 0.109,\n  \"brand.dark.lightness\": 0.801,\n  \"mode.default\": \"dark\",\n  \"font.display\": \"'Fraunces', Georgia, serif\",\n  \"font.body\": \"'Fira Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif\",\n  \"font.mono\": \"'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace\",\n  \"font.stylesheet\": \"https://fonts.googleapis.com/css2?family=Fira+Sans...\"\n}\n```\n\n### Takeaway, validation, risks\n\n- **Takeaway:** each richdocs brand now exists as a seed, so it can paint Mermaid output too.\n- **Validation:** `make -C skills/design-profiles/scripts ci` is green.\n- **Risk:** the seeds add four keys (`mode.default` and three `font.*`) that the plan's CURATION.md did not list at first. The PR body flags this.\n- **Reviewer decision:** pending.\n\n## 5. richdocs reads a profile first\n\n**Claim.** `md2html.py` looks up a design profile before any theme, maps it onto its brandpack by renaming, and says which one it used.\n**Motivation.** One profile should restyle the HTML companion with no new theme folder.\n**Prerequisites.** Sections 2 and 3 (resolver copy and the `surface.*` tokens).\n\n### Related files\n\n- `skills/richdocs/CLAUDE.md`: file map adds `profile_resolver.py`\n- `skills/richdocs/SKILL.md`: new intent row and the `--profile` option\n- `skills/richdocs/resources/adr-log.md`: ADR-028\n- `skills/richdocs/scripts/Makefile`: `COPIED_PY_SCRIPTS = profile_resolver`\n- `skills/richdocs/scripts/conftest.py`: reloads the copied module\n- `skills/richdocs/scripts/md2html.py`: `@@ -111,6 +118,146 @@` and three smaller hunks\n- `skills/richdocs/scripts/profile_resolver.py` (new): byte-identical copy\n- `skills/richdocs/scripts/test_md2html.py`: HOME isolation fixture and 7 profile tests\n- `skills/richdocs/scripts/testdata/osakanights/design-tokens.json` (new): fixture profile\n\n### BEFORE (base `7238ef5`)\n\n```mermaid\nflowchart LR\n  TH[\"--theme\"]:::input --> RB[\"resolve_brand\"]:::process\n  TK[\"--tokens\"]:::input --> RB\n  RB --> BP[\"brandpack\"]:::storage\n  BP --> HTML[\"HTML companion\"]:::output\n  classDef input fill:#1d4ed8,stroke:#bfdbfe,color:#ffffff\n  classDef process fill:#6d28d9,stroke:#ddd6fe,color:#ffffff\n  classDef storage fill:#92400e,stroke:#fde68a,color:#ffffff\n  classDef output fill:#047857,stroke:#a7f3d0,color:#ffffff\n```\n\n<details>\n<summary>BEFORE detail: theme resolution in main<\/summary>\n\n```mermaid\nflowchart TB\n  MAIN[\"main\"]:::process --> RB[\"resolve_brand\"]:::process\n  RB -->|--theme NAME| LT[\"load_theme NAME\"]:::process\n  RB -->|--tokens only| NONE[\"None: raw brandpack\"]:::process\n  RB -->|neither| LD[\"load_theme DEFAULT_THEME\"]:::process\n  LT --> SD[\"theme_search_dirs\"]:::process\n  LD --> SD\n  SD --> PT[\"tmp/richdocs/theme\"]:::storage\n  SD --> BT[\"resources/themes\"]:::storage\n  PT --> THM[\"Theme name, tokens_path, css\"]:::output\n  BT --> THM\n  NONE --> TP[\"tokens path\"]:::storage\n  THM --> PRN[\"print theme: NAME\"]:::output\n  classDef process fill:#6d28d9,stroke:#ddd6fe,color:#ffffff\n  classDef storage fill:#92400e,stroke:#fde68a,color:#ffffff\n  classDef output fill:#047857,stroke:#a7f3d0,color:#ffffff\n```\n\n<\/details>\n\n### AFTER (implemented, head `78ef9b1`)\n\n```mermaid\nflowchart LR\n  PR[\"--profile or .default-profile\"]:::input --> RPT[\"resolve_profile_theme\"]:::process\n  RPT -->|found| LP[\"load_profile\"]:::process\n  RPT -->|none| RB[\"resolve_brand as before\"]:::process\n  LP --> BP[\"brandpack\"]:::storage\n  RB --> BP\n  BP --> HTML[\"HTML companion\"]:::output\n  classDef input fill:#1d4ed8,stroke:#bfdbfe,color:#ffffff\n  classDef process fill:#6d28d9,stroke:#ddd6fe,color:#ffffff\n  classDef storage fill:#92400e,stroke:#fde68a,color:#ffffff\n  classDef output fill:#047857,stroke:#a7f3d0,color:#ffffff\n```\n\n<details>\n<summary>AFTER detail: precedence and the rename map<\/summary>\n\n```mermaid\nflowchart TB\n  MAIN[\"main\"]:::process --> RPT[\"resolve_profile_theme\"]:::process\n  RPT -->|--profile given| RES[\"profile_resolver.resolve_profile\"]:::process\n  RPT -->|--theme or --tokens, no --profile| SKIP[\"None: user chose a theme\"]:::process\n  RPT -->|nothing given| RES\n  RES -->|not found| ERR[\"ProfileError, exit\"]:::external\n  RES -->|tier 5| SKIP\n  RES -->|path| LP[\"load_profile\"]:::process\n  LP --> BFP[\"brandpack_from_profile\"]:::process\n  BFP --> CSS[\"surface.css to themes\"]:::storage\n  BFP --> CY[\"surface.cytoscape to canvas\"]:::storage\n  BFP --> PL[\"surface.plotly series to canvas\"]:::storage\n  BFP --> DG[\"surface.deckgl to canvas\"]:::storage\n  BFP --> FT[\"font.family to fonts\"]:::storage\n  BFP --> STS[\"color.text status to status\"]:::storage\n  LP --> PCSS[\"profile_css: web font import\"]:::process\n  LP --> OUT[\"tmp/richdocs/profile/NAME/design-tokens.json\"]:::storage\n  OUT --> THM[\"Theme kind profile\"]:::output\n  SKIP --> RB[\"resolve_brand\"]:::process\n  RB --> THM2[\"Theme kind theme\"]:::output\n  THM --> P1[\"print profile: NAME\"]:::output\n  THM2 --> P2[\"print theme: NAME, no design profile\"]:::output\n  classDef process fill:#6d28d9,stroke:#ddd6fe,color:#ffffff\n  classDef storage fill:#92400e,stroke:#fde68a,color:#ffffff\n  classDef output fill:#047857,stroke:#a7f3d0,color:#ffffff\n  classDef external fill:#334155,stroke:#cbd5e1,color:#ffffff\n```\n\n<\/details>\n\n### Evidence\n\n`skills/richdocs/scripts/md2html.py`, hunk `@@ -532,9 +688,11 @@`:\n\n```diff\n-    # A named theme brings its own brandpack + CSS. With neither --theme nor an\n-    # explicit --tokens, this defaults to DEFAULT_THEME (ADR-018).\n-    theme = resolve_brand(args.theme, args.tokens)\n+    # A design profile is looked up first. Without one, a named theme brings its own\n+    # brandpack + CSS, and with neither --theme nor --tokens this defaults to\n+    # DEFAULT_THEME (ADR-018).\n+    profile = resolve_profile_theme(args.profile, args.theme, args.tokens)\n+    theme = profile or resolve_brand(args.theme, args.tokens)\n```\n\nHunk `@@ -111,6 +118,146 @@`, the precedence rule (docstring omitted):\n\n```python\ndef resolve_profile_theme(profile_arg, theme_arg, tokens_arg, *, project=None,\n                          home=None, out_root=PROJECT_PROFILES_DIR) -> Theme | None:\n    if profile_arg is None and (theme_arg or tokens_arg is not None):\n        return None\n    path = profile_resolver.resolve_profile(profile_arg, PROFILE_SKILL, project, home)\n    return load_profile(path, out_root) if path else None\n```\n\nSame hunk, part of the rename map. Categories go into the one chart palette, `series`:\n\n```python\n        plotly[mode] = {\n            \"paper\": pl[\"paper_bgcolor\"],\n            \"plot\": pl[\"plot_bgcolor\"],\n            \"font\": pl[\"font_color\"],\n            \"grid\": pl[\"gridcolor\"],\n            \"series\": ramp(\"colorway\"),\n            # ... muted, sequential, diverging omitted\n        }\n```\n\n### Takeaway, validation, risks\n\n- **Takeaway:** an explicit `--theme` still wins over a default profile. Only `--profile` beats `--theme`.\n- **Validation:** `test_brandpack_from_profile_covers_every_key_a_built_in_theme_has` and `test_resolve_profile_theme_precedence` pass; richdocs `make ci` is green.\n- **Risk:** the plan's step M4 named `categoryColours`, which ADR-023 retired. Categories use `series` instead. Worth a reviewer's look.\n- **Risk:** not opened in a browser with a profile applied.\n- **Reviewer decision:** pending.\n\n## 6. mermaidjs-diagrams reads a profile first\n\n**Claim.** A TypeScript port of the resolver hands `mmdc` a full `themeVariables` config per mode, and the docs now give categories numbered slots instead of hues by meaning.\n**Motivation.** Diagrams rendered with `mmdc` should match the brand without a `classDef` per node.\n**Prerequisites.** Sections 2 and 3 (`surface.mermaid` tokens).\n\n### Related files\n\n- `skills/mermaidjs-diagrams/SKILL.md`: profile-first rendering and lint flags\n- `skills/mermaidjs-diagrams/resources/color_palette_recipes.md`: note on profile slots\n- `skills/mermaidjs-diagrams/resources/color_theming.md`: new section 0; hue families become slots\n- `skills/mermaidjs-diagrams/scripts/CLAUDE.md`: script table and ADR-008\n- `skills/mermaidjs-diagrams/scripts/Makefile`: `TS_SCRIPTS = color_contrast design_profile`\n- `skills/mermaidjs-diagrams/scripts/design_profile.test.ts` (new)\n- `skills/mermaidjs-diagrams/scripts/design_profile.ts` (new, 243 lines)\n- `skills/mermaidjs-diagrams/scripts/render_mermaid.sh`: `--design-profile`, config files, `-c` to `mmdc`\n- `skills/mermaidjs-diagrams/scripts/render_mermaid.test.ts`: 2 new tests\n- `skills/mermaidjs-diagrams/scripts/testdata/osakanights/design-tokens.json` (new): fixture profile\n- `skills/richdocs/vendor/mermaidjs-diagrams/` (11 paths): the same changes, re-vendored per richdocs ADR-007. `SKILL.md` becomes `mermaidjs-diagrams.md`, and the vendored `scripts/CLAUDE.md` also picks up older reference renames the last vendor run had missed.\n\n### BEFORE (base `7238ef5`)\n\n```mermaid\nflowchart LR\n  MD[\"diagram.md\"]:::input --> RS[\"render_mermaid.sh\"]:::process\n  RS --> D[\"mmdc -t dark\"]:::external\n  RS --> L[\"mmdc -t default\"]:::external\n  D --> PNG[\"two PNGs\"]:::output\n  L --> PNG\n  classDef input fill:#1d4ed8,stroke:#bfdbfe,color:#ffffff\n  classDef process fill:#6d28d9,stroke:#ddd6fe,color:#ffffff\n  classDef output fill:#047857,stroke:#a7f3d0,color:#ffffff\n  classDef external fill:#334155,stroke:#cbd5e1,color:#ffffff\n```\n\n<details>\n<summary>BEFORE detail: render variants and colour guidance<\/summary>\n\n```mermaid\nflowchart TB\n  ARG[\"file.md list\"]:::input --> CASE[\"mode switch: doctor, classify, verify\"]:::process\n  CASE --> LOOP[\"for each INPUT\"]:::process\n  LOOP --> RVD[\"render_variant dark transparent\"]:::process\n  LOOP --> RVL[\"render_variant default white\"]:::process\n  RVD --> RM[\"run_mmdc -t theme -b bgcolor\"]:::process\n  RVL --> RM\n  RM --> NPX[\"npx mermaid-cli mmdc\"]:::external\n  NPX --> VER[\"verify_output_dir\"]:::process\n  VER --> PNG[\"PNG files\"]:::output\n  CT[\"color_theming.md: hue per meaning\"]:::input --> CD[\"classDef in each fence\"]:::input\n  CD --> ARG\n  LINT[\"mermaidjs-lint fixed canvas flags\"]:::external\n  classDef input fill:#1d4ed8,stroke:#bfdbfe,color:#ffffff\n  classDef process fill:#6d28d9,stroke:#ddd6fe,color:#ffffff\n  classDef output fill:#047857,stroke:#a7f3d0,color:#ffffff\n  classDef external fill:#334155,stroke:#cbd5e1,color:#ffffff\n```\n\n<\/details>\n\n### AFTER (implemented, head `78ef9b1`)\n\n```mermaid\nflowchart LR\n  MD[\"diagram.md\"]:::input --> RS[\"render_mermaid.sh\"]:::process\n  RS --> DP[\"design_profile.ts mermaid-config\"]:::process\n  DP --> CFG[\"light and dark config JSON\"]:::storage\n  CFG --> MMDC[\"mmdc -t base -c config\"]:::external\n  MMDC --> PNG[\"two on-brand PNGs\"]:::output\n  RS -->|no profile| OLD[\"mmdc themes as before\"]:::external\n  classDef input fill:#1d4ed8,stroke:#bfdbfe,color:#ffffff\n  classDef process fill:#6d28d9,stroke:#ddd6fe,color:#ffffff\n  classDef output fill:#047857,stroke:#a7f3d0,color:#ffffff\n  classDef storage fill:#92400e,stroke:#fde68a,color:#ffffff\n  classDef external fill:#334155,stroke:#cbd5e1,color:#ffffff\n```\n\n<details>\n<summary>AFTER detail: the shell flow and the TypeScript port<\/summary>\n\n```mermaid\nflowchart TB\n  FLAG[\"--design-profile NAME\"]:::input --> SH[\"render_mermaid.sh\"]:::process\n  DFF[\".default-profile in project or home\"]:::input --> SH\n  SH -->|flag without name| E1[\"error: needs a profile name\"]:::external\n  SH --> MAIN[\"design_profile.ts main\"]:::process\n  MAIN --> RP[\"resolveProfile\"]:::process\n  RP -->|resolves nowhere| E2[\"exit 1 before any browser\"]:::external\n  RP --> LOAD[\"loadProfile\"]:::process\n  LOAD --> MC[\"mermaidConfig per mode\"]:::process\n  MC --> RT[\"readTokens\"]:::process\n  RT --> GRP[\"group surface.mermaid\"]:::process\n  GRP --> TV[\"themeVariables plus darkMode, fontFamily\"]:::storage\n  TV --> CL[\"MERMAID_RUNTIME_DIR design-profile-light.json\"]:::storage\n  TV --> CDK[\"MERMAID_RUNTIME_DIR design-profile-dark.json\"]:::storage\n  CDK --> RVD[\"render_variant dark transparent\"]:::process\n  CL --> RVL[\"render_variant default white\"]:::process\n  RVD --> RM[\"run_mmdc: theme base, -c config\"]:::process\n  RVL --> RM\n  RM --> NPX[\"npx mermaid-cli mmdc\"]:::external\n  NPX --> PNG[\"PNG files\"]:::output\n  MAIN --> LF[\"lintFlags\"]:::process\n  LF --> LINT[\"mermaidjs-lint canvas flags\"]:::external\n  MAIN --> ST[\"status: which profile applies\"]:::output\n  SLOTS[\"color_theming.md: categorical slots\"]:::input\n  classDef input fill:#1d4ed8,stroke:#bfdbfe,color:#ffffff\n  classDef process fill:#6d28d9,stroke:#ddd6fe,color:#ffffff\n  classDef output fill:#047857,stroke:#a7f3d0,color:#ffffff\n  classDef storage fill:#92400e,stroke:#fde68a,color:#ffffff\n  classDef external fill:#334155,stroke:#cbd5e1,color:#ffffff\n```\n\n<\/details>\n\n### Evidence\n\n`skills/mermaidjs-diagrams/scripts/render_mermaid.sh`, hunk `@@ -180,17 +186,23 @@`:\n\n```diff\n run_mmdc() {\n-  local input=\"$1\" output_target=\"$2\" output=\"$3\" theme=\"$4\" bgcolor=\"$5\" fmt=\"$6\"\n+  local input=\"$1\" output_target=\"$2\" output=\"$3\" theme=\"$4\" bgcolor=\"$5\" fmt=\"$6\" config=\"${7:-}\"\n+  local -a profile=()\n+  # A design profile's config carries every themeVariables key on the base theme.\n+  if [ -n \"$config\" ]; then\n+    theme=base\n+    profile=(-c \"$config\")\n+  fi\n   npx -p @mermaid-js/mermaid-cli mmdc \\\n     -i \"${input}\" \\\n     -a \"${output_target}\" \\\n     -o \"${output}\" \\\n-    --scale 4 -e \"${fmt}\" -t \"${theme}\" -b \"${bgcolor}\"\n+    --scale 4 -e \"${fmt}\" -t \"${theme}\" -b \"${bgcolor}\" ${profile[@]+\"${profile[@]}\"}\n }\n```\n\n`skills/mermaidjs-diagrams/scripts/design_profile.ts` at head, lines 173 to 179:\n\n```typescript\nexport const mermaidConfig = (doc: ProfileDoc, mode: string): MermaidConfig => {\n  const flat = readTokens(doc, mode);\n  const themeVariables: Flat = { ...group(flat, \"surface.mermaid\"), darkMode: mode === \"dark\" };\n  const font = flat[\"font.family.body\"];\n  if (typeof font === \"string\") themeVariables.fontFamily = font;\n  return { theme: \"base\", themeVariables };\n};\n```\n\n`skills/mermaidjs-diagrams/resources/color_theming.md`, hunk `@@ -69,21 +89,26 @@`:\n\n```diff\n-Assign each **category** (input, process, output, storage, external) a distinct\n-**hue family**. Within each family, vary saturation and lightness to encode\n-**prominence** (primary vs. secondary vs. background):\n+Give each **category** of the diagram (Storage, Compute, Input, Process, any\n+class at all) the **next slot** in the order the categories first appear. A slot\n+is a hue family; it carries no meaning, it only keeps categories visually apart.\n```\n\n### Takeaway, validation, risks\n\n- **Takeaway:** the published lint was not changed. `design_profile.ts lint-flags` only feeds it the profile's backgrounds.\n- **Validation:** mermaid `make ci` is green; a real `mmdc` render with the osakanights profile was checked by eye.\n- **Risk:** the vendored copy must be re-vendored on every upstream change. Section 7's test catches the fixture drifting.\n- **Reviewer decision:** pending.\n\n## 7. Packaging and the drift guard\n\n**Claim.** The new skill ships in `jpai-essentials`, and one repository test holds every copy of the resolver and fixture to the producer.\n**Motivation.** Copies are the price of skill independence (DT-TOOL-1). A test makes that price visible.\n**Prerequisites.** Sections 4 to 6.\n\n### Related files\n\n- `README.md`: skill table, counts, and a diagram node for design-profiles\n- `plugins/README.md`: skill count\n- `plugins/composition.yaml`: `design-profiles` added to `jpai-essentials`\n- `plugins/jpai-essentials/.claude-plugin/plugin.json`: description names design-profiles\n- `plugins/jpai-essentials/.codex-plugin/plugin.json`: same description\n- `plugins/jpai-essentials/skills/` (46 paths): generated by `uv run scripts/sync_plugins.py`, never edited by hand. Each mirrors a source path from sections 2 to 6.\n- `tests/test_design_profile_copies.py` (new, 12 tests)\n\n### BEFORE (base `7238ef5`)\n\n```mermaid\nflowchart LR\n  COMP[\"composition.yaml\"]:::input --> SYNC[\"sync_plugins.py\"]:::process\n  SYNC --> PLUG[\"jpai-essentials, 6 skills\"]:::output\n  NOGUARD[\"No cross-skill copy test\"]:::absent\n  classDef input fill:#1d4ed8,stroke:#bfdbfe,color:#ffffff\n  classDef process fill:#6d28d9,stroke:#ddd6fe,color:#ffffff\n  classDef output fill:#047857,stroke:#a7f3d0,color:#ffffff\n  classDef absent fill:#f1f5f9,stroke:#475569,color:#1e293b,stroke-dasharray:5 5\n```\n\n<details>\n<summary>BEFORE detail: plugin build and checks<\/summary>\n\n```mermaid\nflowchart TB\n  COMP[\"composition.yaml\"]:::input --> SYNC[\"scripts/sync_plugins.py\"]:::process\n  SKILLS[\"skills/*\"]:::storage --> SYNC\n  SYNC --> MIR[\"plugins/jpai-essentials/skills\"]:::output\n  SYNC --> CPJ[\"claude-plugin manifest\"]:::output\n  SYNC --> XPJ[\"codex-plugin manifest\"]:::output\n  CI[\"make ci\"]:::process --> SYNC\n  CI --> VAL[\"validate invariants\"]:::process\n  CI --> PY[\"repo pytest\"]:::process\n  CI --> GATES[\"per-skill gates\"]:::process\n  NOCOPY[\"No resolver copies to guard\"]:::absent\n  classDef input fill:#1d4ed8,stroke:#bfdbfe,color:#ffffff\n  classDef process fill:#6d28d9,stroke:#ddd6fe,color:#ffffff\n  classDef output fill:#047857,stroke:#a7f3d0,color:#ffffff\n  classDef storage fill:#92400e,stroke:#fde68a,color:#ffffff\n  classDef absent fill:#f1f5f9,stroke:#475569,color:#1e293b,stroke-dasharray:5 5\n```\n\n<\/details>\n\n### AFTER (implemented, head `78ef9b1`)\n\n```mermaid\nflowchart LR\n  COMP[\"composition.yaml + design-profiles\"]:::input --> SYNC[\"sync_plugins.py\"]:::process\n  SYNC --> PLUG[\"jpai-essentials, 7 skills\"]:::output\n  CANON[\"canonical resolver\"]:::storage --> GUARD[\"test_design_profile_copies\"]:::process\n  GUARD --> COPIES[\"copies and fixtures\"]:::storage\n  classDef input fill:#1d4ed8,stroke:#bfdbfe,color:#ffffff\n  classDef process fill:#6d28d9,stroke:#ddd6fe,color:#ffffff\n  classDef output fill:#047857,stroke:#a7f3d0,color:#ffffff\n  classDef storage fill:#92400e,stroke:#fde68a,color:#ffffff\n```\n\n<details>\n<summary>AFTER detail: what the drift guard compares<\/summary>\n\n```mermaid\nflowchart TB\n  CANON[\"design-profiles profile_resolver.py\"]:::storage --> T1[\"copies are byte-identical\"]:::process\n  T1 --> RDC[\"richdocs profile_resolver.py\"]:::storage\n  SEED[\"examples osakanights seed.json\"]:::input --> BUILT[\"fresh curate and build\"]:::process\n  BUILT --> T2[\"fixtures equal today's build\"]:::process\n  T2 --> F1[\"richdocs testdata fixture\"]:::storage\n  T2 --> F2[\"mermaidjs-diagrams testdata fixture\"]:::storage\n  T2 --> F3[\"vendored testdata fixture\"]:::storage\n  BUILT --> T3[\"TS port reads what Python reads\"]:::process\n  T3 --> TS[\"bun run design_profile.ts mermaid-config\"]:::external\n  T3 --> PYR[\"profile_resolver.read_tokens\"]:::process\n  ALLSEEDS[\"all six seeds\"]:::input --> T4[\"seeds state each brand's accents\"]:::process\n  T4 --> BRANDS[\"richdocs themes accent hex\"]:::storage\n  COMP[\"composition.yaml\"]:::input --> SYNC[\"sync_plugins.py\"]:::process\n  SYNC --> MIR[\"plugin mirror, 46 paths\"]:::output\n  CI[\"make ci\"]:::process --> SYNC\n  CI --> T1\n  classDef input fill:#1d4ed8,stroke:#bfdbfe,color:#ffffff\n  classDef process fill:#6d28d9,stroke:#ddd6fe,color:#ffffff\n  classDef output fill:#047857,stroke:#a7f3d0,color:#ffffff\n  classDef storage fill:#92400e,stroke:#fde68a,color:#ffffff\n  classDef external fill:#334155,stroke:#cbd5e1,color:#ffffff\n```\n\n<\/details>\n\n### Evidence\n\n`plugins/composition.yaml`, hunk `@@ -20,6 +20,7 @@`:\n\n```diff\n     skills:\n       - agnostic             # de-brand docs to generic placeholders\n       - concise-decisions    # consolidate ambiguities into one briefed question\n+      - design-profiles      # curate one brand profile that paints every surface\n       - gooddocs             # audit, write and restructure documentation\n```\n\n`tests/test_design_profile_copies.py` at head, lines 64 to 79 (keyword arguments joined onto one line):\n\n```python\n@pytest.mark.parametrize(\"mode\", [\"light\", \"dark\"])\ndef test_the_typescript_port_reads_what_python_reads(mode: str, built: Path, tmp_path: Path) -> None:\n    store = tmp_path / \".design-profiles/osakanights\"\n    store.mkdir(parents=True)\n    shutil.copy(built, store / \"design-tokens.json\")\n    run = subprocess.run(\n        [\"bun\", \"run\", str(TS_PORT), \"mermaid-config\", \"--design-profile\", \"osakanights\", \"--mode\", mode],\n        cwd=tmp_path, capture_output=True, text=True, check=True,\n    )\n    variables = json.loads(run.stdout)[\"themeVariables\"]\n    flat = profile_resolver.read_tokens(json.loads(built.read_text(encoding=\"utf-8\")), mode)\n    expected = profile_resolver.group(flat, \"surface.mermaid\")\n    assert {k: v for k, v in variables.items() if k not in (\"darkMode\", \"fontFamily\")} == expected\n```\n\n### Takeaway, validation, risks\n\n- **Takeaway:** a resolver change has one recipe (`skills/design-profiles/CLAUDE.md`), and the test fails until every copy follows it.\n- **Validation:** root `make ci` exits 0 after the merge of `main` (sync, 64 invariants, 164 tests, every skill gate).\n- **Risk:** the plugin version stays `0.10.2`, the number `main` gave a librarian fix. A new skill may deserve `0.11.0`.\n- **Reviewer decision:** pending.\n";
+window.__DOC_TOKENS__ = {"defaultTheme": "dark", "waivers": {"seriesContrast": "Ghibli Pastel L0.80/C0.11 is a defining stylistic identity of OsakaNights and is used identically in Day and Night. Categorical marks are always legended (colour-never-alone) and clear CVD adjacency (worst \u0394E 9.3), so the sub-3:1 mark contrast on the light plot surface is an accepted, deliberate trade for this theme. Do not darken the palette or the chart bed to satisfy the gate."}, "fonts": {"display": "'Fraunces', Georgia, serif", "body": "'Fira Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif", "mono": "'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace"}, "themes": {"light": {"bg": "#faf8f9", "fg": "#1c1a20", "muted": "#57525e", "accent": "#5c4295", "surface": "#ffffff", "border": "#d6ccd2", "onAccent": "#ffffff", "link": "#5c4295", "radius": "12px", "pill": "999px"}, "dark": {"bg": "#101010", "fg": "#dddddd", "muted": "#adadad", "accent": "#c3b0fd", "surface": "#1a1a1c", "border": "#3d3d3d", "onAccent": "#101010", "link": "#c3b0fd", "radius": "12px", "pill": "999px"}}, "canvas": {"cytoscape": {"light": {"nodeFill": "#f0ecfa", "nodeBorder": "#5c4295", "nodeLabel": "#1c1a20", "nodeFillAlt": "#e6f1f6", "edge": "#847e8c", "edgeLabel": "#57525e", "edgeLabelBg": "#faf8f9", "compoundBg": "#f2eef0", "compoundBorder": "#c9bcf0", "selected": "#6515c1", "shape": "round-rectangle", "roundness": 8}, "dark": {"nodeFill": "#211b30", "nodeBorder": "#c3b0fd", "nodeLabel": "#dddddd", "nodeFillAlt": "#07232f", "edge": "#858585", "edgeLabel": "#adadad", "edgeLabelBg": "#101010", "compoundBg": "#1a1a1c", "compoundBorder": "#323232", "selected": "#cc66ff", "shape": "round-rectangle", "roundness": 8}}, "plotly": {"light": {"paper": "#ffffff", "plot": "#faf8f9", "font": "#1c1a20", "grid": "#e9e4e8", "series": ["#c3affd", "#e9b26a", "#58d1e5", "#f2a0cb", "#adca7b", "#9bbeff", "#fba587", "#63d5bd"], "seriesAlt": ["#6977f0", "#dd5139", "#049e74", "#9d65dd", "#c96900", "#0796ae", "#d94b78", "#649803"], "muted": ["#868686", "#9e9e9e", "#b1b1b1", "#c4c4c4"], "sequential": ["#ede8fb", "#c9bcf0", "#9d8ad8", "#7259b4", "#4b3585"], "diverging": {"good": ["#a89bd3", "#8973c3", "#6b4cae"], "zero": "#e8e4e6", "bad": ["#d4918b", "#c1645e", "#a83634"], "label": "violet \u2194 red"}, "divergingAlt": {"good": ["#60b5b5", "#019696", "#067272"], "zero": "#e8e4e6", "bad": ["#d4918b", "#c1645e", "#a83634"], "label": "teal \u2194 red (green semantics)"}}, "dark": {"paper": "#101010", "plot": "#151517", "font": "#dddddd", "grid": "#2a2a2e", "series": ["#c3affd", "#e9b26a", "#58d1e5", "#f2a0cb", "#adca7b", "#9bbeff", "#fba587", "#63d5bd"], "seriesAlt": ["#7180fe", "#ec563d", "#06a87c", "#a86bec", "#d57004", "#02a0b9", "#e85080", "#6ba304"], "muted": ["#7a7a7a", "#636363", "#505050", "#404040"], "sequential": ["#ddd4fe", "#c3b0fd", "#a48bf2", "#8266d9", "#5f45ad"], "diverging": {"good": ["#c1b3f1", "#a890e9", "#8f6edb"], "zero": "#3a3a3a", "bad": ["#f1a8a1", "#e68078", "#d55753"], "label": "violet \u2194 red"}, "divergingAlt": {"good": ["#74d0cf", "#0ab8b9", "#009a9a"], "zero": "#3a3a3a", "bad": ["#f1a8a1", "#e68078", "#d55753"], "label": "teal \u2194 red (green semantics)"}}}}, "status": {"light": {"colours": {"good": "#00672d", "warning": "#734c02", "serious": "#8c3701", "critical": "#932a30"}, "labels": {"good": "Open Sign", "warning": "Last Train", "serious": "Last Orders", "critical": "Shutters Down"}}, "dark": {"colours": {"good": "#83d494", "warning": "#ebb25f", "serious": "#fea47c", "critical": "#ffa09c"}, "labels": {"good": "Open Sign", "warning": "Last Train", "serious": "Last Orders", "critical": "Shutters Down"}}}};
+</script>
+<!-- Everything md2html.py injects lives here, so viewer.js stays placeholder-free
+     and remains real, lintable JavaScript. -->
+<script type="application/json" id="rd-config">{"buildId": "20261024T063146Z", "source": "pr25-design-profiles.md", "tokensSource": "design-tokens.json", "cdn": {"highlight": "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js", "cytoscape": "https://cdn.jsdelivr.net/npm/cytoscape@3.30.2/dist/cytoscape.min.js", "dagre": "https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js", "cytoscapeDagre": "https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.min.js", "plotly": "https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js", "deckgl": "https://cdn.jsdelivr.net/npm/deck.gl@9.0.36/dist.min.js", "maplibre": "https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js", "maplibreCss": "https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css", "duckdb": "https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.32.0/+esm"}, "fallbackTokens": {"fonts": {"body": "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif", "mono": "ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace"}, "themes": {"light": {"bg": "#f8fafc", "fg": "#0f172a", "muted": "#64748b", "accent": "#2563eb", "surface": "#ffffff", "border": "#e2e8f0"}, "dark": {"bg": "#0f172a", "fg": "#e2e8f0", "muted": "#94a3b8", "accent": "#60a5fa", "surface": "#1e293b", "border": "#334155"}}, "canvas": {"cytoscape": {"light": {"nodeFill": "#2563eb", "nodeLabel": "#0f172a", "edge": "#64748b", "compoundBg": "#f1f5f9", "compoundBorder": "#cbd5e1"}, "dark": {"nodeFill": "#60a5fa", "nodeLabel": "#e2e8f0", "edge": "#94a3b8", "compoundBg": "#1e293b", "compoundBorder": "#475569"}}, "plotly": {"light": {"paper": "#ffffff", "plot": "#f8fafc", "font": "#0f172a", "grid": "#e2e8f0", "series": ["#2563eb", "#0d9488", "#d97706", "#dc2626", "#7c3aed"]}, "dark": {"paper": "#0f172a", "plot": "#1e293b", "font": "#e2e8f0", "grid": "#334155", "series": ["#60a5fa", "#2dd4bf", "#fbbf24", "#f87171", "#a78bfa"]}}}}}</script>
+<!-- Graph styling first: viewer.js calls rdRenderCytoscape() from here. -->
+<script>
+"use strict";
+// Cytoscape graph rendering for the richdocs viewer.
+//
+// Inlined into its own script element BEFORE viewer.js, so these functions are
+// hoisted into global scope by the time viewer.js boots. Placeholder-free by
+// contract (ADR-008) — every colour comes from TOKENS.canvas.cytoscape.
+//
+// (Deliberately no literal script tags in this comment: a test balances the
+// opening/closing tag counts in the assembled page to catch payloads that could
+// break out of their script element.)
+//
+// Token schema (all optional except the five legacy keys, which older brandpacks
+// already ship). Missing values fall back to something sane derived from the
+// theme, so an old pack keeps working:
+//
+//   canvas.cytoscape.<light|dark> = {
+//     nodeFill, nodeLabel, edge, compoundBg, compoundBorder,   // legacy, required
+//     nodeBorder?, nodeFillAlt?, edgeLabel?, edgeLabelBg?,     // refinements
+//     selected?, shape?, roundness?
+//   }
+
+// Cytoscape cannot read CSS custom properties — it paints to a canvas. That is
+// the whole reason design-tokens.json carries a second, JS-side palette (ADR-004).
+function rdCyPalette(tokens, theme) {
+  var c = tokens.canvas.cytoscape[theme] || {};
+  var dark = theme === "dark";
+  return {
+    nodeFill: c.nodeFill,
+    nodeBorder: c.nodeBorder || c.nodeFill,
+    nodeLabel: c.nodeLabel,
+    nodeFillAlt: c.nodeFillAlt || c.compoundBg,
+    edge: c.edge,
+    edgeLabel: c.edgeLabel || c.nodeLabel,
+    edgeLabelBg: c.edgeLabelBg || (dark ? "#000000" : "#ffffff"),
+    compoundBg: c.compoundBg,
+    compoundBorder: c.compoundBorder,
+    selected: c.selected || c.nodeBorder || c.nodeFill,
+    shape: c.shape || "round-rectangle",
+    roundness: typeof c.roundness === "number" ? c.roundness : 6,
+    font: tokens.fonts.body
+  };
+}
+
+// ── The categorical palette (ADR-023) ───────────────────────────────────────
+// A brand has ONE categorical palette: `canvas.plotly.<mode>.series`. It colours
+// chart series AND the categories of every diagram (Cytoscape.js compounds,
+// Mermaid subgraphs, draw.io icons). There is no separate "category colour" map:
+// a category is simply the next slot of the palette.
+//
+// Slots are assigned in a FIXED order and never cycled. The order is the list a
+// page or block declares, else first appearance. A category past the last slot
+// gets no colour at all: two categories sharing a hue would claim to be one.
+function rdCategorical(tokens, theme) {
+  var p = tokens.canvas && tokens.canvas.plotly && tokens.canvas.plotly[theme];
+  return (p && p.series) || [];
+}
+
+// category name -> slot index, from an ordered list of names (duplicates ignored).
+function rdCategorySlots(names) {
+  var slots = {};
+  var n = 0;
+  (names || []).forEach(function (name) {
+    if (name && !Object.prototype.hasOwnProperty.call(slots, name)) { slots[name] = n++; }
+  });
+  return slots;
+}
+
+// The colour a category wears in this brand and mode, or null past the palette.
+function rdCategoryColour(tokens, theme, slots, name) {
+  var palette = rdCategorical(tokens, theme);
+  var i = Object.prototype.hasOwnProperty.call(slots, name) ? slots[name] : -1;
+  return i >= 0 && i < palette.length ? palette[i] : null;
+}
+
+// Categories in element order, for a block that does not declare `categories`.
+function rdCyCategories(payload) {
+  if (payload.categories) { return payload.categories; }
+  var els = payload.elements || [];
+  if (!Array.isArray(els)) { els = (els.nodes || []).concat(els.edges || []); }
+  return els.map(function (e) { return e && e.data && e.data.category; }).filter(Boolean);
+}
+
+// Blend two hex colours. Used to turn a saturated CATEGORY colour into a subtle
+// theme-appropriate TINT for a compound's fill — so the compound reads as its
+// category (hue + border) while its label stays the theme's contrast-safe text
+// colour in BOTH light and dark. A raw category fill would fail label contrast in
+// one theme or the other; a tint toward the canvas never does.
+function rdMix(a, b, t) {
+  function ch(h, i) { return parseInt(h.slice(1 + i * 2, 3 + i * 2), 16); }
+  function h2(n) { return Math.round(n).toString(16).padStart(2, "0"); }
+  return "#" + [0, 1, 2].map(function (i) {
+    return h2(ch(a, i) * (1 - t) + ch(b, i) * t);
+  }).join("");
+}
+
+function rdCyStyle(tokens, theme, slots) {
+  var p = rdCyPalette(tokens, theme);
+  var bg = (tokens.themes && tokens.themes[theme] && tokens.themes[theme].bg) || (theme === "dark" ? "#111111" : "#ffffff");
+  function colour(cat) { return rdCategoryColour(tokens, theme, slots || {}, cat); }
+  function catTint(cat) { var c = colour(cat); return c ? rdMix(c, bg, 0.84) : p.compoundBg; }
+  function catBorder(cat) { return colour(cat) || p.compoundBorder; }
+  return [
+    // Labels sit INSIDE the node. The old style floated them underneath, which
+    // collided with edges and made dense graphs unreadable.
+    {
+      selector: "node",
+      style: {
+        "shape": p.shape,
+        "background-color": p.nodeFill,
+        "border-width": 1,
+        "border-color": p.nodeBorder,
+        "corner-radius": p.roundness,
+        "label": "data(label)",
+        "color": p.nodeLabel,
+        "font-family": p.font,
+        "font-size": "12px",
+        "font-weight": 500,
+        "text-valign": "center",
+        "text-halign": "center",
+        "text-wrap": "wrap",
+        "text-max-width": "140px",
+        "padding": "12px",
+        "width": "label",
+        "height": "label",
+        "transition-property": "background-color, border-color, border-width",
+        "transition-duration": "120ms"
+      }
+    },
+
+    // A node may opt into the secondary fill: `{ data: { variant: "alt" } }`.
+    {
+      selector: 'node[variant="alt"]',
+      style: { "background-color": p.nodeFillAlt, "color": p.nodeLabel }
+    },
+
+    // Compound (cluster) nodes: label at the top, dashed edge, no fill weight.
+    {
+      selector: ":parent",
+      style: {
+        "shape": "round-rectangle",
+        "corner-radius": p.roundness + 2,
+        "background-color": p.compoundBg,
+        "background-opacity": 0.55,
+        "border-width": 1,
+        "border-style": "dashed",
+        "border-color": p.compoundBorder,
+        "label": "data(label)",
+        "color": p.nodeLabel,
+        "font-size": "11px",
+        "font-weight": 600,
+        "text-valign": "top",
+        "text-halign": "center",
+        "text-margin-y": -6,
+        "padding": "18px"
+      }
+    },
+
+    // A compound may carry `data(category)`: it is then tinted by that category's
+    // palette slot with a saturated matching border, while its label keeps the theme's
+    // contrast-safe text colour. Different categories → different hues, every label
+    // readable in both themes.
+    {
+      selector: ":parent[category]",
+      style: {
+        "background-color": function (e) { return catTint(e.data("category")); },
+        "background-opacity": 1,
+        "border-width": 2,
+        "border-style": "solid",
+        "border-color": function (e) { return catBorder(e.data("category")); },
+        "color": p.nodeLabel
+      }
+    },
+
+    {
+      selector: "edge",
+      style: {
+        "curve-style": "bezier",
+        "line-color": p.edge,
+        "width": 1.25,
+        "opacity": 0.75,
+        "target-arrow-color": p.edge,
+        "target-arrow-shape": "triangle",
+        "arrow-scale": 0.85,
+        // Edge labels get an opaque plate so they stay legible over the graph.
+        "label": "data(label)",
+        "color": p.edgeLabel,
+        "font-family": p.font,
+        "font-size": "10px",
+        "text-background-color": p.edgeLabelBg,
+        "text-background-opacity": 1,
+        "text-background-padding": "3px",
+        "text-background-shape": "roundrectangle",
+        "text-rotation": "autorotate",
+        "transition-property": "line-color, width, opacity",
+        "transition-duration": "120ms"
+      }
+    },
+
+    { selector: 'edge[style="dashed"]', style: { "line-style": "dashed" } },
+
+    // Hover: light up the node and the edges it touches, dim nothing else —
+    // dimming the rest is a lie when the graph is bigger than the viewport.
+    {
+      selector: "node:active, node.rd-hover",
+      style: { "border-width": 2, "border-color": p.selected }
+    },
+    {
+      selector: "edge.rd-hover",
+      style: { "line-color": p.selected, "target-arrow-color": p.selected, "width": 2, "opacity": 1 }
+    }
+  ];
+}
+
+function rdCyLayout(payload) {
+  var layout = Object.assign(
+    { name: "dagre", rankDir: "LR", nodeSep: 28, rankSep: 56, edgeSep: 12, padding: 16 },
+    payload.layout || {}
+  );
+  if (layout.name === "dagre" && !layout.rankDir) layout.rankDir = "LR";
+  return layout;
+}
+
+function rdRenderCytoscape(block, tokens, theme) {
+  var payload = block.payload;
+  var el = block.el;
+  el.style.height = (payload.height || 420) + "px";
+
+  if (block.cy) block.cy.destroy();
+
+  var style = rdCyStyle(tokens, theme, rdCategorySlots(rdCyCategories(payload)));
+  block.cy = window.cytoscape({
+    container: el,
+    elements: payload.elements,
+    layout: rdCyLayout(payload),
+    style: style,
+    // A doc is for reading, not for fighting a viewport: a plain wheel scrolls the
+    // page. Ctrl/Cmd + wheel zooms in place, and "Full screen" opens a copy that
+    // zooms freely (viewer-zoom.js, ADR-024).
+    autoungrabify: false,
+    userZoomingEnabled: false,
+    boxSelectionEnabled: false
+  });
+
+  // What viewer-zoom.js needs to zoom this graph and open a copy of it. The style
+  // cannot be read back from the instance: its category colours are functions.
+  el.__rdCy = block.cy;
+  el.__rdCyStyle = style;
+  el.__rdCyFit = undefined;
+  if (!el.querySelector(".rd-zoom-expand")) {
+    var expand = document.createElement("button");
+    expand.type = "button";
+    expand.className = "rd-zoom-expand";
+    expand.textContent = "Full screen";
+    expand.setAttribute("aria-label", "Open this graph full screen");
+    el.appendChild(expand);
+  }
+
+  block.cy.on("mouseover", "node", function (e) {
+    e.target.addClass("rd-hover");
+    e.target.connectedEdges().addClass("rd-hover");
+  });
+  block.cy.on("mouseout", "node", function (e) {
+    e.target.removeClass("rd-hover");
+    e.target.connectedEdges().removeClass("rd-hover");
+  });
+
+  block.cy.fit(undefined, 20);
+  el.__rdCyFit = block.cy.zoom();
+  return block.cy;
+}
+
+</script>
+<!-- Likewise rdInitToc(), the heading sidebar and section folds (ADR-021, ADR-022). -->
+<script>
+"use strict";
+// Heading sidebar and section folds for richdocs pages (ADR-021, ADR-022).
+//
+// Inlined into its own script element BEFORE viewer.js, so these functions are
+// hoisted into global scope by the time viewer.js boots. Placeholder-free by
+// contract (ADR-008). viewer.js calls rdInitToc() once, right after the markdown
+// is parsed and before any fenced block is upgraded, so only authored headings
+// are indexed, never a heading inside a rendered diagram. The theme showcase
+// inlines the same file and calls rdInitToc() with its own options, so the two
+// pages cannot drift apart.
+//
+// Both are derived entirely from the rendered headings. They hold no authoring
+// state, so regenerating the page always rebuilds them (ADR-001).
+//
+// (Deliberately no literal script tags in this comment: a test balances the
+// opening/closing tag counts in the assembled page to catch payloads that could
+// break out of their script element.)
+
+// Fewer headings than this and a sidebar is noise: the page keeps its
+// single-column layout and the header shows no contents button.
+var RD_TOC_MIN_HEADINGS = 3;
+var RD_TOC_SELECTOR = "h1, h2, h3, h4";
+// Only the wide layout remembers its state. The narrow drawer always opens
+// closed, because a drawer remembered open would cover the article on load.
+var RD_TOC_STORAGE_KEY = "richdocs-toc";
+// The sidebar (16rem) plus the unchanged 52rem article column, plus gutters.
+// Below this the sidebar becomes a drawer over the article.
+var RD_TOC_NARROW_QUERY = "(max-width: 72rem)";
+
+// GitHub-style slug: lower case, punctuation dropped, spaces to hyphens.
+// Letters and digits in any script survive, so a heading in Japanese still
+// gets a readable anchor.
+function rdSlugify(text) {
+  var slug = String(text).trim().toLowerCase()
+    .replace(/[^\p{L}\p{N}\s_-]/gu, "")
+    .replace(/\s+/g, "-");
+  return slug || "section";
+}
+
+// Give every heading a stable, unique id. An id already on a heading (raw HTML
+// in the markdown) is kept. Duplicates take -1, -2, … in document order, so the
+// same markdown always yields the same anchors. Ids already on the page are
+// reserved first, so a heading can never steal the header's own id.
+// `data-rd-toc-label` overrides the entry text, for a heading whose own text is
+// filled in later by script (the showcase hero shows the brand name).
+function rdAssignHeadingIds(headings, doc) {
+  var used = {};
+  (doc || document).querySelectorAll("[id]").forEach(function (el) { used[el.id] = true; });
+  return headings.map(function (h) {
+    var text = (h.getAttribute("data-rd-toc-label") || h.textContent).trim();
+    if (!h.id) {
+      var base = rdSlugify(text);
+      var id = base;
+      for (var n = 1; used[id]; n++) { id = base + "-" + n; }
+      h.id = id;
+      used[id] = true;
+    }
+    return { level: Number(h.tagName.charAt(1)), id: h.id, text: text, el: h };
+  });
+}
+
+// Nest entries into lists by heading level. A skipped level (h2 then h4) nests
+// one step, not two, and a shallower heading after a deep run climbs back out
+// to the nearest list that holds its level. Each row is a branch button (or a
+// spacer, for a leaf) followed by the link, so every level can be folded.
+function rdBuildTocList(entries, doc) {
+  var d = doc || document;
+  var root = d.createElement("ol");
+  root.id = "rd-toc-list";
+  var frames = [{ level: null, list: root, last: null }];
+  entries.forEach(function (e) {
+    while (frames.length > 1 && e.level < frames[frames.length - 1].level) { frames.pop(); }
+    var top = frames[frames.length - 1];
+    if (top.level === null) { top.level = e.level; }
+    if (e.level > top.level && top.last) {
+      var sub = d.createElement("ol");
+      top.last.appendChild(sub);
+      top = { level: e.level, list: sub, last: null };
+      frames.push(top);
+    }
+    var li = d.createElement("li");
+    var row = d.createElement("div");
+    row.className = "rd-toc-row";
+    var spacer = d.createElement("span");
+    spacer.className = "rd-toc-spacer";
+    var a = d.createElement("a");
+    a.href = "#" + encodeURIComponent(e.id);
+    a.textContent = e.text;
+    a.setAttribute("data-rd-toc-id", e.id);
+    a.className = "rd-toc-level-" + e.level;
+    row.appendChild(spacer);
+    row.appendChild(a);
+    li.appendChild(row);
+    top.list.appendChild(li);
+    top.last = li;
+  });
+  // A row learns it is a branch only once a child arrives, so swap the spacer for
+  // a toggle afterwards rather than guessing ahead.
+  root.querySelectorAll("li").forEach(function (li) {
+    var sub = li.lastElementChild;
+    if (!sub || sub.tagName !== "OL") { return; }
+    var a = li.querySelector("a[data-rd-toc-id]");
+    sub.id = "rd-toc-sub-" + a.getAttribute("data-rd-toc-id");
+    var btn = d.createElement("button");
+    btn.type = "button";
+    btn.className = "rd-toc-branch";
+    btn.setAttribute("aria-expanded", "true");
+    btn.setAttribute("aria-controls", sub.id);
+    btn.setAttribute("aria-label", "Subsections of " + a.textContent);
+    li.querySelector(".rd-toc-spacer").replaceWith(btn);
+  });
+  return root;
+}
+
+// Open or close one branch of the contents tree.
+function rdSetBranch(li, open) {
+  var btn = li.querySelector(":scope > .rd-toc-row > .rd-toc-branch");
+  var sub = li.lastElementChild;
+  if (!btn || !sub || sub.tagName !== "OL") { return; }
+  li.classList.toggle("rd-toc-closed", !open);
+  btn.setAttribute("aria-expanded", open ? "true" : "false");
+  sub.hidden = !open;
+}
+
+// The heading a node starts, if any: a bare heading, or one already wrapped in
+// a fold head by an earlier (deeper) pass.
+function rdFoldLevel(node) {
+  if (node.nodeType !== 1) { return 0; }
+  var el = node.classList.contains("rd-fold-head") ? node.lastElementChild : node;
+  var m = el && /^H([1-6])$/.exec(el.tagName);
+  return m ? Number(m[1]) : 0;
+}
+
+// Make every section foldable in place. A section is a heading plus everything
+// after it up to the next heading at the same level or shallower. Deepest first
+// (reverse document order), so a parent sweeps up its already-wrapped children.
+// The lone shallowest heading is the document title: folding it would fold the
+// whole page, so it gets no button. Nor does a heading with nothing under it.
+// The button sits BESIDE the heading, not inside it, so the heading's text (and
+// so its accessible name, anchor and contents entry) is left untouched.
+function rdInitFolds(entries, doc) {
+  var d = doc || document;
+  var folds = {};
+  if (!entries.length) { return folds; }
+  var top = Math.min.apply(null, entries.map(function (e) { return e.level; }));
+  var loneTop = entries.filter(function (e) { return e.level === top; }).length === 1;
+
+  entries.slice().reverse().forEach(function (e) {
+    if (loneTop && e.level === top) { return; }
+    var h = e.el;
+    var bodyNodes = [];
+    for (var n = h.nextSibling; n; n = n.nextSibling) {
+      var lv = rdFoldLevel(n);
+      if (lv && lv <= e.level) { break; }
+      bodyNodes.push(n);
+    }
+    if (!bodyNodes.some(function (n) { return n.nodeType === 1 || n.textContent.trim(); })) { return; }
+
+    var body = d.createElement("div");
+    body.className = "rd-fold-body";
+    var bodyId = "rd-fold-" + e.id;
+    for (var k = 1; d.getElementById(bodyId); k++) { bodyId = "rd-fold-" + e.id + "-" + k; }
+    body.id = bodyId;
+    bodyNodes.forEach(function (n) { body.appendChild(n); });
+
+    var head = d.createElement("div");
+    head.className = "rd-fold-head rd-fold-level-" + e.level;
+    var btn = d.createElement("button");
+    btn.type = "button";
+    btn.className = "rd-fold";
+    btn.setAttribute("aria-expanded", "true");
+    btn.setAttribute("aria-controls", bodyId);
+    btn.setAttribute("aria-label", "Section " + e.text);
+    h.before(head);
+    head.appendChild(btn);
+    head.appendChild(h);
+    head.after(body);
+    folds[e.id] = { button: btn, body: body };
+  });
+  return folds;
+}
+
+// Fold or unfold one section. A folded body keeps its layout width (see
+// viewer-toc.css), so a chart or diagram re-rendered while folded, on a theme
+// flip, still measures a real box.
+function rdSetFold(fold, open) {
+  fold.button.setAttribute("aria-expanded", open ? "true" : "false");
+  fold.body.hidden = !open;
+}
+
+function rdTocStored() {
+  try { return localStorage.getItem(RD_TOC_STORAGE_KEY); } catch (e) { return null; }
+}
+
+function rdTocStore(state) {
+  try { localStorage.setItem(RD_TOC_STORAGE_KEY, state); } catch (e) {}
+}
+
+// Review is opt-in and lives only in this controller's closure. Sidebar buttons
+// toggle an entire heading subtree; article buttons toggle just that section.
+// Aggregate sidebar status is mixed until every heading in the subtree is done.
+function rdInitReview(entries, folds, links) {
+  var reviewed = new Set();
+  var controls = {};
+  function subtree(entry) {
+    var start = entries.indexOf(entry);
+    var end = start + 1;
+    while (end < entries.length && entries[end].level > entry.level) { end++; }
+    return entries.slice(start, end);
+  }
+  function button(label) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "rd-review";
+    b.setAttribute("aria-label", label);
+    return b;
+  }
+  function sync() {
+    entries.forEach(function (entry) {
+      var c = controls[entry.id];
+      var group = subtree(entry);
+      var count = group.filter(function (e) { return reviewed.has(e.id); }).length;
+      var state = count === group.length ? "true" : count ? "mixed" : "false";
+      c.nav.setAttribute("aria-pressed", state);
+      c.nav.textContent = state === "true" ? "Reviewed" : state === "mixed" ? "Partial" : "Review";
+      links[entry.id].setAttribute("data-rd-reviewed", state);
+      c.section.setAttribute("aria-pressed", reviewed.has(entry.id) ? "true" : "false");
+      c.section.textContent = reviewed.has(entry.id) ? "Reviewed" : "Mark reviewed";
+    });
+  }
+  function set(entry, value, recursive) {
+    (recursive ? subtree(entry) : [entry]).forEach(function (e) {
+      if (value) { reviewed.add(e.id); } else { reviewed.delete(e.id); }
+      if (folds[e.id]) { rdSetFold(folds[e.id], !value); }
+    });
+    sync();
+  }
+  entries.forEach(function (entry) {
+    var section = button("Reviewed section: " + entry.text);
+    var nav = button("Reviewed subtree: " + entry.text);
+    nav.classList.add("rd-review-nav");
+    // Keep the heading last in its fold head: rdFoldLevel relies on that.
+    if (folds[entry.id]) { entry.el.before(section); } else { entry.el.after(section); }
+    links[entry.id].parentElement.appendChild(nav);
+    controls[entry.id] = { section: section, nav: nav };
+    section.addEventListener("click", function () { set(entry, !reviewed.has(entry.id), false); });
+    nav.addEventListener("click", function () {
+      set(entry, nav.getAttribute("aria-pressed") !== "true", true);
+    });
+  });
+  sync();
+}
+
+// Build the sidebar and section folds for `article` and wire the toggles.
+// Returns a small controller (used by the tests), or null when the document has
+// too few headings.
+//
+// `opts` lets a page other than the viewer reuse this (the showcase does):
+//   header   — the sticky bar headings must land below (default header.rd-header)
+//   selector — which headings to index (default h1 to h4)
+//   folds    — false to skip section folding (default on)
+function rdInitToc(article, opts) {
+  var o = opts || {};
+  var nav = document.getElementById("rd-toc");
+  var toggle = document.getElementById("rd-toc-toggle");
+  var header = o.header || document.querySelector("header.rd-header");
+  var root = document.documentElement;
+  var headings = Array.prototype.slice.call(article.querySelectorAll(o.selector || RD_TOC_SELECTOR));
+  var review = article.querySelector('[data-rd-document-type="pr-review"], [data-rd-document-type="plan"]');
+  if (!nav || !toggle || headings.length < (review ? 1 : RD_TOC_MIN_HEADINGS)) { return null; }
+
+  var entries = rdAssignHeadingIds(headings, document);
+  var links = {};
+
+  // The sidebar's own head: a title and the collapse control. On the wide layout
+  // a collapsed sidebar shrinks to a rail holding just this control, so there is
+  // always a way back in exactly where the reader left it.
+  var head = document.createElement("div");
+  head.className = "rd-toc-head";
+  var title = document.createElement("span");
+  title.className = "rd-toc-title";
+  title.textContent = "Contents";
+  var collapse = document.createElement("button");
+  collapse.type = "button";
+  collapse.id = "rd-toc-collapse";
+  collapse.setAttribute("aria-controls", "rd-toc-list");
+  var collapseMark = document.createElement("span");
+  collapseMark.setAttribute("aria-hidden", "true");
+  collapseMark.textContent = "‹";
+  collapse.appendChild(collapseMark);
+  head.appendChild(title);
+  head.appendChild(collapse);
+
+  nav.replaceChildren(head, rdBuildTocList(entries, document));
+  nav.querySelectorAll("a[data-rd-toc-id]").forEach(function (a) {
+    links[a.getAttribute("data-rd-toc-id")] = a;
+  });
+
+  var folds = o.folds === false ? {} : rdInitFolds(entries, document);
+  Object.keys(folds).forEach(function (id) {
+    folds[id].button.addEventListener("click", function () {
+      rdSetFold(folds[id], folds[id].button.getAttribute("aria-expanded") !== "true");
+    });
+  });
+  if (review) { rdInitReview(entries, folds, links); }
+
+  var mql = window.matchMedia ? window.matchMedia(RD_TOC_NARROW_QUERY) : null;
+  function isNarrow() { return !!(mql && mql.matches); }
+
+  // Sticky header height, so headings scroll to just below it rather than under it.
+  function measureHeader() {
+    var h = header ? header.offsetHeight : 0;
+    root.style.setProperty("--rd-header-h", (h || 48) + "px");
+    return h || 48;
+  }
+
+  function setOpen(open, persist) {
+    root.setAttribute("data-toc", open ? "open" : "closed");
+    toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    collapse.setAttribute("aria-expanded", open ? "true" : "false");
+    collapse.setAttribute("aria-label", open ? "Collapse contents" : "Expand contents");
+    if (persist && !isNarrow()) { rdTocStore(open ? "open" : "closed"); }
+  }
+
+  // Wide: honour the remembered state (open by default). Narrow: always closed.
+  function applyLayout() {
+    measureHeader();
+    setOpen(isNarrow() ? false : rdTocStored() !== "closed", false);
+  }
+
+  // The current entry carries aria-current. Its ancestors carry a trail mark, so
+  // when a branch is folded shut its visible parent still shows where you are.
+  var active = null;
+  function setActive(id) {
+    if (id === active) { return; }
+    if (active && links[active]) { links[active].removeAttribute("aria-current"); }
+    nav.querySelectorAll(".rd-toc-trail").forEach(function (a) { a.classList.remove("rd-toc-trail"); });
+    active = id;
+    if (!id || !links[id]) { return; }
+    links[id].setAttribute("aria-current", "location");
+    var li = links[id].closest("li");
+    for (li = li && li.parentElement.closest("li"); li; li = li.parentElement.closest("li")) {
+      var a = li.querySelector("a[data-rd-toc-id]");
+      if (a) { a.classList.add("rd-toc-trail"); }
+    }
+  }
+
+  // A heading inside a folded section is not on screen, whatever its box says.
+  function isFolded(el) {
+    return !!(el.closest && el.closest(".rd-fold-body[hidden]"));
+  }
+
+  // The current entry is the last visible heading whose top has passed under the
+  // header. Before the first heading is reached, the first entry is current. The
+  // line sits below the heading's scroll-margin-top (viewer-toc.css, 0.75rem), or
+  // a heading just jumped to would land a few pixels short of it and lose the
+  // mark. At the very bottom the last entry wins: short closing sections can never
+  // scroll up to the line, and would otherwise never be marked at all.
+  function refreshActive() {
+    var line = measureHeader() + 24;
+    var current = entries[0].id;
+    for (var i = 0; i < entries.length; i++) {
+      if (isFolded(entries[i].el)) { continue; }
+      if (entries[i].el.getBoundingClientRect().top <= line) { current = entries[i].id; } else { break; }
+    }
+    var page = document.documentElement;
+    if (page.scrollHeight > window.innerHeight && window.innerHeight + window.scrollY >= page.scrollHeight - 2) {
+      current = entries[entries.length - 1].id;
+    }
+    setActive(current);
+  }
+
+  function reducedMotion() {
+    return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }
+
+  // Unfold whatever hides a heading: its own section, and every section around it.
+  function reveal(target) {
+    if (folds[target.id]) { rdSetFold(folds[target.id], true); }
+    for (var body = target.closest(".rd-fold-body"); body; body = body.parentElement.closest(".rd-fold-body")) {
+      var btn = document.querySelector('.rd-fold[aria-controls="' + body.id + '"]');
+      if (btn) { btn.setAttribute("aria-expanded", "true"); }
+      body.hidden = false;
+    }
+  }
+
+  function scrollToId(id, smooth) {
+    var target = document.getElementById(id);
+    if (!target) { return false; }
+    reveal(target);
+    if (target.scrollIntoView) {
+      target.scrollIntoView({ behavior: smooth && !reducedMotion() ? "smooth" : "auto", block: "start" });
+    }
+    setActive(id);
+    return true;
+  }
+
+  // Select an entry: scroll, record the fragment, and move keyboard focus to the
+  // heading so the next Tab continues from there, not from the sidebar.
+  function go(id) {
+    if (!scrollToId(id, true)) { return; }
+    var hash = "#" + encodeURIComponent(id);
+    try { history.pushState(null, "", hash); } catch (e) { location.hash = hash; }
+    var target = document.getElementById(id);
+    if (!target.hasAttribute("tabindex")) { target.setAttribute("tabindex", "-1"); }
+    try { target.focus({ preventScroll: true }); } catch (e) { target.focus(); }
+    if (isNarrow()) { setOpen(false, false); }
+  }
+
+  function idFromHash() {
+    var raw = location.hash.slice(1);
+    if (!raw) { return null; }
+    try { return decodeURIComponent(raw); } catch (e) { return raw; }
+  }
+
+  nav.addEventListener("click", function (e) {
+    var branch = e.target.closest ? e.target.closest(".rd-toc-branch") : null;
+    if (branch) {
+      rdSetBranch(branch.closest("li"), branch.getAttribute("aria-expanded") !== "true");
+      return;
+    }
+    var a = e.target.closest ? e.target.closest("a[data-rd-toc-id]") : null;
+    if (!a) { return; }
+    e.preventDefault();
+    go(a.getAttribute("data-rd-toc-id"));
+  });
+
+  // Opening the drawer moves focus into it: the nav sits after the header in
+  // document order, so Tab from the button would otherwise skip past it. The
+  // wide sidebar is already in the flow and leaves focus where it is.
+  function flip() {
+    var open = root.getAttribute("data-toc") !== "open";
+    setOpen(open, true);
+    if (open && isNarrow()) {
+      var first = (active && links[active]) || nav.querySelector("a[data-rd-toc-id]");
+      if (first) { first.focus(); }
+    }
+    return open;
+  }
+  toggle.addEventListener("click", flip);
+
+  // The sidebar's own control. In the drawer it is the close button, and hands
+  // focus back to the header button that opened the drawer.
+  collapse.addEventListener("click", function () {
+    var open = flip();
+    if (!open && isNarrow()) { toggle.focus(); }
+  });
+
+  // Escape closes the drawer and hands focus back to the button that opened it.
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Escape" || !isNarrow() || root.getAttribute("data-toc") !== "open") { return; }
+    var inside = nav.contains(document.activeElement);
+    setOpen(false, false);
+    if (inside) { toggle.focus(); }
+  });
+
+  // A tap outside the open drawer dismisses it, as a drawer should.
+  document.addEventListener("click", function (e) {
+    if (!isNarrow() || root.getAttribute("data-toc") !== "open") { return; }
+    if (nav.contains(e.target) || toggle.contains(e.target)) { return; }
+    setOpen(false, false);
+  });
+
+  // The article is rendered after load, so the browser's own jump to the fragment
+  // has already missed. Redo it now, and again on back/forward.
+  window.addEventListener("popstate", function () {
+    var id = idFromHash();
+    if (id) { scrollToId(id, false); }
+  });
+
+  var pending = false;
+  window.addEventListener("scroll", function () {
+    if (pending) { return; }
+    pending = true;
+    (window.requestAnimationFrame || setTimeout)(function () { pending = false; refreshActive(); });
+  }, { passive: true });
+
+  if (mql && mql.addEventListener) { mql.addEventListener("change", applyLayout); }
+  window.addEventListener("resize", measureHeader);
+
+  root.classList.add("rd-has-toc");
+  toggle.hidden = false;
+  applyLayout();
+  var initial = idFromHash();
+  if (!(initial && scrollToId(initial, false))) { refreshActive(); }
+
+  return {
+    entries: entries,
+    folds: folds,
+    go: go,
+    setOpen: setOpen,
+    isNarrow: isNarrow,
+    applyLayout: applyLayout,
+    refreshActive: refreshActive
+  };
+}
+
+</script>
+<!-- Likewise rdInitZoom(), full-screen diagrams with deep zoom (ADR-024). -->
+<script>
+"use strict";
+// Full-screen diagram viewer with deep zoom (ADR-024).
+//
+// Inlined into its own script element BEFORE viewer.js, so these functions are
+// hoisted into global scope by the time viewer.js boots. Placeholder-free by
+// contract (ADR-008). The theme showcase inlines the same file, so a diagram
+// behaves the same on both pages.
+//
+// Three kinds of diagram, one behaviour:
+//   an SVG (mermaid, draw.io, any inline svg) and a raster img open in a modal
+//   on click; a Cytoscape.js graph opens from its "Full screen" button, because
+//   a click inside a graph is for dragging its nodes.
+//
+// In the modal, the wheel zooms about the cursor and a drag pans. An SVG zooms
+// through its viewBox, so it stays vector-sharp at any depth; an img zooms by
+// transform; a graph is a second, fully interactive Cytoscape.js instance.
+// In the page, only Ctrl/Cmd + wheel (a trackpad pinch arrives as exactly this)
+// zooms a diagram in place. A plain wheel always scrolls the page: a long
+// document must never trap the reader inside a diagram.
+//
+// (Deliberately no literal script tags in this comment: a test balances the
+// opening/closing tag counts in the assembled page to catch payloads that could
+// break out of their script element.)
+
+var RD_ZOOM_DEEPEST = 40;     // furthest in, as a multiple of the fitted view
+var RD_ZOOM_WIDEST = 0.5;     // furthest out in the modal, as a multiple of fit
+var RD_ZOOM_STEP = 1.25;      // one button press or key press
+var RD_ZOOM_WHEEL = 0.0015;   // wheel sensitivity: factor = exp(-deltaY * this)
+
+// Zoom a viewBox about a point given in viewBox units. `factor` > 1 zooms in.
+// The point stays where it is on screen. Depth is clamped relative to `base`
+// (the fitted viewBox): no deeper than RD_ZOOM_DEEPEST, no wider than `widest`.
+function rdZoomViewBox(vb, px, py, factor, base, widest) {
+  var minW = base.w / RD_ZOOM_DEEPEST;
+  var maxW = base.w / (widest || RD_ZOOM_WIDEST);
+  var w = Math.min(maxW, Math.max(minW, vb.w / factor));
+  var f = vb.w / w;
+  return { x: px - (px - vb.x) / f, y: py - (py - vb.y) / f, w: w, h: vb.h / f };
+}
+
+// The viewBox an SVG is drawn with, or one made from its size when it has none.
+function rdViewBoxOf(svg) {
+  var vb = svg.getAttribute("viewBox");
+  if (vb) {
+    var n = vb.trim().split(/[\s,]+/).map(Number);
+    if (n.length === 4 && n[2] > 0 && n[3] > 0) { return { x: n[0], y: n[1], w: n[2], h: n[3] }; }
+  }
+  var w = parseFloat(svg.getAttribute("width")) || 0;
+  var h = parseFloat(svg.getAttribute("height")) || 0;
+  if ((!w || !h) && svg.getBBox) {
+    try { var b = svg.getBBox(); return { x: b.x, y: b.y, w: b.width || 1, h: b.height || 1 }; } catch (e) {}
+  }
+  return { x: 0, y: 0, w: w || 1, h: h || 1 };
+}
+
+// A zoom controller for one SVG. The default preserveAspectRatio (xMidYMid meet)
+// letterboxes the viewBox into the element, which is what the maths assumes.
+function rdSvgZoom(svg, widest) {
+  var base = rdViewBoxOf(svg);
+  var vb = { x: base.x, y: base.y, w: base.w, h: base.h };
+  function apply() { svg.setAttribute("viewBox", [vb.x, vb.y, vb.w, vb.h].join(" ")); }
+  // Screen point -> viewBox point, and the current pixels-per-unit scale. With no
+  // layout (a hidden element, or a test DOM) it falls back to the view's centre.
+  function toSvg(cx, cy) {
+    var r = svg.getBoundingClientRect();
+    var s = Math.min(r.width / vb.w, r.height / vb.h);
+    if (!(s > 0) || !isFinite(s)) { return { x: vb.x + vb.w / 2, y: vb.y + vb.h / 2, s: 0 }; }
+    var ox = r.left + (r.width - vb.w * s) / 2;
+    var oy = r.top + (r.height - vb.h * s) / 2;
+    return { x: vb.x + (cx - ox) / s, y: vb.y + (cy - oy) / s, s: s };
+  }
+  apply();
+  return {
+    zoomAt: function (cx, cy, f) { var p = toSvg(cx, cy); vb = rdZoomViewBox(vb, p.x, p.y, f, base, widest); apply(); },
+    zoomCentre: function (f) {
+      var r = svg.getBoundingClientRect();
+      this.zoomAt(r.left + r.width / 2, r.top + r.height / 2, f);
+    },
+    panBy: function (dx, dy) {
+      var s = toSvg(0, 0).s;
+      if (!s) { return; }
+      vb.x -= dx / s; vb.y -= dy / s; apply();
+    },
+    reset: function () { vb = { x: base.x, y: base.y, w: base.w, h: base.h }; apply(); },
+    viewBox: function () { return { x: vb.x, y: vb.y, w: vb.w, h: vb.h }; }
+  };
+}
+
+// A zoom controller for a raster image, by transform inside the modal stage.
+function rdImgZoom(img, stage) {
+  var s = 1, tx = 0, ty = 0, fit = 1;
+  function apply() { img.style.transform = "translate(" + tx + "px," + ty + "px) scale(" + s + ")"; }
+  function reset() {
+    var w = img.naturalWidth || img.width || 1, h = img.naturalHeight || img.height || 1;
+    var r = stage.getBoundingClientRect();
+    fit = Math.min(r.width / w, r.height / h) || 1;
+    s = fit; tx = (r.width - w * s) / 2; ty = (r.height - h * s) / 2;
+    apply();
+  }
+  if (img.complete) { reset(); } else { img.addEventListener("load", reset); }
+  return {
+    zoomAt: function (cx, cy, f) {
+      var r = stage.getBoundingClientRect();
+      var next = Math.min(fit * RD_ZOOM_DEEPEST, Math.max(fit * RD_ZOOM_WIDEST, s * f));
+      var k = next / s, px = cx - r.left, py = cy - r.top;
+      tx = px - (px - tx) * k; ty = py - (py - ty) * k; s = next; apply();
+    },
+    zoomCentre: function (f) {
+      var r = stage.getBoundingClientRect();
+      this.zoomAt(r.left + r.width / 2, r.top + r.height / 2, f);
+    },
+    panBy: function (dx, dy) { tx += dx; ty += dy; apply(); },
+    reset: reset
+  };
+}
+
+// A zoom controller for a Cytoscape.js instance: the graph zooms and pans itself.
+function rdCyZoom(cy, minLevel) {
+  function level(l) { return Math.max(minLevel || 0, Math.min(l, cy.maxZoom())); }
+  return {
+    zoomAt: function (cx, cy2, f) {
+      var r = cy.container().getBoundingClientRect();
+      cy.zoom({ level: level(cy.zoom() * f), renderedPosition: { x: cx - r.left, y: cy2 - r.top } });
+    },
+    zoomCentre: function (f) {
+      cy.zoom({ level: level(cy.zoom() * f), renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 } });
+    },
+    panBy: function () {},
+    reset: function () { cy.fit(undefined, 30); }
+  };
+}
+
+// Build the modal around `content` (an element to show, or a function that fills
+// the stage and returns a controller). Returns the modal's close function.
+function rdOpenZoom(content, opener) {
+  rdCloseZoom();
+  var box = document.createElement("div");
+  box.className = "rd-zoom";
+  box.setAttribute("role", "dialog");
+  box.setAttribute("aria-modal", "true");
+  box.setAttribute("aria-label", "Diagram, full screen");
+
+  var bar = document.createElement("div");
+  bar.className = "rd-zoom-bar";
+  [["out", "−", "Zoom out"], ["fit", "Fit", "Fit to screen"], ["in", "+", "Zoom in"]].forEach(function (b) {
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.setAttribute("data-rd-zoom", b[0]);
+    btn.setAttribute("aria-label", b[2]);
+    btn.textContent = b[1];
+    bar.appendChild(btn);
+  });
+  var hint = document.createElement("span");
+  hint.className = "rd-zoom-hint";
+  hint.textContent = "Scroll to zoom · drag to pan · Esc to close";
+  bar.appendChild(hint);
+  var close = document.createElement("button");
+  close.type = "button";
+  close.setAttribute("data-rd-zoom", "close");
+  close.setAttribute("aria-label", "Close full screen");
+  close.textContent = "Close";
+  bar.appendChild(close);
+
+  var stage = document.createElement("div");
+  stage.className = "rd-zoom-stage";
+  box.appendChild(bar);
+  box.appendChild(stage);
+  document.body.appendChild(box);
+  document.body.classList.add("rd-zoom-open");
+
+  var ctl;
+  var selfManaged = typeof content === "function";
+  if (selfManaged) {
+    ctl = content(stage);
+  } else if (content.tagName && content.tagName.toLowerCase() === "img") {
+    stage.appendChild(content);
+    ctl = rdImgZoom(content, stage);
+  } else {
+    stage.appendChild(content);
+    ctl = rdSvgZoom(content, RD_ZOOM_WIDEST);
+  }
+  box.__rdZoom = { ctl: ctl, opener: opener || null };
+
+  bar.addEventListener("click", function (e) {
+    var b = e.target.closest ? e.target.closest("[data-rd-zoom]") : null;
+    if (!b) { return; }
+    var what = b.getAttribute("data-rd-zoom");
+    if (what === "close") { rdCloseZoom(); }
+    else if (what === "in") { ctl.zoomCentre(RD_ZOOM_STEP); }
+    else if (what === "out") { ctl.zoomCentre(1 / RD_ZOOM_STEP); }
+    else { ctl.reset(); }
+  });
+
+  // A graph handles its own wheel and drag; everything else is handled here.
+  if (!selfManaged) {
+    stage.addEventListener("wheel", function (e) {
+      e.preventDefault();
+      ctl.zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * RD_ZOOM_WHEEL));
+    }, { passive: false });
+    var drag = null;
+    stage.addEventListener("pointerdown", function (e) {
+      drag = { x: e.clientX, y: e.clientY };
+      stage.classList.add("rd-dragging");
+      if (stage.setPointerCapture) { try { stage.setPointerCapture(e.pointerId); } catch (err) {} }
+    });
+    stage.addEventListener("pointermove", function (e) {
+      if (!drag) { return; }
+      ctl.panBy(e.clientX - drag.x, e.clientY - drag.y);
+      drag = { x: e.clientX, y: e.clientY };
+    });
+    ["pointerup", "pointercancel"].forEach(function (t) {
+      stage.addEventListener(t, function () { drag = null; stage.classList.remove("rd-dragging"); });
+    });
+    stage.addEventListener("dblclick", function () { ctl.reset(); });
+  }
+
+  close.focus();
+  return rdCloseZoom;
+}
+
+function rdCloseZoom() {
+  var box = document.querySelector(".rd-zoom");
+  if (!box) { return; }
+  var state = box.__rdZoom || {};
+  if (state.ctl && state.ctl.destroy) { state.ctl.destroy(); }
+  box.remove();
+  document.body.classList.remove("rd-zoom-open");
+  if (state.opener && state.opener.focus) { try { state.opener.focus({ preventScroll: true }); } catch (e) {} }
+}
+
+// Open a copy of an SVG or img. A mermaid svg carries a fixed pixel width and a
+// max-width style; both are cleared so the copy fills the stage.
+function rdZoomPicture(node) {
+  var clone = node.cloneNode(true);
+  if (clone.tagName.toLowerCase() === "svg") {
+    clone.removeAttribute("width");
+    clone.removeAttribute("height");
+    clone.style.maxWidth = "";
+    clone.style.width = "";
+    clone.style.height = "";
+    // Keep the view the reader zoomed to in the page, if any.
+    if (node.__rdZoom) { clone.setAttribute("viewBox", node.getAttribute("viewBox")); }
+    else { var vb = rdViewBoxOf(node); clone.setAttribute("viewBox", [vb.x, vb.y, vb.w, vb.h].join(" ")); }
+  } else {
+    clone.removeAttribute("width");
+    clone.removeAttribute("height");
+  }
+  return rdOpenZoom(clone, node);
+}
+
+// Open a second, fully interactive copy of a rendered graph. The graph element
+// carries its instance and the style it was built with (viewer-cytoscape.js);
+// positions travel with the elements, so the copy needs no second layout.
+function rdZoomGraph(el, opener) {
+  var cy = el.__rdCy;
+  if (!cy || !window.cytoscape) { return null; }
+  return rdOpenZoom(function (stage) {
+    var host = document.createElement("div");
+    host.className = "rd-zoom-cy";
+    stage.appendChild(host);
+    var copy = window.cytoscape({
+      container: host,
+      elements: cy.elements().jsons(),
+      style: el.__rdCyStyle,
+      layout: { name: "preset" },
+      boxSelectionEnabled: false,
+      minZoom: 0.05,
+      maxZoom: 20
+    });
+    copy.fit(undefined, 30);
+    var ctl = rdCyZoom(copy, 0);
+    ctl.destroy = function () { copy.destroy(); };
+    return ctl;
+  }, opener);
+}
+
+// Wire a page. `pictures` selects the SVGs and images that open on click;
+// `exclude` names containers whose SVGs are interactive surfaces (a chart), not
+// pictures. Graphs need no selector: any element carrying a rendered instance
+// (`__rdCy`) is found from its "Full screen" button or a Ctrl/Cmd + wheel.
+function rdInitZoom(opts) {
+  var pictures = opts.pictures;
+  var exclude = opts.exclude || "";
+
+  function pictureAt(target) {
+    var hit = target.closest ? target.closest(pictures) : null;
+    if (!hit || hit.closest(".rd-zoom")) { return null; }
+    if (exclude && hit.closest(exclude)) { return null; }
+    // The outermost svg is the picture; a nested svg is part of it.
+    while (hit.parentElement && hit.parentElement.closest("svg") && hit.parentElement.closest(pictures)) {
+      hit = hit.parentElement.closest("svg");
+    }
+    return hit;
+  }
+
+  function graphAt(target) {
+    for (var el = target; el && el !== document; el = el.parentElement) {
+      if (el.__rdCy) { return el; }
+    }
+    return null;
+  }
+
+  document.addEventListener("click", function (e) {
+    var expand = e.target.closest ? e.target.closest(".rd-zoom-expand") : null;
+    if (expand) {
+      var graph = graphAt(expand);
+      if (graph) { e.preventDefault(); rdZoomGraph(graph, expand); }
+      return;
+    }
+    var hit = pictureAt(e.target);
+    if (!hit) { return; }
+    e.preventDefault();
+    rdZoomPicture(hit);
+  });
+
+  // In place: Ctrl/Cmd + wheel, or a trackpad pinch, zooms the diagram under the
+  // pointer. Never deeper than the modal, and never wider than its fitted view.
+  document.addEventListener("wheel", function (e) {
+    if (!(e.ctrlKey || e.metaKey) || e.target.closest(".rd-zoom")) { return; }
+    var f = Math.exp(-e.deltaY * RD_ZOOM_WHEEL);
+    var graph = graphAt(e.target);
+    if (graph) {
+      e.preventDefault();
+      if (graph.__rdCyFit === undefined) { graph.__rdCyFit = graph.__rdCy.zoom(); }
+      rdCyZoom(graph.__rdCy, graph.__rdCyFit).zoomAt(e.clientX, e.clientY, f);
+      return;
+    }
+    var hit = pictureAt(e.target);
+    if (!hit || hit.tagName.toLowerCase() !== "svg") { return; }
+    e.preventDefault();
+    if (!hit.__rdZoom) { hit.__rdZoom = rdSvgZoom(hit, 1); }
+    hit.__rdZoom.zoomAt(e.clientX, e.clientY, f);
+  }, { passive: false });
+
+  document.addEventListener("keydown", function (e) {
+    var box = document.querySelector(".rd-zoom");
+    if (!box) { return; }
+    var ctl = box.__rdZoom && box.__rdZoom.ctl;
+    if (e.key === "Escape") { rdCloseZoom(); }
+    else if (ctl && (e.key === "+" || e.key === "=")) { ctl.zoomCentre(RD_ZOOM_STEP); }
+    else if (ctl && e.key === "-") { ctl.zoomCentre(1 / RD_ZOOM_STEP); }
+    else if (ctl && e.key === "0") { ctl.reset(); }
+  });
+}
+
+</script>
+<!-- Likewise rdRenderDeckGL(): hoisted before the renderer that calls it. -->
+<script>
+"use strict";
+// Deck.GL block renderer — `rdRenderDeckGL(block, tokens, theme)`.
+//
+// Inlined BEFORE viewer.js so its functions are hoisted (same contract as
+// viewer-cytoscape.js). Placeholder-free by ADR-008: this is real, lintable JS.
+//
+// Two views, one renderer:
+//
+//   view: "orbit"  — a 3D scatter in a colour space. The block may hand us bare
+//                    hex colours; we PROJECT them to positions ourselves.
+//   view: "map"    — geographic. Positions are [lng, lat]. By default the brand
+//                    canvas IS the basemap (no vendor token). A demo can opt into
+//                    real tiles: `basemap` = raster (deck TileLayer), or
+//                    `basemapStyle` = a vector GL style (MapLibre owns the map,
+//                    deck rides as a MapboxOverlay). Both are free + keyless.
+//
+// The whole design rests on one idea borrowed from colour-space visualisers: a
+// space is *just a projection function* rgb -> [x, y, z], plus a frame that
+// describes its shape. Swap the projection and every mark in the scene moves;
+// the data never changes. That is why the same block type serves a gamut study
+// and a map — "where does this datum live" is the only question a layer asks.
+
+// ── Colour maths (OKLab / OKLCH) ───────────────────────────────────────────
+// OKLab is a perceptual space: L is lightness (0 black, 1 white) and the a/b
+// plane carries hue+colourfulness. OKLCH is the same space in cylindrical form:
+// C (chroma) is the distance from the grey axis, H (hue) the angle around it.
+// Design in OKLCH because a categorical palette wants CONSTANT L (equal contrast
+// against the canvas) and VARYING H — which is a horizontal ring in this space.
+
+function rdSrgbToLinear(c) {
+  return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+}
+
+function rdLinearToSrgb(c) {
+  return c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
+}
+
+function rdHexToRgb(hex) {
+  var h = String(hex).trim().replace("#", "");
+  if (h.length === 3) { h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2]; }
+  return [
+    parseInt(h.slice(0, 2), 16) / 255,
+    parseInt(h.slice(2, 4), 16) / 255,
+    parseInt(h.slice(4, 6), 16) / 255
+  ];
+}
+
+function rdRgbToOklab(rgb) {
+  var r = rdSrgbToLinear(rgb[0]), g = rdSrgbToLinear(rgb[1]), b = rdSrgbToLinear(rgb[2]);
+  var l = 0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b;
+  var m = 0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b;
+  var s = 0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b;
+  var l_ = Math.cbrt(l), m_ = Math.cbrt(m), s_ = Math.cbrt(s);
+  return [
+    0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
+    1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
+    0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_
+  ];
+}
+
+// Inverse: an (L, C, H) triple back to sRGB. `inGamut` is the whole point —
+// most of the OKLCH cylinder is NOT representable in sRGB, and a palette that
+// asks for an unrepresentable chroma gets silently clipped by the browser.
+function rdOklchToRgb(L, C, H) {
+  var h = (H * Math.PI) / 180;
+  var a = C * Math.cos(h), b = C * Math.sin(h);
+  var l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+  var m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+  var s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+  var l = l_ * l_ * l_, m = m_ * m_ * m_, s = s_ * s_ * s_;
+  var lr = +4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s;
+  var lg = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
+  var lb = -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s;
+  var rgb = [rdLinearToSrgb(lr), rdLinearToSrgb(lg), rdLinearToSrgb(lb)];
+  var eps = 0.0001;
+  var inGamut = rgb.every(function (v) { return v >= -eps && v <= 1 + eps; });
+  return { rgb: rgb.map(function (v) { return Math.min(1, Math.max(0, v)); }), inGamut: inGamut };
+}
+
+function rdRgbToOklch(rgb) {
+  var lab = rdRgbToOklab(rgb);
+  var C = Math.hypot(lab[1], lab[2]);
+  var H = (Math.atan2(lab[2], lab[1]) * 180) / Math.PI;
+  return { L: lab[0], C: C, H: H < 0 ? H + 360 : H };
+}
+
+// The sRGB gamut ceiling at a given (L, H): the largest chroma that still lands
+// inside the cube. Binary search — cheap, and exact enough at 24 iterations.
+// This is the function that explains a clipped palette: ask for C beyond this
+// and you do not get it, you get this.
+function rdMaxChroma(L, H) {
+  var lo = 0, hi = 0.4;
+  for (var i = 0; i < 24; i++) {
+    var mid = (lo + hi) / 2;
+    if (rdOklchToRgb(L, mid, H).inGamut) { lo = mid; } else { hi = mid; }
+  }
+  return lo;
+}
+
+// ── Projections: a colour space IS a function ──────────────────────────────
+// Every space maps a colour into a cube of roughly [-0.5, 0.5] on each axis, so
+// one camera framing works for all of them.
+var RD_CHROMA_SCALE = 1.35;   // C ~0.37 (the sRGB max) -> 0.5 radius
+
+var RD_SPACES = {
+  // The raw cube. Perceptually lumpy — equal steps do not look equal.
+  rgb: function (rgb) {
+    return [rgb[0] - 0.5, rgb[1] - 0.5, rgb[2] - 0.5];
+  },
+  // Perceptual, but cartesian: hue is not an axis, so a hue ring is a circle
+  // you have to infer.
+  oklab: function (rgb) {
+    var lab = rdRgbToOklab(rgb);
+    return [lab[1] * RD_CHROMA_SCALE, lab[0] - 0.5, lab[2] * RD_CHROMA_SCALE];
+  },
+  // The designer's view. Height IS lightness, radius IS chroma, angle IS hue —
+  // so a well-built categorical palette appears as a FLAT RING, and any swatch
+  // that fell short of its chroma target is visibly closer to the centre pole.
+  oklch: function (rgb) {
+    var c = rdRgbToOklch(rgb);
+    var h = (c.H * Math.PI) / 180;
+    return [
+      Math.cos(h) * c.C * RD_CHROMA_SCALE,
+      c.L - 0.5,
+      Math.sin(h) * c.C * RD_CHROMA_SCALE
+    ];
+  }
+};
+
+function rdProject(space, hex) {
+  return (RD_SPACES[space] || RD_SPACES.oklch)(rdHexToRgb(hex));
+}
+
+function rdRgb255(hex, alpha) {
+  var c = rdHexToRgb(hex);
+  return [
+    Math.round(c[0] * 255),
+    Math.round(c[1] * 255),
+    Math.round(c[2] * 255),
+    alpha === undefined ? 255 : alpha
+  ];
+}
+
+// ── Frame: the guides that make a space legible ────────────────────────────
+// A scatter with no frame is a cloud of dots. The frame says "this axis is
+// lightness, this ring is the edge of what sRGB can show".
+function rdFrameLines(space, gamutLs, ink) {
+  var lines = [];
+  if (space === "rgb") { return lines; }
+
+  // The achromatic pole: every grey, from black to white.
+  lines.push({ source: [0, -0.5, 0], target: [0, 0.5, 0], color: ink });
+
+  // One ring per requested lightness = the sRGB gamut boundary at that L.
+  // A palette swatch sitting ON this ring got the chroma it asked for; one
+  // sitting inside it did not.
+  gamutLs.forEach(function (L) {
+    var prev = null;
+    for (var deg = 0; deg <= 360; deg += 4) {
+      var maxC = space === "oklch" ? rdMaxChroma(L, deg) : rdMaxChroma(L, deg);
+      var h = (deg * Math.PI) / 180;
+      var pt = [Math.cos(h) * maxC * RD_CHROMA_SCALE, L - 0.5, Math.sin(h) * maxC * RD_CHROMA_SCALE];
+      if (prev) { lines.push({ source: prev, target: pt, color: ink }); }
+      prev = pt;
+    }
+  });
+  return lines;
+}
+
+// `targetChroma` is the chroma the palette ASKED for — a design intent the
+// renderer cannot infer, because a hex only records what was actually granted.
+// Given it, we can draw the request as a TRUE CIRCLE at that chroma.
+//
+// The whole story is then one picture: a perfect circle (what you asked for)
+// against a lumpy blob (what sRGB can give you). Wherever the circle escapes
+// the blob, the request was impossible — and every swatch in that arc is pinned
+// to the blob, short of its target.
+function rdTargetRing(L, targetC, color) {
+  var lines = [];
+  var prev = null;
+  for (var deg = 0; deg <= 360; deg += 4) {
+    var h = (deg * Math.PI) / 180;
+    var pt = [Math.cos(h) * targetC * RD_CHROMA_SCALE, L - 0.5, Math.sin(h) * targetC * RD_CHROMA_SCALE];
+    if (prev) { lines.push({ source: prev, target: pt, color: color }); }
+    prev = pt;
+  }
+  return lines;
+}
+
+// The clipping tell: for each swatch, a spoke from where it LANDED out to where
+// it was AIMED. Drawn only when the ceiling at that hue is below the target —
+// i.e. only when the colour was actually denied. A swatch with chroma to spare
+// gets no spoke: it is not clipped, it is simply not maximal.
+function rdClipSpokes(data, targetC, warn) {
+  var spokes = [];
+  data.forEach(function (d) {
+    if (!d.hex) { return; }
+    var c = rdRgbToOklch(rdHexToRgb(d.hex));
+    var maxC = rdMaxChroma(c.L, c.H);
+    if (maxC >= targetC - 0.004) { return; }   // reachable — nothing was denied
+    var h = (c.H * Math.PI) / 180;
+    spokes.push({
+      source: [Math.cos(h) * c.C * RD_CHROMA_SCALE, c.L - 0.5, Math.sin(h) * c.C * RD_CHROMA_SCALE],
+      target: [Math.cos(h) * targetC * RD_CHROMA_SCALE, c.L - 0.5, Math.sin(h) * targetC * RD_CHROMA_SCALE],
+      color: warn
+    });
+  });
+  return spokes;
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+// Canvas renderers cannot read CSS custom properties (ADR-004), so the palette
+// arrives as tokens. `canvas.deckgl.<mode>` is optional and falls back to the
+// plotly sub-palette, which every brandpack already ships.
+function rdDeckPalette(tokens, theme) {
+  var canvas = tokens.canvas || {};
+  var dg = (canvas.deckgl || {})[theme];
+  var pl = (canvas.plotly || {})[theme] || {};
+  var th = (tokens.themes || {})[theme] || {};
+  var status = ((tokens.status || {})[theme] || {}).colours || {};
+  return {
+    background: (dg && dg.background) || pl.plot || "#101010",
+    // The frame is a GUIDE, so it takes the muted-text token — not the plotly
+    // `grid` colour, which is tuned to sit behind a 2D chart and vanishes
+    // against a 3D scene's own background.
+    ink: (dg && dg.ink) || th.muted || pl.grid || "#858585",
+    text: (dg && dg.text) || pl.font || th.fg || "#dddddd",
+    // Clipping is a warning, and the brand already owns a warning colour.
+    warn: (dg && dg.warn) || status.warning || "#ebb25f",
+    series: pl.series || []
+  };
+}
+
+// A layer spec is `{ type, data, ...props }` and `type` is looked up on deck's
+// global. That keeps the block OPEN — any deck.gl layer works without a code
+// change here — while the projection sugar below stays specific to colour work.
+function rdBuildLayers(spec, pal) {
+  var space = spec.space || "oklch";
+  var isOrbit = spec.view !== "map";
+  var layers = [];
+
+  // A map view draws NO basemap by default — the brand canvas IS the basemap, so no
+  // vendor tiles or key are needed. But a demo can opt into real tiles with
+  // `basemap: true` (OSM) or `basemap: "<url template>"`; it goes UNDER everything.
+  if (!isOrbit && spec.basemap) {
+    var tileUrl = spec.basemap === true
+      ? "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+      : spec.basemap;
+    layers.push(new deck.TileLayer({
+      id: "rd-basemap",
+      data: tileUrl,
+      minZoom: 0,
+      maxZoom: 19,
+      tileSize: 256,
+      renderSubLayers: function (props) {
+        var bb = props.tile.boundingBox;  // [[west, south], [east, north]]
+        return new deck.BitmapLayer(props, {
+          data: null,
+          image: props.data,
+          bounds: [bb[0][0], bb[0][1], bb[1][0], bb[1][1]]
+        });
+      }
+    }));
+  }
+
+  if (isOrbit && spec.gamut && spec.gamut.length) {
+    var frame = rdFrameLines(space, spec.gamut, rdRgb255(pal.ink, 200));
+    // The requested chroma, drawn as the circle it actually is. Where it sits
+    // outside the gamut ring, the design asked for a colour that does not exist.
+    if (spec.targetChroma) {
+      spec.gamut.forEach(function (L) {
+        frame = frame.concat(rdTargetRing(L, spec.targetChroma, rdRgb255(pal.warn, 130)));
+      });
+    }
+    layers.push(new deck.LineLayer({
+      id: "rd-frame",
+      data: frame,
+      getSourcePosition: function (d) { return d.source; },
+      getTargetPosition: function (d) { return d.target; },
+      getColor: function (d) { return d.color; },
+      getWidth: 1.5
+    }));
+  }
+
+  (spec.layers || []).forEach(function (raw, i) {
+    var props = Object.assign({}, raw);
+    var type = props.type;
+    delete props.type;
+    if (!deck[type]) { throw new Error("unknown deck.gl layer type: " + type); }
+    if (props.id === undefined) { props.id = "rd-layer-" + i; }
+
+    // Lighting OFF by default. deck.gl's lit layers (PointCloudLayer, ColumnLayer,
+    // …) shade every mark as a 3D solid under an ambient+directional light, which
+    // DARKENS the fill — so a swatch renders muddier than its own hex. In a
+    // colour-space visualiser the mark IS a colour claim; a lit mark makes that
+    // claim false (the dot no longer matches the flat swatch). Flat/unlit is the
+    // only colour-correct default. An author who genuinely wants shaded geometry
+    // opts back in by putting `material` on the layer spec.
+    if (props.material === undefined) { props.material = false; }
+
+    // Pickable by default so hover tooltips (getTooltip) actually fire — a deck.gl
+    // layer is NOT pickable unless asked, and a silent non-pickable layer looks
+    // identical until you try to hover it. The basemap tile layer opts out below.
+    if (props.pickable === undefined) { props.pickable = true; }
+
+    // Sugar: a datum carrying `hex` needs neither a position nor a colour. We
+    // derive BOTH from the colour itself — the datum IS its own coordinate.
+    // This is what lets a palette be authored as a plain list of hex strings.
+    var data = props.data || [];
+    if (isOrbit && Array.isArray(data) && data.length && data[0] && data[0].hex) {
+      if (props.getPosition === undefined) {
+        props.getPosition = function (d) { return rdProject(space, d.hex); };
+      }
+      if (props.getColor === undefined && props.getFillColor === undefined) {
+        props.getColor = function (d) { return rdRgb255(d.hex); };
+        props.getFillColor = function (d) { return rdRgb255(d.hex); };
+      }
+      if (spec.targetChroma) {
+        layers.push(new deck.LineLayer({
+          id: props.id + "-clip",
+          data: rdClipSpokes(data, spec.targetChroma, rdRgb255(pal.warn, 235)),
+          getSourcePosition: function (d) { return d.source; },
+          getTargetPosition: function (d) { return d.target; },
+          getColor: function (d) { return d.color; },
+          getWidth: 3
+        }));
+      }
+    } else if (Array.isArray(data) && data.length && data[0] && data[0].position) {
+      // A point cloud that is NOT a colour space (e.g. a reduced text embedding):
+      // each datum carries its own `position` and `color`. PointCloudLayer's default
+      // getColor is a CONSTANT black, so a `color` field would otherwise never show —
+      // wire the accessors here so the topic colours actually render.
+      if (props.getPosition === undefined) {
+        props.getPosition = function (d) { return d.position; };
+      }
+      if (data[0].color && props.getColor === undefined && props.getFillColor === undefined) {
+        props.getColor = function (d) { return d.color; };
+        props.getFillColor = function (d) { return d.color; };
+      }
+    }
+    layers.push(new deck[type](props));
+  });
+
+  return layers;
+}
+
+// The tooltip closure is shared by the plain-Deck path and the MapLibre-overlay
+// path, so a datum reads the same whether the scene rides a WebGL canvas or a
+// vector basemap. Factored out of rdRenderDeckGL for exactly that reuse.
+function rdTooltip(spec, pal, tokens) {
+  return function (info) {
+    if (!info.object) { return null; }
+    var o = info.object;
+    // A point cloud of text (an embedding) shows the ACTUAL chunk, wrapped, with
+    // its topic as a header — that is the whole point of a RAG-debugging view.
+    if (o.text) {
+      return {
+        text: (o.topic ? o.topic.toUpperCase() + "\n" : "") + o.text,
+        style: {
+          background: pal.background, color: pal.text, fontFamily: tokens.fonts.body,
+          fontSize: "12px", border: "1px solid " + pal.ink, borderRadius: "6px",
+          padding: "8px 10px", maxWidth: "320px", whiteSpace: "normal", lineHeight: "1.4"
+        }
+      };
+    }
+    var label = o.label || o.name || o.hex;
+    if (!label) { return null; }
+    var body = label;
+    if (o.hex) {
+      var c = rdRgbToOklch(rdHexToRgb(o.hex));
+      var maxC = rdMaxChroma(c.L, c.H);
+      var target = spec.targetChroma;
+      body += "\nL " + c.L.toFixed(3) + "  C " + c.C.toFixed(3) + "  H " + c.H.toFixed(1) + "°";
+      body += "\nsRGB ceiling here: " + maxC.toFixed(3);
+      // Two different facts, never conflated: sitting AT the ceiling is a
+      // property of the hue; being CLIPPED needs a request to fall short of.
+      if (c.C >= maxC - 0.004) { body += "\nat the sRGB ceiling"; }
+      if (target && maxC < target - 0.004) {
+        body += "\nCLIPPED: asked " + target.toFixed(3)
+          + ", denied " + (target - maxC).toFixed(3);
+      }
+    }
+    return {
+      text: body,
+      style: {
+        background: pal.background, color: pal.text, fontFamily: tokens.fonts.mono,
+        fontSize: "11px", border: "1px solid " + pal.ink, borderRadius: "6px",
+        padding: "6px 8px", whiteSpace: "pre"
+      }
+    };
+  };
+}
+
+function rdRenderDeckGL(block, tokens, theme) {
+  var spec = block.payload;
+  var pal = rdDeckPalette(tokens, theme);
+  var isOrbit = spec.view !== "map";
+
+  block.el.style.height = (spec.height || 460) + "px";
+  block.el.style.background = pal.background;
+  block.el.style.position = "relative";
+
+  // A re-render must not leak the old scene. The Deck path holds a WebGL context;
+  // the MapLibre path holds its own map + canvas. Tear down whichever this block
+  // built last, so a theme flip rebuilds cleanly either way.
+  if (block.deck) { block.deck.finalize(); block.deck = null; }
+  if (block.map) { block.map.remove(); block.map = null; block.overlay = null; }
+
+  var getTooltip = rdTooltip(spec, pal, tokens);
+
+  // Vector-basemap path: MapLibre owns the map + camera, deck.gl rides on top as a
+  // MapboxOverlay. A real dark basemap needs no vendor key (CartoDB ships a free GL
+  // style), and MapLibre's tile pipeline is far more robust than a hand-rolled
+  // raster TileLayer — which is exactly why a raster basemap can silently blank on
+  // a flaky network while this keeps its tiles. `basemap` (raster) stays supported
+  // for docs that want no MapLibre dependency; `basemapStyle` (vector) opts into this.
+  if (!isOrbit && spec.basemapStyle && typeof maplibregl !== "undefined" && deck.MapboxOverlay) {
+    var v = spec.initialViewState || {};
+    block.map = new maplibregl.Map({
+      container: block.el,
+      style: spec.basemapStyle,
+      center: [v.longitude || 0, v.latitude || 0],
+      zoom: v.zoom || 1.2,
+      pitch: v.pitch || 0,
+      bearing: v.bearing || 0,
+      interactive: spec.controller !== false,
+      attributionControl: { compact: true }
+    });
+    block.overlay = new deck.MapboxOverlay({
+      interleaved: false,
+      layers: rdBuildLayers(spec, pal),
+      getTooltip: getTooltip
+    });
+    block.map.addControl(block.overlay);
+    return;
+  }
+
+  var view = isOrbit
+    ? new deck.OrbitView({ id: "orbit", orbitAxis: "Y", fovy: 50 })
+    : new deck.MapView({ id: "map", repeat: true });
+
+  // OrbitView `zoom` is log2(pixels per world unit) — NOT a map zoom. Every
+  // space here is normalised to a ~1-unit extent, so the scene needs ~2^9 to
+  // fill the canvas. Framing it like a map (zoom 1-5) renders a correct scene
+  // the size of a postage stamp: the classic OrbitView trap.
+  //
+  // A gamut study is a horizontal SLAB at some lightness, not the whole solid,
+  // so the camera centres on that slab (y = L - 0.5) and pulls in tighter.
+  // Left at the origin, the subject drifts to the top of the frame.
+  var gamut = (isOrbit && spec.gamut) || [];
+  var meanL = gamut.length
+    ? gamut.reduce(function (a, b) { return a + b; }, 0) / gamut.length
+    : 0.5;
+  var initialViewState = spec.initialViewState || (isOrbit
+    ? {
+      target: [0, meanL - 0.5, 0],
+      zoom: gamut.length ? 9.5 : 8.6,
+      rotationX: 30,
+      rotationOrbit: -28,
+      minZoom: 7,
+      maxZoom: 12
+    }
+    : { longitude: 0, latitude: 20, zoom: 1.2 });
+
+  block.deck = new deck.Deck({
+    parent: block.el,
+    views: view,
+    initialViewState: initialViewState,
+    controller: spec.controller !== false,
+    useDevicePixels: true,
+    parameters: { clearColor: rdRgb255(pal.background).map(function (v) { return v / 255; }) },
+    layers: rdBuildLayers(spec, pal),
+    getTooltip: getTooltip
+  });
+}
+
+</script>
+<script>
+"use strict";
+// Runtime renderer for the paired-markdown viewer.
+//
+// Boot order: tokens -> CSS vars -> markdown -> marked.parse -> fenced-block
+// upgrades. Tokens land first so nothing paints in fallback colours.
+//
+// This file contains NO template placeholders — it is copied verbatim into the
+// output and is therefore real, lintable JS. Everything md2html.py needs to
+// inject (build id, source name, CDN pins, fallback tokens) arrives through the
+// #rd-config JSON block in viewer.html. Keep it that way: the moment a mustache
+// placeholder appears here, the file stops parsing and stops being editable as
+// JavaScript. A test enforces this (ADR-008).
+var CFG = JSON.parse(document.getElementById("rd-config").textContent);
+
+var BUILD_ID = CFG.buildId;
+var SOURCE = CFG.source;
+var CDN = CFG.cdn;
+var FALLBACK_TOKENS = CFG.fallbackTokens;
+// Paired with the doc — a shared filename let one doc clobber another's brand.
+var TOKENS_SOURCE = CFG.tokensSource || "design-tokens.json";
+var TOKENS = FALLBACK_TOKENS;
+
+var cyBlocks = [];       // { el, payload, cy } — kept for re-theming
+var plotlyBlocks = [];   // { el, payload }
+var deckBlocks = [];     // { el, payload, deck } — holds a WebGL context; finalized on re-theme
+var mermaidSources = []; // { el, src }
+var lazyLoaded = {};
+
+function currentTheme() {
+  return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+}
+
+// CSS can reach the chrome; canvas renderers cannot. Hence two palettes in the
+// token file, and hence this function only handles the CSS half (ADR-004).
+// One `accent` used to do three incompatible jobs: the brand FILL, the TEXT ON
+// that fill, and a TEXT-SAFE accent for headings and links. Most brands get away
+// with it. A brand whose accent is a bright yellow does not — yellow is 1.64:1 on
+// white, so it can be a surface but never a text colour. Forcing it through one
+// token means a brand must either ship an illegible page or quietly substitute a
+// colour it does not own. Both happened. Hence three tokens, with fallbacks so an
+// older pack keeps working.
+function accentRoles(t) {
+  return {
+    fill: t.accent,                    // surfaces, CTA fills, active states
+    on: t.onAccent || t.bg,            // text that sits ON the fill
+    link: t.link || t.accent           // headings, links — must be text-safe
+  };
+}
+
+function applyTokenCss(tokens) {
+  var css = "";
+  // A typeface is a brand VALUE, so it belongs in the pack. `fonts.display` is
+  // optional and falls back to body — a brand with one face needn't declare two.
+  // (theme.css still has to @import the webfile; *choosing* a face and *loading*
+  // one are different jobs.)
+  var display = tokens.fonts.display || tokens.fonts.body;
+  ["light", "dark"].forEach(function (theme) {
+    var t = tokens.themes[theme];
+    var a = accentRoles(t);
+    css += ":root[data-theme=" + theme + "]{"
+      + "--rd-bg:" + t.bg + ";--rd-fg:" + t.fg + ";--rd-muted:" + t.muted + ";"
+      + "--rd-accent:" + a.fill + ";--rd-on-accent:" + a.on + ";--rd-link:" + a.link + ";"
+      + "--rd-surface:" + t.surface + ";--rd-border:" + t.border + ";"
+      + "--rd-radius:" + (t.radius !== undefined ? t.radius : "8px") + ";"
+      + "--rd-font-body:" + tokens.fonts.body + ";--rd-font-mono:" + tokens.fonts.mono + ";"
+      + "--rd-font-display:" + display + ";}";
+  });
+  var style = document.getElementById("rd-token-css");
+  if (!style) {
+    style = document.createElement("style");
+    style.id = "rd-token-css";
+    document.head.appendChild(style);
+  }
+  style.textContent = css;
+}
+
+function loadScript(name, url) {
+  if (lazyLoaded[name]) return lazyLoaded[name];
+  lazyLoaded[name] = new Promise(function (resolve, reject) {
+    var s = document.createElement("script");
+    s.src = url;
+    s.onload = resolve;
+    s.onerror = function () { reject(new Error("failed to load " + url)); };
+    document.head.appendChild(s);
+  });
+  return lazyLoaded[name];
+}
+
+// ?v=BUILD_ID + no-store: the whole point of the live-authoring loop is that a
+// browser refresh shows the edited markdown, never a cached copy.
+function fetchNoStore(url) {
+  return fetch(url + "?v=" + BUILD_ID, { cache: "no-store" }).then(function (r) {
+    if (!r.ok) throw new Error("HTTP " + r.status + " fetching " + url);
+    return r;
+  });
+}
+
+function showError(el, err) {
+  var div = document.createElement("div");
+  div.className = "rd-error";
+  div.textContent = String(err && err.message ? err.message : err);
+  el.replaceChildren(div);
+  console.error(err);
+}
+
+// ── Mermaid ────────────────────────────────────────────────────────────────
+// Rendered mermaid SVG is not re-themable in place: it must be re-rendered from
+// source on every theme flip.
+//
+// `fontFamily`: mermaid otherwise measures labels in its own default (`trebuchet
+// ms`) while the page paints them in the brand face (viewer.css sets `font-family:
+// var(--rd-font-body)` on body). Hand mermaid the same token plotly already gets
+// (see renderPlotly) so it measures the face it renders, and so diagrams stop
+// rendering off-brand. This narrows the label-box shortfall but does NOT close it;
+// viewer.css `foreignObject { overflow: visible }` is what actually stops the clip.
+//
+// `fonts.ready`: a theme @imports its face with `display=swap`, so measuring before
+// the face loads silently measures the fallback. Guarded, because the Font Loading
+// API is absent in a few older engines.
+function renderAllMermaid() {
+  if (mermaidSources.length === 0) return Promise.resolve();
+  window.mermaid.initialize({
+    startOnLoad: false,
+    theme: currentTheme() === "dark" ? "dark" : "default",
+    fontFamily: TOKENS.fonts.body,
+    securityLevel: "loose"
+  });
+  var fontsReady = (document.fonts && document.fonts.ready)
+    ? document.fonts.ready
+    : Promise.resolve();
+  return fontsReady.then(function () {
+    var seq = Promise.resolve();
+    mermaidSources.forEach(function (m, i) {
+      seq = seq.then(function () {
+        return window.mermaid.render("rd-mmd-" + BUILD_ID + "-" + i + "-" + currentTheme(), m.src)
+          .then(function (out) { m.el.innerHTML = out.svg; })
+          .catch(function (err) { showError(m.el, err); });
+      });
+    });
+    return seq;
+  });
+}
+
+// ── Cytoscape ──────────────────────────────────────────────────────────────
+// Graph styling lives in viewer-cytoscape.js (loaded before this file) so the
+// visual design is editable on its own, not buried in the boot logic.
+function renderCytoscape(block) {
+  rdRenderCytoscape(block, TOKENS, currentTheme());
+}
+
+function loadCytoscapeLibs() {
+  return loadScript("cytoscape", CDN.cytoscape)
+    .then(function () { return loadScript("dagre", CDN.dagre); })
+    .then(function () { return loadScript("cytoscapeDagre", CDN.cytoscapeDagre); })
+    .then(function () { window.cytoscape.use(window.cytoscapeDagre); });
+}
+
+// ── Plotly ─────────────────────────────────────────────────────────────────
+function plotlyLayout(payload) {
+  var p = TOKENS.canvas.plotly[currentTheme()];
+  var layout = Object.assign({}, payload.layout || {});
+  layout.paper_bgcolor = p.paper;
+  layout.plot_bgcolor = p.plot;
+  layout.font = Object.assign({}, layout.font || {}, { color: p.font, family: TOKENS.fonts.body });
+  layout.colorway = p.series;
+  layout.xaxis = Object.assign({}, layout.xaxis || {}, { gridcolor: p.grid });
+  layout.yaxis = Object.assign({}, layout.yaxis || {}, { gridcolor: p.grid });
+  return layout;
+}
+
+// `responsive: true` makes Plotly size itself to its PARENT — and .rd-canvas has
+// no height of its own, so without this the plot measures a content-driven box
+// and collapses to a squashed sliver. Every block type owes its renderer an
+// explicit container height; cytoscape and deckgl already do this.
+function renderPlotly(block) {
+  block.el.style.height = (block.payload.height || 420) + "px";
+  return window.Plotly.react(block.el, block.payload.data, plotlyLayout(block.payload), { responsive: true });
+}
+
+// ── Deck.GL ────────────────────────────────────────────────────────────────
+// 3D / geographic scenes. Scene construction lives in viewer-deckgl.js (loaded
+// before this file) so the visualisation design is editable on its own.
+function renderDeckGL(block) {
+  rdRenderDeckGL(block, TOKENS, currentTheme());
+}
+
+// ── Fenced-block upgrade ───────────────────────────────────────────────────
+// A block's `data` may be a URL string instead of inline data — fetch and merge.
+function resolvePayload(raw) {
+  var payload = JSON.parse(raw);
+  if (typeof payload.data === "string") {
+    return fetchNoStore(payload.data).then(function (r) { return r.json(); }).then(function (remote) {
+      if (Array.isArray(remote)) {
+        payload.data = remote;
+      } else {
+        delete payload.data;
+        payload = Object.assign({}, remote, payload);
+      }
+      return payload;
+    });
+  }
+  return Promise.resolve(payload);
+}
+
+// cytoscape/dagre/plotly are injected only when a doc actually uses them, so a
+// plain prose doc pays for none of them.
+function upgradeFences(article) {
+  var jobs = [];
+  article.querySelectorAll("pre > code").forEach(function (code) {
+    var lang = (code.className.match(/language-([\w-]+)/) || [])[1];
+    if (lang !== "mermaid" && lang !== "cytoscape" && lang !== "plotly" && lang !== "deckgl") return;
+    var pre = code.parentElement;
+    var div = document.createElement("div");
+    div.className = "rd-canvas rd-" + lang;
+    pre.replaceWith(div);
+    var raw = code.textContent;
+    if (lang === "mermaid") {
+      mermaidSources.push({ el: div, src: raw });
+      return;
+    }
+    jobs.push(resolvePayload(raw).then(function (payload) {
+      var block = { el: div, payload: payload };
+      if (lang === "cytoscape") { cyBlocks.push(block); }
+      else if (lang === "deckgl") { deckBlocks.push(block); }
+      else { plotlyBlocks.push(block); }
+    }).catch(function (err) { showError(div, err); }));
+  });
+
+  return Promise.all(jobs).then(function () {
+    var loads = [];
+    if (cyBlocks.length) loads.push(loadCytoscapeLibs());
+    if (plotlyBlocks.length) loads.push(loadScript("plotly", CDN.plotly));
+    if (deckBlocks.length) loads.push(loadScript("deckgl", CDN.deckgl));
+    return Promise.all(loads);
+  }).then(function () {
+    cyBlocks.forEach(function (b) { try { renderCytoscape(b); } catch (e) { showError(b.el, e); } });
+    plotlyBlocks.forEach(function (b) { renderPlotly(b).catch(function (e) { showError(b.el, e); }); });
+    deckBlocks.forEach(function (b) { try { renderDeckGL(b); } catch (e) { showError(b.el, e); } });
+    return renderAllMermaid();
+  });
+}
+
+// Highlight ordinary language-tagged snippets. Rich blocks keep their own
+// renderer; unknown languages retain readable escaped source with no guessing.
+function highlightCode(article) {
+  var blocks = Array.prototype.slice.call(article.querySelectorAll("pre > code")).filter(function (code) {
+    var lang = (code.className.match(/language-([\w-]+)/) || [])[1];
+    return lang && ["mermaid", "cytoscape", "plotly", "deckgl"].indexOf(lang) === -1;
+  });
+  if (!blocks.length) return Promise.resolve();
+  return loadScript("highlight", CDN.highlight).then(function () {
+    blocks.forEach(function (code) {
+      var lang = (code.className.match(/language-([\w-]+)/) || [])[1];
+      if (window.hljs.getLanguage(lang)) window.hljs.highlightElement(code);
+    });
+  }).catch(function (err) {
+    // A CDN failure must not hide the source or stop diagram upgrades.
+    console.warn("Syntax highlighting unavailable", err);
+  });
+}
+
+function wrapTables(article) {
+  article.querySelectorAll("table").forEach(function (table) {
+    var wrap = document.createElement("div");
+    wrap.className = "rd-table-wrap";
+    table.replaceWith(wrap);
+    wrap.appendChild(table);
+  });
+}
+
+// ── Theme toggle ───────────────────────────────────────────────────────────
+// CSS vars flip themselves; the canvas renderers must be re-fed by hand.
+function retheme() {
+  cyBlocks.forEach(function (b) { try { renderCytoscape(b); } catch (e) { showError(b.el, e); } });
+  plotlyBlocks.forEach(function (b) { renderPlotly(b).catch(function (e) { showError(b.el, e); }); });
+  deckBlocks.forEach(function (b) { try { renderDeckGL(b); } catch (e) { showError(b.el, e); } });
+  renderAllMermaid();
+}
+
+document.getElementById("rd-theme-toggle").addEventListener("click", function () {
+  var next = currentTheme() === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  try { localStorage.setItem("richdocs-theme", next); } catch (e) {}
+  retheme();
+});
+
+// ── Boot ───────────────────────────────────────────────────────────────────
+// --inline mode pre-seeds window.__DOC_*__; multi-file mode fetches.
+function loadTokens() {
+  if (window.__DOC_TOKENS__ !== undefined) return Promise.resolve(window.__DOC_TOKENS__);
+  return fetchNoStore(TOKENS_SOURCE).then(function (r) { return r.json(); })
+    .catch(function (err) {
+      console.error(TOKENS_SOURCE + " fetch failed; using baked fallback tokens", err);
+      return FALLBACK_TOKENS;
+    });
+}
+
+function loadDoc() {
+  if (window.__DOC_MD__ !== undefined) return Promise.resolve(window.__DOC_MD__);
+  return fetchNoStore(SOURCE).then(function (r) { return r.text(); });
+}
+
+loadTokens().then(function (tokens) {
+  TOKENS = tokens;
+  applyTokenCss(tokens);
+  return loadDoc();
+}).then(function (md) {
+  var article = document.getElementById("rd-article");
+  article.innerHTML = window.marked.parse(md);
+  wrapTables(article);
+  // Before the fence upgrades, so only authored headings are indexed (ADR-021).
+  rdInitToc(article);
+  return Promise.all([upgradeFences(article), highlightCode(article)]);
+}).catch(function (err) {
+  showError(document.getElementById("rd-article"), err);
+});
+
+// ── Full-screen diagrams with deep zoom (viewer-zoom.js, ADR-024) ──────────
+// Any picture in the article opens full screen on click: an img, an inline svg,
+// a rendered mermaid diagram. Plotly and deck.gl are interactive surfaces with
+// their own zoom, so their SVGs are excluded. A Cytoscape.js graph opens from its
+// own "Full screen" button. Delegated from document, so it survives re-renders.
+rdInitZoom({
+  pictures: "#rd-article img, #rd-article svg",
+  exclude: ".rd-plotly, .rd-deckgl, .rd-cytoscape"
+});
+
+</script>
+</body>
+</html>

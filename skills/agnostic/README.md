@@ -30,6 +30,12 @@ Replace identifying details while preserving the explanation.
 <summary>Complete workflow: scope, identifying details and generic replacements</summary>
 
 ```mermaid
+---
+config:
+  themeVariables:
+    textColor: '#010101'
+    edgeLabelBackground: '#ffffff'
+---
 flowchart TD
     D["Documentation task"]:::source --> S{"Should this content<br/>be generic?"}:::process
     S -->|Yes| I["Identify project and<br/>organisation names"]:::process

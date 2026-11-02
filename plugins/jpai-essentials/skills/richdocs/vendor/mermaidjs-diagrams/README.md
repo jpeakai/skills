@@ -4,7 +4,7 @@ Render and maintain Mermaid.JS diagrams with **visual-clarity enforcement**.
 
 ## Features
 
-- **Render** `.md` files containing ```` ```mermaid ```` fences to PNG. Two
+- **Render** `.md` files containing Mermaid code fences to PNG. Two
   variants by default, dark+transparent and default+white, because a diagram
   has to read on a dark host and a light host and one image cannot do both.
   Every artifact is verified as a decodable PNG: a renderer exiting 0 without
@@ -13,14 +13,12 @@ Render and maintain Mermaid.JS diagrams with **visual-clarity enforcement**.
   missing browser, sandbox denial, network, diagram syntax, or unknown), the
   two mechanically remediable classes are retried once, and only one class
   ever means "edit the diagram."
-- **One published lint for every gate (required, not optional)**: every
-  diagram MUST derive its palette from `resources/color_theming.md` and pass
-  [`@jpeakai/mermaidjs-lint`](https://jpeakai.github.io/jpai-mermaidjs-lint/).
-  That one tested package guarantees every label reads in light and dark
-  themes, every diagram parses with Mermaid's own parsers, visual complexity
-  (node count, visual-complexity score, subgraph depth) is scored against
-  cognitive-load thresholds, and extra rules plug in. `SKILL.md` "Why this is
-  mandatory" carries the reasoning.
+- **One published lint for every gate:** every
+  document uses the active design profile, or prebuilt OsakaNights, and passes
+  [`@jpeakai/remark-lint-slopstopper`](https://github.com/jpeakai/remark-lint-slopstopper/blob/main/RULES.md).
+  The standalone CLI checks Markdown structure, prose, Mermaid parsing,
+  modeled text contrast and visual complexity. Host overrides and borders
+  also need explicit checks and visual inspection in both modes.
 - **Ad-hoc pair checker**: `scripts/color_contrast.ts` scores any two CSS
   colours (hex, rgb, oklch, named), WCAG 2.x plus APCA Lc, and composites a
   translucent fill over a backdrop. The lint has no equivalent, so it stays.
@@ -32,6 +30,35 @@ Render and maintain Mermaid.JS diagrams with **visual-clarity enforcement**.
 ## How it fits together
 
 ```mermaid
+---
+config:
+  themeVariables:
+    textColor: '#010101'
+    edgeLabelBackground: '#ffffff'
+---
+flowchart LR
+    S["Diagram source"]:::input --> P["Reference palette"]:::rule
+    P --> L["Parse, complexity and contrast gates"]:::process
+    L --> D["Readable inline diagrams"]:::output
+    D -->|optional export| R["Verified image variants"]:::output
+    classDef input fill:#1e40af,stroke:#93c5fd,color:#fff,stroke-width:2px
+    classDef process fill:#6d28d9,stroke:#c4b5fd,color:#fff,stroke-width:2px
+    classDef output fill:#047857,stroke:#6ee7b7,color:#fff,stroke-width:2px
+    classDef rule fill:#334155,stroke:#cbd5e1,color:#fff,stroke-width:2px
+```
+
+Author readable diagrams first, then export images only when the destination needs them.
+
+<details>
+<summary>Complete workflow and supporting components</summary>
+
+```mermaid
+---
+config:
+  themeVariables:
+    textColor: '#010101'
+    edgeLabelBackground: '#ffffff'
+---
 flowchart LR
     subgraph author["Authoring"]
         fence["mermaid fence<br/>in .md"]:::ingressPrimary
@@ -40,8 +67,8 @@ flowchart LR
 
     subgraph gates["Mandatory Quality Gates"]
         palette["Palette<br/>from reference"]:::computePrimary
-        complexity["mermaidjs-lint complexity<br/>nodes / VCS / depth"]:::computePrimary
-        contrast["mermaidjs-lint contrast<br/>WCAG AA, light and dark"]:::computePrimary
+        complexity["Slopstopper complexity<br/>visual score"]:::computePrimary
+        contrast["Slopstopper contrast<br/>modeled text, both themes"]:::computePrimary
     end
 
     subgraph optional["Optional Tooling"]
@@ -88,20 +115,28 @@ flowchart LR
 ```
 
 *Mermaid source flows left-to-right through two mandatory gates, structural
-complexity and color contrast, both run by `@jpeakai/mermaidjs-lint`, before
+complexity and color contrast, both run by `@jpeakai/remark-lint-slopstopper`, before
 rendering. Reference docs (dotted)
 supply the rules each stage enforces.*
+
+</details>
 
 ## Quick start
 
 ```bash
-bunx @jpeakai/mermaidjs-lint path/to/doc.md                       # the gates: parse, complexity, contrast
-bash .claude/skills/mermaidjs-diagrams/scripts/render_mermaid.sh path/to/doc.md
-make -C .claude/skills/mermaidjs-diagrams/scripts install-ts      # once: bun deps for color_contrast.ts
-make -C .claude/skills/mermaidjs-diagrams/scripts cli-demo
+bunx @jpeakai/remark-lint-slopstopper path/to/doc.md                       # the gates: parse, complexity, contrast
+bash .claude/skills/richdocs/vendor/mermaidjs-diagrams/scripts/render_mermaid.sh path/to/doc.md
+make -C .claude/skills/richdocs/vendor/mermaidjs-diagrams/scripts install-ts      # once: bun deps for color_contrast.ts
+make -C .claude/skills/richdocs/vendor/mermaidjs-diagrams/scripts cli-demo
 ```
 
 See [`mermaidjs-diagrams.md`](mermaidjs-diagrams.md) for usage, [`resources/`](resources/) for deep dives,
 [render triage](resources/render_troubleshooting.md) when a render fails for
-reasons that aren't the diagram, and [`scripts/CLAUDE.md`](scripts/CLAUDE.md)
+reasons that aren't the diagram, and [`scripts/AGENTS.md`](scripts/AGENTS.md)
 for the maintenance guide.
+
+Theme curation delegates to design-profiles when available.
+With no selected profile, use `resources/themes/osakanights/themes.css` and its matching tokens.
+The palette reader exposes ten categorical families and five shades per family.
+See [theming](resources/color_theming.md) for compound boundaries, nested groups,
+entity rows and sequence participants.

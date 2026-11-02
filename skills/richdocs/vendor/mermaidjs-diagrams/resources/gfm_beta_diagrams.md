@@ -1,116 +1,20 @@
-# `-beta` Diagram Types and GitHub-Flavored Markdown
+# Host support and Mermaid families
 
-Mermaid ships new diagram types under a `-beta` suffix. Host renderers pin a
-Mermaid version and lag upstream, so **a `-beta` fence that renders locally
-will often fail to render on GitHub, GitLab, and other GFM hosts** — usually as
-a raw code block or an error box, not as a diagram.
+Verify the target host's Mermaid version before selecting a diagram family.
+A family that renders locally may not be supported by GitHub, GitLab or another Markdown host.
+Use the host's own version diagnostic or documentation rather than assuming local CLI support is equivalent.
 
-Treat local render success as *no evidence at all* about the host.
+Publish native Mermaid fences as the documentation source.
+When the requested family is unavailable, choose a supported representation that preserves the model or report the limitation.
+Do not discard attributes, relationships or meaningful groups merely to obtain a simpler diagram.
+Do not force every family into flowchart syntax to apply colors.
 
-## The affected types
+Use the active design profile or prebuilt OsakaNights and the styling mechanisms supported by the selected family.
+See [profile-driven theming](color_theming.md) for category, shade, compound, entity and sequence rules.
 
-Everything carrying the suffix:
-
-`architecture-beta`, `block-beta`, `packet-beta`, `radar-beta`, `sankey-beta`,
-`treemap-beta`, `xychart-beta`
-
-Non-beta types (`flowchart`, `sequenceDiagram`, `stateDiagram-v2`, `erDiagram`,
-`journey`, `mindmap`, `timeline`, `gitGraph`, `classDiagram`, `pie`,
-`quadrantChart`, `gantt`, `requirementDiagram`) are broadly safe to inline as
-live fences.
-
-## The rule
-
-| Fence uses | Ship as |
-|---|---|
-| A non-beta type | A live ` ```mermaid ` fence, inline. |
-| A `-beta` type | A **rendered PNG or SVG**, embedded, with the `.mmd` source kept as a sibling file. |
-
-Never inline a `-beta` fence in a document destined for a GFM host and hope.
-Either render it, or choose a non-beta type that answers the same question.
-
-## The sibling-source pattern
-
-Keep the source next to the image so the diagram stays editable and reviewable.
-The image is a build artifact that happens to be committed.
-
-```
-docs/
-├── architecture.md               <- embeds the image
-└── diagrams/
-    ├── infrastructure.mmd        <- source of truth, edit this
-    ├── infrastructure.png        <- rendered, committed
-    └── data-volume.mmd
-```
-
-Embed with a caption and an explicit link back to the source, so a reader who
-wants to change it knows where to go:
-
-```markdown
-![Infrastructure lens](diagrams/infrastructure.png)
-*Infrastructure lens - deployed topology* | [source](diagrams/infrastructure.mmd)
-```
-
-## Rendering a `.mmd` file
-
-`scripts/render_mermaid.sh` takes a **markdown** file and renders the fences
-inside it. It does **not** accept a bare `.mmd` path — it rejects it with
-`Output file must end with ".md"/".markdown", ".svg", ".png" or ".pdf"`.
-
-For a standalone `.mmd`, call `mmdc` directly:
-
-```bash
-# Light variant for README and print
-bunx -p @mermaid-js/mermaid-cli mmdc \
-  -i docs/diagrams/infrastructure.mmd \
-  -o docs/diagrams/infrastructure.png \
-  -t default -b white
-
-# Dark transparent variant for dark UIs and slides
-bunx -p @mermaid-js/mermaid-cli mmdc \
-  -i docs/diagrams/infrastructure.mmd \
-  -o docs/diagrams/infrastructure.dark.png \
-  -t dark -b transparent
-```
-
-Verify the output is a real image rather than a zero-byte artifact:
-
-```bash
-file docs/diagrams/infrastructure.png   # expect: PNG image data, WxH, ...
-```
-
-Prefer **SVG** where the host allows it — it scales, stays legible when zoomed,
-and diffs less catastrophically than a binary PNG. Use PNG where the host
-refuses inline SVG (some wikis) or where the image is destined for a slide deck.
-
-## The gates still apply
-
-Both analyzers read `.mmd` files directly, so a diagram does not escape the
-density and contrast budgets by moving out of markdown:
-
-```bash
-bunx @jpeakai/mermaidjs-lint docs/diagrams/
-```
-
-The lint counts nodes in `-beta` types correctly — a 16-node
-`treemap-beta` trips `complexity-node-count-acceptable-exceeded` under `--preset low` exactly
-as a flowchart would. Moving a diagram to a `.mmd` sibling changes where it
-lives, never what it must satisfy.
-
-## Choosing a non-beta alternative
-
-Rendering costs a build step and a committed binary. Before paying it, check
-whether a stable type answers the same question:
-
-| `-beta` type | Question it answers | Non-beta alternative |
-|---|---|---|
-| `architecture-beta` | What is deployed where? | `flowchart` with grouping subgraphs; Iconify icons where supported |
-| `block-beta` | How do fixed regions align? | `flowchart` with subgraphs |
-| `treemap-beta` | Where does mass concentrate? | A sorted table; `pie` for a handful of categories |
-| `sankey-beta` | How much flows where? | `flowchart` with volume in edge labels |
-| `xychart-beta` | How does a value trend? | A table, or a chart rendered outside Mermaid |
-| `radar-beta` | How do items compare across axes? | A table |
-
-The alternative is often *better* for a document that must survive in many
-renderers. Reach for a `-beta` type when its specific visual encoding is the
-point — not for novelty.
+Wrap a standalone .mmd diagram in a Mermaid fence in Markdown before running Slopstopper.
+Its CLI accepts Markdown files, directories, globs or standard input.
+Render final diagrams in both target themes and inspect the PNGs locally.
+Keep verification images under ignored scratch storage such as tmp/diagrams/.
+Do not commit generated images or replace the Mermaid fence with an image, base64 payload or source-hiding disclosure.
+Explicit user requests for image artifacts still take precedence.

@@ -25,10 +25,10 @@
   an HTML entity: `"1&#46; Renumber ADRs"` (entities render fine in
   flowchart htmlLabels — the mindmap entity trap in
   `mermaid-syntax-gate.md` is mindmap-specific).
-- **Gate note:** the parse gate (`bunx @jpeakai/mermaidjs-lint`, which
+- **Gate note:** the parse gate (`bunx @jpeakai/remark-lint-slopstopper`, which
   replaced the vendored `mermaid_complexity.ts` under ADR-025) does NOT catch
   this. The fence parses fine; only label *rendering* fails. The check belongs
   in the lint, not patched locally: a list-marker label rule would arrive as a
-  new lint release or a plugin rule (`.mermaidjs-lint/rules`). Until then this
+  new Slopstopper rule. Until then this
   file and the CLAUDE.md gotcha are the guard: grep the source fences
   for `["'\`]\s*(\d+\.|[-*+]) ` before handoff.

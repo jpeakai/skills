@@ -17,11 +17,13 @@ PY_SRC = $(addsuffix .py,$(PY_SCRIPTS)) $(addprefix test_,$(addsuffix .py,$(PY_S
 # ── TypeScript source ──────────────────────────────────────────────────────
 
 # Every diagram gate, sequence-diagram contrast included, lives in the
-# published package @jpeakai/mermaidjs-lint (ADR-004 and ADR-006 in
+# published package @jpeakai/remark-lint-slopstopper (ADR-004 and ADR-006 in
 # CLAUDE.md), so mermaid_complexity and mermaid_contrast are retired.
 # color_contrast stays because the package has no ad-hoc colour-pair
 # calculator. See .claude/rules/typescript/ for conventions.
-TS_SCRIPTS = color_contrast
+# design_profile reads a design profile for Mermaid: a port of the design-profiles
+# resolver, since this skill never imports another skill's code (DT-TOOL-1).
+TS_SCRIPTS = color_contrast design_profile
 
 # Private TS maintenance helpers (none today). Same quality gates, never in SKILL.md.
 PRIVATE_TS_SCRIPTS =
@@ -209,22 +211,22 @@ ci: format-check lint typecheck test-cov docs
 fix: format lint-fix
 
 # End-to-end demo of the diagram gates and the ad-hoc pair calculator against
-# fixture inputs. The gates run from the published @jpeakai/mermaidjs-lint
+# fixture inputs. The gates run from the published @jpeakai/remark-lint-slopstopper
 # package. Non-zero exits are tolerated (the demo showcases both pass and fail
 # cases), so each command is prefixed with `-` to keep `make cli-demo` running
 # to the end. Paths use $(THIS_DIR) / $(EXAMPLES_DIR) so the target works
 # regardless of where `make -C` was invoked from.
-MERMAIDJS_LINT = bunx @jpeakai/mermaidjs-lint
+SLOPSTOPPER = bunx @jpeakai/remark-lint-slopstopper
 
 cli-demo:
-	@echo "=== @jpeakai/mermaidjs-lint: complexity fixtures ==="
-	-$(MERMAIDJS_LINT) $(EXAMPLES_DIR)/test_complexity.md
+	@echo "=== @jpeakai/remark-lint-slopstopper: complexity fixtures ==="
+	-$(SLOPSTOPPER) $(EXAMPLES_DIR)/test_complexity.md
 	@echo ""
-	@echo "=== @jpeakai/mermaidjs-lint: contrast fixtures ==="
-	-$(MERMAIDJS_LINT) $(EXAMPLES_DIR)/test_contrast.md
+	@echo "=== @jpeakai/remark-lint-slopstopper: contrast fixtures ==="
+	-$(SLOPSTOPPER) $(EXAMPLES_DIR)/test_contrast.md
 	@echo ""
-	@echo "=== @jpeakai/mermaidjs-lint: gallery, sequence diagrams included ==="
-	-$(MERMAIDJS_LINT) $(EXAMPLES_DIR)/test_gallery.md
+	@echo "=== @jpeakai/remark-lint-slopstopper: gallery, sequence diagrams included ==="
+	-$(SLOPSTOPPER) $(EXAMPLES_DIR)/test_gallery.md
 	@echo ""
 	@echo "=== color_contrast.ts: single pair (passes AA) ==="
 	-bun run $(THIS_DIR)color_contrast.ts "#ffffff" "#2563eb"
@@ -269,5 +271,5 @@ help:
 	@echo ""
 	@echo "Misc:"
 	@echo "  docs         - Regenerate examples README from .mmd files"
-	@echo "  cli-demo     - Run the mermaidjs-lint gates and color_contrast.ts against fixture inputs"
+	@echo "  cli-demo     - Run the Slopstopper policies and color_contrast.ts against fixture inputs"
 	@echo "  clean        - Remove temp files and caches"

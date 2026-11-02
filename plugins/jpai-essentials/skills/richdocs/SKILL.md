@@ -41,6 +41,7 @@ the conversion routes below.
 | "3D scene, colour-space study, or a map" | fenced ` ```deckgl ` block — see `resources/rich-blocks.md` |
 | "Why is my palette not the palette I designed?" | ` ```deckgl ` with `space: "oklch"`, `gamut: [L]` and `targetChroma` — draws the request against the sRGB gamut |
 | "HTML looks broken opened from Finder" | `file://` blocks fetch — run `serve.py` (see `resources/serving.md`) |
+| "Render it in our design profile" | `md2html.py DOC.md --profile NAME`, or nothing at all when `.design-profiles/.default-profile` names it |
 | "Render it in a brand theme" | default is `osakanights`; `md2html.py DOC.md --theme NAME` for another (see `--help` for installed themes) |
 | "Re-brand the output" | edit `<stem>.tokens.json` in the output dir, refresh — no rebuild |
 | "Override a theme for this project" | drop `tmp/richdocs/theme/<name>/design-tokens.json` (+ optional `theme.css`) — shadows the built-in of that name |
@@ -72,43 +73,36 @@ uv run --no-project .claude/skills/richdocs/scripts/stencil.py extract "mxgraph.
 
 Run everything from the repo root. Never `cd`.
 
-## Mermaid gate (mandatory before rendering)
+## Source lint and profile theming
 
-Any doc containing ` ```mermaid ` fences MUST pass the published lint
-[`@jpeakai/mermaidjs-lint`](https://jpeakai.github.io/jpai-mermaidjs-lint/)
-**on the source markdown, before `md2html.py`**. One run checks that every
-fence parses with Mermaid's own parsers, that its visual complexity is within
-budget, and that every label reads in light and dark themes, including a
-`sequenceDiagram`'s theme colours. The canvas flags score page-backed colours
-(translucent fills, edge label boxes, sequence messages and lifelines) on the
-`surface` the viewer draws diagrams on, here the default `osakanights` theme's:
+Delegate theme curation to design-profiles when available.
+Resolve the requested or project-default profile first; otherwise use prebuilt `resources/themes/osakanights/themes.css` and its matching tokens.
+Explicit `--theme` or `--tokens` selections remain honored.
+Use `vendor/mermaidjs-diagrams/resources/color_theming.md` for category families, five shades, compound tints, entity rows and sequence participant groups.
+Do not select another palette or put unresolved CSS variables in Mermaid source.
 
-```bash
-bunx @jpeakai/mermaidjs-lint@0.7.0 SOURCE.md --profile github --canvas-light '#ffffff' --canvas-dark '#1a1a1c'
-```
-
-For another theme, take its flags from `md2html.py --lint-flags`, which prints
-them for the theme it would render and renders nothing:
+Every authored source document must pass Slopstopper before rendering:
 
 ```bash
-uv run --no-project .claude/skills/richdocs/scripts/md2html.py SOURCE.md --theme NAME --lint-flags \
-  | xargs bunx @jpeakai/mermaidjs-lint@0.7.0 SOURCE.md
+bun install --cwd .claude/skills/richdocs/scripts --frozen-lockfile
+mkdir -p tmp/richdocs
+uv run --no-project .claude/skills/richdocs/scripts/md2html.py SOURCE.md --lint-config > tmp/richdocs/lint-config.json
+bunx @jpeakai/remark-lint-slopstopper@0.1.2 SOURCE.md --config tmp/richdocs/lint-config.json
 ```
 
-Swap `bunx` for `npx -y` where Bun is absent. The version is pinned because
-the lint resolves sequence colours with the same Mermaid release the
-companion's viewer loads. It needs `bunx` or `npx` with access to
-registry.npmjs.org. Exit 0 is clean, 1 means findings remain, 2 is a usage
-error. Through `xargs`, any non-zero lint exit shows as 123, a blocker too.
+Pass the same profile, theme or token options to `--lint-config` that the render uses.
+The JSON references the installed native remark plugin and configures the viewer's light/dark diagram surfaces.
+It renders nothing.
+The package is pinned to keep its Mermaid dependency aligned with the viewer.
+Slopstopper enables recommended Markdown checks and both custom policy groups; no separate prose or Mermaid linter is used.
+Its `--fix` mode edits prose only; review those edits and repair diagrams manually.
+Exit 0 is clean, 1 means findings, and 2 means an invocation or processing error.
+It needs Bun and Node.js 24 or newer.
 
-Non-zero exit is a blocker. `parse-diagram-unparseable … yielded 0 nodes` means
-the fence is invalid mermaid and will render as a broken block in the companion.
-`md2html.py` passes fences through verbatim; it cannot catch this for you.
-
-The vendored `vendor/mermaidjs-diagrams/mermaidjs-diagrams.md` documents the
-lint's profiles and complexity presets, and authoring pitfalls like quoted
-mindmap labels and HTML entities. Prior adjudications on this class of failure live
-in `resources/learned/` — treat them as already-decided, don't re-litigate.
+The audit reads source styling and configured canvases; it does not certify unmodeled host CSS overrides or border contrast.
+Render final diagrams in both target modes and inspect category boundaries, nested fills, entity rows, sequence groups and clipping.
+Keep verification PNGs in ignored scratch storage and publish native Mermaid fences.
+For HTML, select the matching mode's tokens and rerender from source after a provider change.
 
 ## Command reference
 
@@ -132,7 +126,16 @@ uv run --no-project .claude/skills/richdocs/scripts/showcase.py                 
 uv run --no-project .claude/skills/richdocs/scripts/showcase.py --theme osakanights # one brand
 ```
 
-### `md2html.py DOC.md [--out DIR] [--inline] [--theme NAME] [--tokens FILE] [--title T] [--lint-flags]`
+### `md2html.py DOC.md [--out DIR] [--inline] [--profile NAME] [--theme NAME] [--tokens FILE] [--title T] [--lint-config]`
+
+- **A design profile is looked up first** (ADR-028). A profile is a brand curated once
+  by the `design-profiles` skill and shared by every skill that renders. `--profile NAME`
+  picks one; with no `--profile`, `--theme` or `--tokens`, the profile named in
+  `.design-profiles/.default-profile` applies. A name resolves from
+  `./.design-profiles/<name>/`, then `~/.design-profiles/<name>/`, then this skill's
+  `resources/profile/<name>/` under `.claude/` or `.codex/`, project then user. A name
+  that resolves nowhere fails loudly. With no profile or explicit theme/token selection, prebuilt OsakaNights applies. The report says which was used: `profile: NAME` or `theme: NAME`.
+  `themecheck.py` never runs on a profile: curation already scored it.
 
 - **`--theme NAME`** — a named brand theme. Supplies both the brandpack
   (`design-tokens.json`) *and* its `theme.css` — which is the only place a webfont
@@ -178,10 +181,7 @@ uv run --no-project .claude/skills/richdocs/scripts/showcase.py --theme osakanig
 - **`--tokens FILE`** — raw-brandpack escape hatch (see schema in
   `resources/rich-blocks.md`). Applies only when passed **and** `--theme` is not;
   otherwise the default `osakanights` theme wins.
-- **`--lint-flags`** — prints `--profile github --canvas-light SURFACE
-  --canvas-dark SURFACE` for the brand it would render, and renders nothing. The
-  viewer draws every diagram on the brand's `surface`, so these are the flags the
-  Mermaid gate needs for that brand (ADR-027).
+- **`--lint-config`** prints native Slopstopper remark JSON with the selected light/dark diagram canvases and renders nothing. Save it to a local JSON file and pass that path to the pinned CLI with `--config`.
 
 #### Reporting a generated doc (worktree-aware)
 
@@ -282,7 +282,7 @@ Beyond standard markdown + ` ```mermaid `, the HTML companion renders:
 | `scripts/md2html.py` | Paired markdown → rich HTML generator |
 | `assets/stencils.json.zip` | Vendored draw.io icon library (see `assets/NOTICE`) |
 | `assets/design-tokens.json` | Default neutral brandpack |
-| `vendor/mermaidjs-diagrams/` | Vendored mermaid references: colour theming, complexity presets, lint usage, render script, colour-pair calculator. The gates themselves run from `@jpeakai/mermaidjs-lint` |
+| `vendor/mermaidjs-diagrams/` | Vendored mermaid references: colour theming, complexity presets, lint usage, render script, colour-pair calculator. The gates themselves run from `@jpeakai/remark-lint-slopstopper` |
 | `resources/learned/` | Prior adjudications and self-taught facts — read before re-litigating |
 
 richdocs is self-contained: every tool and reference it operates with lives

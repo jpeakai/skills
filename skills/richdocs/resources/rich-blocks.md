@@ -1,9 +1,7 @@
 # Fenced Rich Blocks & the Design-Tokens Brandpack
 
 The contract for interactive blocks inside a markdown doc rendered by
-`md2html.py`, and the token file that brands them. Pattern lineage: the
-data-driven cytoscape viewer with injected brandpack (adaf `sdag`), made
-generic.
+`md2html.py`, and the token file that brands them.
 
 ## Block contract
 
@@ -16,7 +14,7 @@ with `cache: no-store` + `?v=<BUILD_ID>`.
 
 Rendered by mermaid 11.x. Theme follows the document theme (`default` /
 `dark`), re-initialised and re-rendered on every theme flip. The source must
-pass `bunx @jpeakai/mermaidjs-lint` (parse, complexity and contrast). See the
+pass `bunx @jpeakai/remark-lint-slopstopper` (parse, complexity and contrast). See the
 "Mermaid gate" section in `SKILL.md`.
 
 ### ` ```cytoscape `
@@ -35,9 +33,10 @@ pass `bunx @jpeakai/mermaidjs-lint` (parse, complexity and contrast). See the
 
 - `elements` follows Cytoscape's element JSON (compound nodes via `parent`).
 - `layout` optional; default `dagre` left-to-right. `height` optional px.
-- Stylesheet is built from `canvas.cytoscape.<theme>` tokens — never author
-  per-node colours unless they encode *data* (status, category), in which
-  case put them in `data.colour` and they survive theme flips unchanged.
+- Stylesheet is built from `canvas.cytoscape.<theme>` tokens.
+  Compound nodes opt into categorical colours with `data.category`.
+  Leaf nodes can request the secondary fill with `data.variant: "alt"`.
+  The packaged renderer does not read `data.colour`.
 - Node tap → detail is intentionally not in the packaged viewer; when a doc
   needs routing/detail panels, it has outgrown the companion — build it as a
   standalone SPA sub-project (rung 4 of the fidelity ladder in
@@ -162,6 +161,75 @@ re-themes instantly via CSS) *and* re-feed the canvas palette + re-render
 every fenced block. The generated JS does both; if you fork the template,
 keep both or dark mode will half-apply — the classic symptom is a dark page
 with blinding white charts.
+
+### Showcase diagram colour rules
+
+The original showcase uses the shared Cytoscape renderer and a showcase-specific Mermaid renderer.
+Both assign category borders from `canvas.plotly.<mode>.series`, using the same fixed page-wide category order.
+Switching brand or mode changes the colour assigned to each slot, while category identity keeps its slot.
+
+| Element | Fill | Border and label |
+| --- | --- | --- |
+| Cytoscape leaf | `nodeFill`, or `nodeFillAlt` for `variant="alt"` | `nodeBorder`, `nodeLabel` |
+| Cytoscape compound without category | `compoundBg` at 0.55 background opacity | Dashed 1px `compoundBorder`, `nodeLabel` |
+| Cytoscape compound with category | Opaque category tint | Solid 2px category border, `nodeLabel` |
+| Detailed Mermaid subgraph | Same opaque category tint | Solid 2px category border, theme foreground label |
+| Mermaid ordinary node | Theme surface | Theme accent border, theme foreground label |
+
+The category tint is calculated per encoded sRGB channel: `round(0.16 × category + 0.84 × pageBackground)`.
+This is an opaque premixed colour, not alpha transparency or an OKLCH interpolation.
+Nested category groups therefore do not accumulate transparency.
+Cytoscape edges use theme edge colours at 0.75 overall opacity; hover raises incident edges to full opacity and the selected colour.
+The fill-only opacity of an untagged compound leaves its border and label opaque.
+Tinting does not itself guarantee accessible text contrast; validate the resolved foreground and fill.
+
+There are separate background layers.
+The page uses `themes.<mode>.bg` through `--rd-bg`; diagram panels use `themes.<mode>.surface` through `--rd-surface`.
+The Mermaid SVG and Cytoscape canvas are transparent, revealing that panel.
+Category tints nevertheless mix against the **page background**, so their flat fill can differ from the panel underneath.
+Mermaid's edge-label background also uses the page background.
+
+The showcase has no framework ThemeProvider.
+Its controls set `<html data-brand>` and `<html data-theme>`; scoped CSS variables update the page immediately.
+`render()` then recreates the Cytoscape instance and reinitialises Mermaid with `theme: "base"`, explicit theme variables and regenerated subgraph styles before rendering fresh SVGs.
+A brand change also applies that brand's `defaultTheme`.
+The ordinary document viewer persists mode in local storage and rerenders its blocks.
+A design profile supplies baked Mermaid theme variables on the native `base` theme; legacy explicitly selected brandpacks retain their default/dark behavior.
+The default profile comes from prebuilt `themes/osakanights/themes.css` with matching tokens.
+Follow the vendored profile-driven theming guide for authored categories, five-shade families, nested boundaries, entity rows and sequence groups.
+
+Panel corners follow `themes.<mode>.radius` through `--rd-radius`.
+Profiles supply that value from `dimension.radius`, preserving its unit and zero; older profiles fall back to `12px`.
+Cytoscape node corners independently use `canvas.cytoscape.<mode>.roundness`, with compounds adding 2px.
+The current profile adapter supplies 8px for graph nodes; Mermaid node shapes retain their own geometry.
+Theme radius propagation to diagram shapes is therefore still a separate mapping decision.
+
+#### Tagged compounds and portable Markdown
+
+A Cytoscape node becomes a compound when another node names its ID in `data.parent`.
+It is tagged when its own `data.category` field exists, which matches `:parent[category]`.
+An absent field selects the untagged styling; an empty or unknown category still matches the tagged selector but falls back to neutral compound colours.
+Category tags are explicit and are not inherited by children.
+
+Mermaid's equivalent of a compound is a `subgraph` with an explicit ID.
+For portable Markdown, put each group's `style groupId ...` directive inside the Mermaid fence rather than relying on page CSS or a JavaScript provider.
+Use an opaque category stroke, a low-alpha eight-digit hex fill, and leave label colour to the host theme.
+For example, `style boundary fill:#ffc00029,stroke:#ffc000,stroke-width:2px` gives approximately 16% fill opacity without fading the text or border.
+Avoid setting whole-group `opacity`.
+This is a portable syntax recipe, not a guarantee of identical rendering or adequate contrast on every host.
+
+For deeper nesting, keep hue tied to category identity, not depth.
+The simplest bounded recipe tints only the outer category boundary; inner structural groups use `fill:transparent` and a dashed border, keeping their labels host-controlled.
+Reusing a 16% translucent fill at every level compounds: the effective same-colour opacity after `n` layers is `1 - 0.84^n`, reaching about 58% after five layers.
+If every level needs a tint and the maximum depth is `D`, a uniform per-level alpha of `1 - (1 - A)^(1/D)` caps the combined same-colour tint at `A`.
+Different nested hues also mix, so category borders and labels must retain their meaning independently of fill.
+Neither recipe requires increasingly dark opaque bands as nesting grows.
+
+GitHub controls its Mermaid renderer and version; do not depend on repository JavaScript, custom page CSS or access to the reader's mode.
+Material for MkDocs integrates its own fonts, colours and theme changes; other MkDocs integrations need their own checks.
+For exact profile colours in both modes, generate separate resolved light/dark diagrams or use a renderer you control.
+Validate the actual GitHub and MkDocs outputs in both modes, including the deepest group and the contrast of category outlines.
+See [GitHub's diagram support](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-diagrams), [Mermaid flowchart styling](https://mermaid.js.org/syntax/flowchart.html), and [Material's Mermaid integration](https://squidfunk.github.io/mkdocs-material/reference/diagrams/).
 
 ### Rules that keep brandpacks sane
 

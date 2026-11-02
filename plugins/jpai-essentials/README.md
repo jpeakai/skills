@@ -35,6 +35,7 @@ flowchart LR
     P --> V["Diagrams and HTML"]:::visual
     V --> M["mermaidjs-diagrams"]:::visual
     V --> R["richdocs"]:::visual
+    V --> DP["design-profiles"]:::visual
     P --> W["Delivery workflow"]:::delivery
     W --> S["snr-pr"]:::delivery
     W --> C["concise-decisions"]:::delivery
@@ -61,6 +62,7 @@ Each skill has its own human overview and runtime instructions; the hook checks 
 | [agnostic](skills/agnostic/README.md) | Replace project-specific details with generic documentation examples. |
 | [mermaidjs-diagrams](skills/mermaidjs-diagrams/README.md) | Author and render diagrams with parsing, complexity and contrast checks. |
 | [richdocs](skills/richdocs/README.md) | Author source-backed discovery documents and render rich HTML companions. |
+| [design-profiles](skills/design-profiles/README.md) | Generate shared theme CSS and design tokens from a shadcn preset, hue, or accent. |
 | [snr-pr](skills/snr-pr/README.md) | Filter existing review feedback into actionable Signal and distracting Noise. |
 | [concise-decisions](skills/concise-decisions/README.md) | Resolve related ambiguities through one informed decision at a time. |
 | [tickety-boo](skills/tickety-boo/README.md) | Follow repository conventions for tickets, work in progress and cleanup. |

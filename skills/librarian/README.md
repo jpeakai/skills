@@ -68,6 +68,12 @@ jq -r '.file as $f | [..|objects|select(.type=="code")]|.[]|"\($f): \(.lang // "
 ## Architecture
 
 ```mermaid
+---
+config:
+  themeVariables:
+    textColor: '#010101'
+    edgeLabelBackground: '#ffffff'
+---
 flowchart LR
     D["Repository docs"]:::input --> C["Resolve local conventions"]:::process
     C --> A["Audit placement and links"]:::process
@@ -85,6 +91,12 @@ Local conventions determine what belongs where; audit produces a plan before cha
 <summary>Complete workflow and supporting components</summary>
 
 ```mermaid
+---
+config:
+  themeVariables:
+    textColor: '#010101'
+    edgeLabelBackground: '#ffffff'
+---
 flowchart TD
     D[Discover dialect] --> L{Authority ladder}
     L --> C[docs/CONVENTIONS.md]

@@ -27,6 +27,9 @@ make -C .claude/skills/richdocs/scripts ci    # gate: must exit 0 before handoff
 | `scripts/showcase.py` | **theme showcase** generator — gallery of every brand, or one brand alone (`--theme`). Composes architecture diagrams from the stencil pack as drawio-editable SVG (ADR-011) |
 | `assets/showcase.{html,css,js}` | the showcase page. Placeholder-free JS/CSS; only `showcase.html` carries `{{...}}` |
 | `scripts/md2html.py` | markdown → HTML companion **generator** (stdlib). Contains no HTML/CSS/JS source — it assembles the `assets/viewer.*` files (ADR-008) |
+| `scripts/profile_resolver.py` | Python compatibility reader for the design-profiles `.mjs` resolver: five-tier cascade, `.default-profile`, and DTCG reading. Cross-language tests check agreement. `md2html.py` maps a profile onto the brandpack schema (ADR-028) |
+| `scripts/testdata/osakanights/design-tokens.json` | a design profile built by design-profiles from its `osakanights` example, for the profile tests |
+| `tmp/richdocs/profile/<name>/` | the brandpack a design profile maps to, written on each render (ADR-028) |
 | `assets/viewer.html` | the page shell — the **only** file carrying `{{...}}` placeholders |
 | `assets/viewer.css` | viewer chrome; all colour/font via `--rd-*` custom properties |
 | `assets/viewer.js` | runtime renderer (marked → fenced-block upgrades → theme flip). **Placeholder-free by contract** — reads generation-time values from the `#rd-config` JSON block |
@@ -47,7 +50,7 @@ make -C .claude/skills/richdocs/scripts ci    # gate: must exit 0 before handoff
 | `resources/adr-log.md` | the **ADR log**, ADR-014 onwards, newest first — decision lenses; split out of this file for the 500-line invariant |
 | `resources/adr-log-foundations.md` | the founding records, ADR-001…013, moved unedited when `adr-log.md` reached 500 lines |
 | `resources/learned/` | self-curated adjudications/facts (statefulness Pathway 2) — read before re-litigating a past failure |
-| `vendor/mermaidjs-diagrams/` | wholesale vendored mermaid references (theming, lint usage, render script); the gates themselves run from the published `@jpeakai/mermaidjs-lint` (ADR-025). Refresh per ADR-007, never cherry-pick; its entrypoint is `mermaidjs-diagrams.md`, never a second `SKILL.md` |
+| `vendor/mermaidjs-diagrams/` | wholesale vendored mermaid references (theming, lint usage, render script); the gates themselves run from the published `@jpeakai/remark-lint-slopstopper` (ADR-025). Refresh per ADR-007, never cherry-pick; its entrypoint is `mermaidjs-diagrams.md`, never a second `SKILL.md` |
 
 ## Invariants
 
@@ -57,9 +60,9 @@ make -C .claude/skills/richdocs/scripts ci    # gate: must exit 0 before handoff
   Python. Missing inputs crash loudly (escalators-not-stairs).
   Exception: `vendor/mermaidjs-diagrams/` is Tier A (bun + frozen lockfile)
   — it is vendored wholesale, not authored here (ADR-007). The mermaid gate is
-  Tier A too: `bunx @jpeakai/mermaidjs-lint` needs registry access (ADR-025). The gate's own
-  DOM tests also run on bun (`scripts/package.json`), but only at test time;
-  no shipped script depends on it (ADR-021).
+  Tier A too: `bunx @jpeakai/remark-lint-slopstopper` needs registry access (ADR-025). The gate's own
+  DOM tests also run on Bun (`scripts/package.json`). Native lint configuration
+  references the locked local Slopstopper plugin; install those dependencies before linting.
 - Self-contained: no file under this skill instructs the agent to run or
   read another skill's files (ADR-007).
 - Outputs go to project-local `tmp/richdocs/`, never system `/tmp`.
@@ -68,7 +71,7 @@ make -C .claude/skills/richdocs/scripts ci    # gate: must exit 0 before handoff
 
 ## ADR log
 
-The full decision log (ADR-001 … ADR-025), each entry carrying its **Lens**, lives in
+The full decision log, each entry carrying its **Lens**, lives in
 [`resources/adr-log.md`](resources/adr-log.md) (ADR-014 onwards) and
 [`resources/adr-log-foundations.md`](resources/adr-log-foundations.md) (ADR-001 … 013).
 Read both before changing anything and apply each ADR's Lens to the next related

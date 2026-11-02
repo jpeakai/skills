@@ -1,7 +1,7 @@
 # Mermaid Contrast — WCAG Audit Test Fixtures
 
 Each ```mermaid fence below is a named scenario for
-`@jpeakai/mermaidjs-lint`. The lint scores every `classDef` and `style`
+`@jpeakai/remark-lint-slopstopper`. The lint scores every `classDef` and `style`
 directive against WCAG AA:
 
 - **Text pairs** (fill × color): must pass **≥ 4.5 : 1**
@@ -10,7 +10,7 @@ directive against WCAG AA:
 Run with:
 
 ```bash
-bunx @jpeakai/mermaidjs-lint \
+bunx @jpeakai/remark-lint-slopstopper \
   .claude/skills/mermaidjs-diagrams/resources/examples/test_contrast.md
 ```
 

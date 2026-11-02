@@ -12,6 +12,7 @@ import importlib
 import pytest
 
 import md2html
+import profile_resolver
 import serve
 import showcase
 import stencil
@@ -23,6 +24,7 @@ def _reload_for_coverage() -> None:
     """Reload modules under test so pytest-cov captures module-level code."""
     importlib.reload(serve)
     importlib.reload(stencil)
+    importlib.reload(profile_resolver)
     importlib.reload(md2html)
     importlib.reload(showcase)
     importlib.reload(themecheck)

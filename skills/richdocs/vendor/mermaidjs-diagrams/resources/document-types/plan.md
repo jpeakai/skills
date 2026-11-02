@@ -42,8 +42,16 @@ and proposed AFTER at overview and detail densities.
 
 ## 5. Palette
 
-Reuse the PR Review semantic roles and shared color reference. Proposed status
-is textual, never inferred from color.
+Resolve the active design profile, otherwise use prebuilt OsakaNights.
+Delegate palette curation to design-profiles where available; read [the shared theming guide](../color_theming.md) for token selection and renderer constraints.
+Assign categorical hue families to meaningful topics, responsibilities, owners or phases in a fixed order.
+Use the five same-family shades for related subcategories and repeat the mapping across every view.
+Use labels for BEFORE, AFTER, proposed and status meanings rather than relying on hue alone.
+Resolve CSS variables to supported concrete values before writing Mermaid styles.
+Style each category boundary with its matching tint and a readable same-family border, checking immediate parent surfaces for nested groups.
+Use native entity-row and sequence-group mechanisms rather than copying flowchart styles to unsupported families.
+Inspect both rendered modes and publish native Mermaid source.
+Example colors illustrate syntax; they are not another palette authority.
 
 ## 6. Anti-patterns
 

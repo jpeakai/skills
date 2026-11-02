@@ -9,7 +9,7 @@ The skills are published as two installable plugins, so you take the pack you wa
 
 | Plugin | For | Contains |
 |---|---|---|
-| [`jpai-essentials`](plugins/jpai-essentials) | Documentation and diagrams | `librarian`, `adr`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `concise-decisions`, `agnostic`, `tickety-boo`, `snr-pr` |
+| [`jpai-essentials`](plugins/jpai-essentials) | Documentation and diagrams | `librarian`, `adr`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `design-profiles`, `concise-decisions`, `agnostic`, `tickety-boo`, `snr-pr` |
 | [`jpai-delivery`](plugins/jpai-delivery) | Review feedback, decisions and ticketing | `snr-pr`, `concise-decisions`, `tickety-boo` |
 
 `jpai-essentials` ships the `tool_coach` PreToolUse hook.
@@ -37,7 +37,8 @@ claude plugin update jpai-essentials@jpeakai
 claude plugin update jpai-delivery@jpeakai
 ```
 
-An update applies on restart, so start a new session afterwards. `claude plugin list` shows the version each pack is on.
+An update applies on restart, so start a new session afterwards.
+`claude plugin list` shows the version each pack is on.
 
 ### Codex
 
@@ -58,7 +59,8 @@ codex plugin add jpai-delivery@jpeakai
 ```
 
 Codex has no update command, because it caches each version of a plugin in its own directory.
-Adding a pack again installs the version the refreshed snapshot now carries. `codex plugin list` shows the version each pack is on.
+Adding a pack again installs the version the refreshed snapshot now carries.
+`codex plugin list` shows the version each pack is on.
 
 ### npx skills
 
@@ -110,6 +112,7 @@ ln -s "$PWD/skills/librarian" ~/.claude/skills/librarian
 | [`snr-pr`](skills/snr-pr) | both | Filters code review results into Signal and Noise, improving review filters and preventing recurring problem categories |
 | [`cli`](skills/cli) | none | Playbook for building project-local developer CLIs and the assets they generate: static HTML viewers, workflow templates, stencil diagrams, sticky PR comments |
 | [`concise-decisions`](skills/concise-decisions) | both | Consolidates accumulated ambiguities into a single highest-leverage decision question, answering first from existing decision records |
+| [`design-profiles`](skills/design-profiles) | essentials | Curates one brand design profile (seed, IR, DTCG tokens) that paints every surface richdocs and mermaidjs-diagrams render, in light and dark |
 | [`gooddocs`](skills/gooddocs) | essentials | Documentation quality in three modes: audit docs against the reality of the code, write or improve them, or restructure one for readability |
 | [`librarian`](skills/librarian) | essentials | Repo documentation organisation: ensures the canonical document set exists and every doc lives where its content says it belongs |
 | [`mermaidjs-diagrams`](skills/mermaidjs-diagrams) | essentials | Renders and analyses Mermaid diagrams in markdown, enforcing visual complexity limits and WCAG colour-contrast requirements |
@@ -123,6 +126,12 @@ The packs under `plugins/` are **generated** from them.
 [`plugins/composition.yaml`](plugins/composition.yaml) declares what each pack composes, and `scripts/sync_plugins.py` copies it in.
 
 ```mermaid
+---
+config:
+  themeVariables:
+    textColor: '#010101'
+    edgeLabelBackground: '#ffffff'
+---
 flowchart LR
     SK["skills/<br/>canonical skills"]:::src
     HK["hooks/<br/>tool_coach"]:::src
@@ -150,18 +159,26 @@ flowchart LR
     classDef host  fill:#334155,stroke:#cbd5e1,color:#ffffff,stroke-width:2px
 ```
 
-*Edit blue, declare amber, never touch green.* Both packs install into both agents.
+*Edit blue, declare amber, never touch green.*
+Both packs install into both agents.
 
 <details>
 <summary>📋 Complete diagram — every skill, both marketplaces, and the gates</summary>
 
 ```mermaid
+---
+config:
+  themeVariables:
+    textColor: '#010101'
+    edgeLabelBackground: '#ffffff'
+---
 flowchart TB
     subgraph canon["Canonical source — edit here"]
         AD[adr]:::src
         AG[agnostic]:::src
         BP[snr-pr]:::src
         CD[concise-decisions]:::src
+        DP[design-profiles]:::src
         GD[gooddocs]:::src
         LB[librarian]:::src
         MD[mermaidjs-diagrams]:::src
@@ -190,7 +207,7 @@ flowchart TB
     CC["Claude Code"]:::host
     CX["Codex"]:::host
 
-    AD & AG & BP & CD & GD & LB & MD & RD & TB --> SY
+    AD & AG & BP & CD & DP & GD & LB & MD & RD & TB --> SY
     TC & HJ --> SY
     CF --> SY
     SY --> ES
@@ -254,7 +271,9 @@ Those execute on a machine that has never seen this repo, so a shared manifest w
 [`tests/test_publication_contract.py`](tests/test_publication_contract.py) asserts what a marketplace enforces when this repo is published, parametrised over every skill so a new one is covered without touching the file.
 
 Every rule in it came from a real failed or warned sync, and each names the incident.
-It exists because nothing else available locally catches these. `claude plugin validate --strict` passes on a tree that fails the sync. `make harness-ci` installs both packs happily while the tree is in breach, and the published marketplace schema declares no length limit at all.
+It exists because nothing else available locally catches these.
+`claude plugin validate --strict` passes on a tree that fails the sync.
+`make harness-ci` installs both packs happily while the tree is in breach, and the published marketplace schema declares no length limit at all.
 So the description caps it checks are observed rather than documented, and the sync's own wording is quoted beside each one.
 
 ```sh

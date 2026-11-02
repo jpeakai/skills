@@ -7,18 +7,23 @@ Checks existing decisions first, captures the user's reasoning, then applies it 
 
 ## Asking Better Questions Framework
 
-  1. Can I make an **informed decision** from what is presented?
-  2. Do I understand why **this** question is being asked **now**? 
-      - Why is it **the next most impactful question** worthy of my attention?
-  3. Do I understand why prior decisions do **not** already answer it?
-      - Have you checked existing decision records and knowledge bases?
-  4. Can I attach my reasoning to whichever option I pick? 
-      - Multichoice and Multi-select without space for freetext is a failure.
-  5. Can I give a _**To Be Decided (TBD) answer**_ - an **answer** that is **not a decision**?
-     - `explain` - Despite best efforts, I need part of the existing explanation expanded and revised before I can make an informed decision.
-     - `show` - The question is visual or interactive in nature and needs real prototypes before an **informed decision** can be made. Create artifacts for each option and revise the question.
-     - `spike` - We can not blindly trust performance metrics. We need to empirically collect data to make an **informed decision**. Run a timeboxed `spike` where the outcome is a `learning`. 
-     - `defer` or `handoff` - The question is **valid** but it is **not important right now**. Log the entire question and recommendations as a ticket for a backlog. Mark this seam as a scope boundary for now.
+1. Can I make an **informed decision** from what is presented?
+2. Do I understand why **this** question is being asked **now**?
+    - Why is it **the next most impactful question** worthy of my attention?
+3. Do I understand why prior decisions do **not** already answer it?
+    - Have you checked existing decision records and knowledge bases?
+4. Can I attach my reasoning to whichever option I pick?
+    - Multichoice and Multi-select without space for freetext is a failure.
+5. Can I give a _**To Be Decided (TBD) answer**_ - an **answer** that is **not a decision**?
+   - `explain` - Despite best efforts, I need part of the existing explanation expanded and revised before I can make an informed decision.
+   - `show` - The question is visual or interactive in nature and needs real prototypes before an **informed decision** can be made.
+     Create artifacts for each option and revise the question.
+   - `spike` - We can not blindly trust performance metrics.
+     We need to empirically collect data to make an **informed decision**.
+     Run a timeboxed `spike` where the outcome is a `learning`.
+   - `defer` or `handoff` - The question is **valid** but it is **not important right now**.
+     Log the entire question and recommendations as a ticket for a backlog.
+     Mark this seam as a scope boundary for now.
 
 ----
 
@@ -47,10 +52,15 @@ In an agent session, when there are decisions blocking work:
 
 ## Architecture
 
-The loop, at a glance: one question per turn, and every answer is cascaded
-before the next question is even ranked.
+The loop, at a glance: one question per turn, and every answer is cascaded before the next question is even ranked.
 
 ```mermaid
+---
+config:
+  themeVariables:
+    textColor: '#010101'
+    edgeLabelBackground: '#ffffff'
+---
 flowchart LR
     A["1. Inventory ambiguities"]:::stateStart
     B["2. Check decision records,<br/>then rank by impact"]:::stateActive
@@ -86,6 +96,12 @@ flowchart LR
 <summary>📋 Complete loop: decision records, composing the question, the TBD routes, and the cascade (25 nodes)</summary>
 
 ```mermaid
+---
+config:
+  themeVariables:
+    textColor: '#010101'
+    edgeLabelBackground: '#ffffff'
+---
 flowchart TB
     A["1. Inventory ambiguities,<br/>including silent assumptions"]:::stateStart
     B["2. Check decision records:<br/>ADRs, lenses, plan, memory, KBs"]:::stateActive
@@ -166,5 +182,4 @@ flowchart TB
 
 ## For maintainers
 
-Rationale and the extension checklist are in [AGENTS.md](AGENTS.md); the ADR
-log with lenses is one file per decision in [docs/adrs/](docs/adrs/README.md).
+Rationale and the extension checklist are in [AGENTS.md](AGENTS.md); the ADR log with lenses is one file per decision in [docs/adrs/](docs/adrs/README.md).

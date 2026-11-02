@@ -37,6 +37,12 @@ Both outcomes create a reusable lesson about how to spend attention.
 <summary>Complete feedback triage workflow</summary>
 
 ```mermaid
+---
+config:
+  themeVariables:
+    textColor: '#010101'
+    edgeLabelBackground: '#ffffff'
+---
 flowchart LR
     P["Select and verify PR"]:::input --> F["Read every review thread"]:::input
     F --> E["Compare claim with base, head and conventions"]:::process

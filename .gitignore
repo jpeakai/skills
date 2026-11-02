@@ -10,7 +10,7 @@ tmp/
 /.design-profiles/
 .gcloud/
 .gitconfig*
-
+.DS_Store
 # Ignore all the children repos this top level orchestrator monorepo
 # The point of this repo is a root node level perspective of the entire system.
 # There are child orchestrator repos too that are responsible for their own domain

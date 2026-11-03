@@ -216,3 +216,26 @@ test("offline snapshot CLI and format selection run under Node and Bun with no P
 		rmSync(store, { recursive: true });
 	}
 });
+
+test("old surface.css role names migrate to shadcn names, keeping stated edits", () => {
+	const node = {
+		light: "#123456",
+		dark: "#654321",
+		$extensions: { [p.EXT]: { source: "stated" } },
+	};
+	const migrated = s.normalise_chart_roles({
+		"surface.css.page": node,
+		"surface.css.on-accent": node,
+		"surface.css.link": node,
+	});
+	expect(Object.keys(migrated).sort()).toEqual([
+		"surface.css.background",
+		"surface.css.link",
+		"surface.css.primary-foreground",
+	]);
+	expect(migrated["surface.css.background"]).toEqual(node);
+	for (const [from, to] of Object.entries(p.CSS_ROLE_RENAMES))
+		expect(s.padded_role(`surface.css.${from}`)).toBe(`surface.css.${to}`);
+	// No new name may collide with a shadcn word used for a different job.
+	expect(Object.values(p.CSS_ROLE_RENAMES)).not.toContain("accent");
+});

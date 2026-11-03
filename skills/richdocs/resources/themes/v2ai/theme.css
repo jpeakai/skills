@@ -11,7 +11,7 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100;300;400;500;700&family=JetBrains+Mono:wght@400;700&display=swap');
 
-/* The family arrives via --rd-font-display (fonts.display = Outfit).
+/* The family arrives via --rd-font-heading (fonts.heading = Outfit).
    Display sits at 100% line-height — tight and assertive. Do not loosen it. */
 main h1, main h2, main h3, main h4 {
   line-height: 1.0;
@@ -39,7 +39,7 @@ main > p:first-of-type {
   font-weight: 300;
   font-size: 1.35rem;
   line-height: 1.35;
-  color: var(--rd-fg);
+  color: var(--rd-foreground);
 }
 main p, main li { font-size: 1.05rem; line-height: 1.55; }
 
@@ -51,8 +51,8 @@ main code, main pre, .rd-canvas, header.rd-header button, main blockquote {
 
 /* The yellow block IS the primary emphasis on light beds — no pill, no shadow. */
 main blockquote {
-  border-left: 4px solid var(--rd-accent);
-  background: var(--rd-surface);
+  border-left: 4px solid var(--rd-primary);
+  background: var(--rd-card);
   font-weight: 300;
   font-size: 1.15rem;
 }
@@ -94,7 +94,7 @@ main code, main pre code, main td:has(code) { font-family: 'JetBrains Mono', mon
   text-transform: uppercase;
   letter-spacing: .04em;
   font-weight: 700;
-  border: 2px solid var(--rd-on-accent);
+  border: 2px solid var(--rd-primary-foreground);
 }
 .sc-btn.ghost {
   text-transform: uppercase;
@@ -110,7 +110,7 @@ main code, main pre code, main td:has(code) { font-family: 'JetBrains Mono', mon
 /* Links: ink text with a YELLOW RULE under it. Yellow is a surface, never a
    glyph — this is how the brand gets its colour into text without breaking it. */
 main a, .sc-archwrap a {
-  color: var(--rd-fg);
+  color: var(--rd-foreground);
   text-decoration: none;
-  border-bottom: 2px solid var(--rd-accent);
+  border-bottom: 2px solid var(--rd-primary);
 }

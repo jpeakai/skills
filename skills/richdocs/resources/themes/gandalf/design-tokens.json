@@ -1,31 +1,31 @@
 {
   "defaultTheme": "light",
   "fonts": {
-    "display": "Inter, system-ui, sans-serif",
-    "body": "Inter, system-ui, -apple-system, Segoe UI, sans-serif",
+    "heading": "Inter, system-ui, sans-serif",
+    "sans": "Inter, system-ui, -apple-system, Segoe UI, sans-serif",
     "mono": "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
   },
   "themes": {
     "light": {
-      "bg": "#FFFFFF",
-      "fg": "#000000",
-      "muted": "#666666",
-      "accent": "#7A18EE",
-      "surface": "#F3F3EF",
+      "background": "#FFFFFF",
+      "foreground": "#000000",
+      "mutedForeground": "#666666",
+      "primary": "#7A18EE",
+      "card": "#F3F3EF",
       "border": "#AAAAA7",
-      "onAccent": "#FFFFFF",
+      "primaryForeground": "#FFFFFF",
       "link": "#6213BE",
       "radius": "8px",
       "pill": "999px"
     },
     "dark": {
-      "bg": "#15111D",
-      "fg": "#F3F3EF",
-      "muted": "#CFC8D8",
-      "accent": "#B190F6",
-      "surface": "#251C34",
+      "background": "#15111D",
+      "foreground": "#F3F3EF",
+      "mutedForeground": "#CFC8D8",
+      "primary": "#B190F6",
+      "card": "#251C34",
       "border": "#756A85",
-      "onAccent": "#000000",
+      "primaryForeground": "#000000",
       "link": "#D9DAFF",
       "radius": "8px",
       "pill": "999px"

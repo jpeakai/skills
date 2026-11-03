@@ -9,6 +9,25 @@ apply to the next related decision.
 This file holds ADR-014 onwards, newest first. The founding records, ADR-001 to
 ADR-013, are in [`adr-log-foundations.md`](adr-log-foundations.md).
 
+### ADR-033: brandpack and CSS roles use shadcn names
+
+- **Status:** accepted; supersedes ADR-012's token names (`accent`, `onAccent`) and
+  the brandpack's `bg`, `fg`, `muted`, `surface`, `fonts.display` and `fonts.body`.
+  ADR-012's split of the brand colour into three jobs stays. Applies root ADR-0004.
+- **Context:** two of our words meant something else in shadcn. Our `accent` was
+  shadcn's `primary`; shadcn's `accent` is a hover tint. Our `muted` was text; shadcn's
+  `muted` is a background. A shadcn reader wrote the wrong role and got no warning.
+- **Decision:** brandpack keys are `background`, `foreground`, `card`,
+  `mutedForeground`, `primary`, `primaryForeground`, `link` and `border`; fonts are
+  `heading`, `sans` and `mono`. CSS variables follow: `--rd-background`,
+  `--rd-foreground`, `--rd-card`, `--rd-muted-foreground`, `--rd-primary`,
+  `--rd-primary-foreground`, `--rd-font-heading`, `--rd-font-sans`. `link` stays as a
+  named extension: readable brand text, which shadcn lacks. `read_brandpack` refuses a
+  pack with the old keys and prints the rename table. A test fails any shared asset or
+  built-in theme that sets text in `--rd-primary`.
+- **Lens:** when a word already has a meaning in a system readers know, use it with
+  that meaning or not at all.
+
 ### ADR-032: a brand switch keeps the viewer's mode
 
 - **Status:** accepted; supersedes ADR-011's clause that each brand honours its own

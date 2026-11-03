@@ -46,22 +46,22 @@ function loadCss(name, url) {
 // ── tokens -> CSS vars ─────────────────────────────────────────────────────
 function applyTokens(b) {
   var t = b.tokens;
-  var display = t.fonts.display || t.fonts.body;
+  var display = t.fonts.heading || t.fonts.sans;
   var css = "";
   ["light", "dark"].forEach(function (m) {
     var c = t.themes[m];
     // accent has THREE jobs. Conflating them is what rendered V2 in cyan.
-    var fill = c.accent;
-    var on = c.onAccent || c.bg;      // text ON the fill
-    var link = c.link || c.accent;    // headings/links — must be text-safe
+    var fill = c.primary;
+    var on = c.primaryForeground || c.background;      // text ON the fill
+    var link = c.link || c.primary;    // headings/links — must be text-safe
     css += ':root[data-brand="' + b.name + '"][data-theme=' + m + ']{'
-      + "--rd-bg:" + c.bg + ";--rd-fg:" + c.fg + ";--rd-muted:" + c.muted + ";"
-      + "--rd-accent:" + fill + ";--rd-on-accent:" + on + ";--rd-link:" + link + ";"
-      + "--rd-surface:" + c.surface + ";--rd-border:" + c.border + ";"
+      + "--rd-background:" + c.background + ";--rd-foreground:" + c.foreground + ";--rd-muted-foreground:" + c.mutedForeground + ";"
+      + "--rd-primary:" + fill + ";--rd-primary-foreground:" + on + ";--rd-link:" + link + ";"
+      + "--rd-card:" + c.card + ";--rd-border:" + c.border + ";"
       + "--rd-radius:" + (c.radius !== undefined ? c.radius : "12px") + ";"
       + "--rd-pill:" + (c.pill !== undefined ? c.pill : "999px") + ";"
-      + "--rd-font-body:" + t.fonts.body + ";--rd-font-mono:" + t.fonts.mono + ";"
-      + "--rd-font-display:" + display + ";}";
+      + "--rd-font-sans:" + t.fonts.sans + ";--rd-font-mono:" + t.fonts.mono + ";"
+      + "--rd-font-heading:" + display + ";}";
   });
   var el = document.getElementById("sc-tokens-" + b.name);
   if (!el) {
@@ -98,7 +98,7 @@ function paintSwatches() {
   var b = brand(), m = mode(), t = b.tokens;
   var th = t.themes[m];
   document.getElementById("sc-theme-ramp").innerHTML =
-    ["bg", "surface", "border", "muted", "fg", "accent"].map(function (k) {
+    ["background", "card", "border", "mutedForeground", "foreground", "primary"].map(function (k) {
       return swatch(th[k], k, th[k]);
     }).join("");
 
@@ -152,14 +152,14 @@ function paintDiverging() {
   if (plot.divergingAlt) scales.push({ key: "divergingAlt", d: plot.divergingAlt, note: "alternate" });
 
   document.getElementById("sc-divs").innerHTML = scales.map(function (s) {
-    return "<h3>" + (s.d.label || s.key) + ' <span style="font-weight:400;color:var(--rd-muted);font-size:.8rem">· '
+    return "<h3>" + (s.d.label || s.key) + ' <span style="font-weight:400;color:var(--rd-muted-foreground);font-size:.8rem">· '
       + s.note + "</span></h3>"
       + '<div class="sc-ramp">' + divScale(s.d).map(function (c, i) {
           var lab = i === 0 ? "good" : i === 3 ? "zero" : i === 6 ? "bad" : "";
           return swatch(c, lab, c);
         }).join("") + "</div>";
   }).join("") + (plot.divergingAlt ? "" :
-    '<p style="font-size:.85rem;color:var(--rd-muted);margin-top:.6rem">'
+    '<p style="font-size:.85rem;color:var(--rd-muted-foreground);margin-top:.6rem">'
     + "This brand ships <strong>no green-semantics alternate</strong>: every green-adjacent "
     + "hue collapses against its warm pole under deuteranopia. Rather than invent one, "
     + "the scale is reinforced with a sign and an arrow.</p>");
@@ -173,12 +173,12 @@ function paintDiverging() {
           return '<div class="sc-sw" style="background:' + deuteranopia(c) + ';height:44px"></div>';
         }).join("") + "</div></div>";
   }).join("")
-  + '<div style="margin-bottom:1rem"><div style="font-size:.85rem;font-weight:600;color:var(--rd-muted)">'
+  + '<div style="margin-bottom:1rem"><div style="font-size:.85rem;font-weight:600;color:var(--rd-muted-foreground)">'
   + "green ↔ red · what this system refuses to ship</div>"
   + '<div class="sc-ramp">'
   + ["#1a7f37", "#4caf50", "#8bc34a", plot.diverging.zero, "#ef9a9a", "#e57373", "#c62828"]
       .map(function (c) { return '<div class="sc-sw" style="background:' + deuteranopia(c) + ';height:44px"></div>'; }).join("")
-  + '</div><div style="font-size:.8rem;color:var(--rd-muted);margin-top:.3rem">'
+  + '</div><div style="font-size:.8rem;color:var(--rd-muted-foreground);margin-top:.3rem">'
   + "Both poles become the same colour. The scale conveys nothing.</div></div>";
 }
 
@@ -207,13 +207,13 @@ function plotlyBase(t, m) {
   var p = t.canvas.plotly[m];
   return {
     paper_bgcolor: p.paper, plot_bgcolor: p.plot,
-    font: { family: t.fonts.body, color: p.font, size: 12 },
+    font: { family: t.fonts.sans, color: p.font, size: 12 },
     colorway: p.series,
     xaxis: { gridcolor: p.grid, zerolinecolor: p.grid },
     yaxis: { gridcolor: p.grid, zerolinecolor: p.grid },
     margin: { l: 48, r: 16, t: 28, b: 40 },
     legend: { font: { color: p.font, size: 11 } },
-    title: { font: { family: t.fonts.display || t.fonts.body, size: 14 } }
+    title: { font: { family: t.fonts.heading || t.fonts.sans, size: 14 } }
   };
 }
 
@@ -422,19 +422,19 @@ function drawMermaid() {
   window.mermaid.initialize({
     startOnLoad: false, theme: "base", securityLevel: "loose",
     themeVariables: {
-      fontFamily: t.fonts.body, fontSize: "13px",
-      background: th.bg, primaryColor: th.surface, primaryTextColor: th.fg,
-      primaryBorderColor: th.accent, lineColor: th.muted, textColor: th.fg,
-      mainBkg: th.surface, nodeBorder: th.accent,
-      edgeLabelBackground: th.bg, tertiaryColor: th.surface,
-      clusterBkg: th.surface, clusterBorder: th.border
+      fontFamily: t.fonts.sans, fontSize: "13px",
+      background: th.background, primaryColor: th.card, primaryTextColor: th.foreground,
+      primaryBorderColor: th.primary, lineColor: th.mutedForeground, textColor: th.foreground,
+      mainBkg: th.card, nodeBorder: th.primary,
+      edgeLabelBackground: th.background, tertiaryColor: th.card,
+      clusterBkg: th.card, clusterBorder: th.border
     }
   });
   // Subgraphs are categories: each wears its palette slot as border, a tint of it as
   // fill, and the theme's own text colour for the label (same recipe as Cytoscape.js).
   var detail = MERMAID_DETAIL + "\n" + Object.keys(MERMAID_CATEGORIES).map(function (id) {
     var c = rdCategoryColour(t, m, CAT_SLOTS, MERMAID_CATEGORIES[id]);
-    return c ? "  style " + id + " fill:" + rdMix(c, th.bg, 0.84) + ",stroke:" + c + ",stroke-width:2px,color:" + th.fg : "";
+    return c ? "  style " + id + " fill:" + rdMix(c, th.background, 0.84) + ",stroke:" + c + ",stroke-width:2px,color:" + th.foreground : "";
   }).join("\n");
   // Rendered mermaid SVG is not re-themable in place — always re-render both.
   var jobs = [["sc-mermaid", MERMAID_OVERVIEW, "ov"], ["sc-mermaid-detail", detail, "de"]];
@@ -478,7 +478,7 @@ var embState = { colour: "topic", sel: [] };
 function embColour() {
   var t = brand().tokens, m = mode(), th = t.themes[m];
   var topicSlots = rdCategorySlots(SC.embeddings.local.topics);
-  var noise = hexRgb(th.muted);
+  var noise = hexRgb(th.mutedForeground);
   return function (d) {
     var c = embState.colour === "cluster"
       ? (d.cluster >= 0 ? rdCategorical(t, m)[d.cluster] : null)
@@ -511,7 +511,7 @@ function renderEmb() {
   if (typeof deck === "undefined") return;
   var t = brand().tokens, m = mode(), th = t.themes[m];
   var colourFn = embColour();
-  var halo = hexRgb(th.link || th.accent).concat([220]);
+  var halo = hexRgb(th.link || th.primary).concat([220]);
   [["sc-emb-local", "local", embLocal], ["sc-emb-global", "global", embGlobal]].forEach(function (j) {
     var blk = j[2];
     blk.el = document.getElementById(j[0]);
@@ -590,7 +590,7 @@ function renderOklch() {
         type: "LineLayer", id: "oklch-seq-path", data: steps, pickable: false,
         getSourcePosition: function (d) { return d.source; },
         getTargetPosition: function (d) { return d.target; },
-        getColor: hexRgb(t.themes[m].muted).concat([180]), getWidth: 2
+        getColor: hexRgb(t.themes[m].mutedForeground).concat([180]), getWidth: 2
       },
       { type: "PointCloudLayer", id: "oklch-seq", pointSize: 10, data: seq },
       { type: "PointCloudLayer", id: "oklch-series", pointSize: 16, data: series }
@@ -606,7 +606,7 @@ function drawGeo() {
   ]).then(function () {
     var t = brand().tokens, m = mode();
     var plot = t.canvas.plotly[m], th = t.themes[m];
-    var acc = hexRgb(th.link || th.accent);
+    var acc = hexRgb(th.link || th.primary);
     var s1 = hexRgb(plot.series[0]), s2 = hexRgb(plot.series[3] || plot.series[1]);
     // Melbourne is the home region (the hub); traffic fans to the other AU capitals.
     var regions = [
@@ -833,8 +833,8 @@ function render() {
   document.getElementById("sc-title").textContent =
     SC_SINGLE ? b.name + " — theme showcase" : "Theme showcase";
   document.getElementById("sc-footer").textContent =
-    b.name + " · " + (t.fonts.display || t.fonts.body).split(",")[0].replace(/['"]/g, "")
-    + " + " + t.fonts.body.split(",")[0].replace(/['"]/g, "")
+    b.name + " · " + (t.fonts.heading || t.fonts.sans).split(",")[0].replace(/['"]/g, "")
+    + " + " + t.fonts.sans.split(",")[0].replace(/['"]/g, "")
     + " · build " + SC.buildId;
 
   var disp = labelFor(t, "display");

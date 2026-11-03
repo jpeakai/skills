@@ -3,11 +3,11 @@
 
 header.rd-header,
 #rd-toc {
-  font-family: var(--rd-font-display);
+  font-family: var(--rd-font-heading);
 }
 
 article h1 {
-  font-family: var(--rd-font-display);
+  font-family: var(--rd-font-heading);
   font-weight: 700;
   letter-spacing: 0.015em;
   border-left: 6px solid #00e862;
@@ -17,10 +17,10 @@ article h1 {
 article h2,
 article h3,
 article h4 {
-  font-family: var(--rd-font-body);
+  font-family: var(--rd-font-sans);
   font-weight: 700;
 }
 
 article blockquote {
-  border-left: 4px solid var(--rd-accent);
+  border-left: 4px solid var(--rd-primary);
 }

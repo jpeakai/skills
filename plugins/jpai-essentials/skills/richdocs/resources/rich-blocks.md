@@ -131,9 +131,10 @@ Re-brand = edit the copy, refresh. Schema (all keys required):
 
 ```json
 {
-  "fonts": { "body": "…", "mono": "…" },
+  "fonts": { "heading": "…", "sans": "…", "mono": "…" },
   "themes": {
-    "light": { "bg": "…", "fg": "…", "muted": "…", "accent": "…", "surface": "…", "border": "…" },
+    "light": { "background": "…", "foreground": "…", "mutedForeground": "…", "primary": "…",
+               "primaryForeground": "…", "link": "…", "card": "…", "border": "…" },
     "dark":  { "…same keys…" }
   },
   "canvas": {
@@ -174,7 +175,7 @@ Switching brand or mode changes the colour assigned to each slot, while category
 | Cytoscape compound without category | `compoundBg` at 0.55 background opacity | Dashed 1px `compoundBorder`, `nodeLabel` |
 | Cytoscape compound with category | Opaque category tint | Solid 2px category border, `nodeLabel` |
 | Detailed Mermaid subgraph | Same opaque category tint | Solid 2px category border, theme foreground label |
-| Mermaid ordinary node | Theme surface | Theme accent border, theme foreground label |
+| Mermaid ordinary node | Theme card | Theme primary border, theme foreground label |
 
 The category tint is calculated per encoded sRGB channel: `round(0.16 × category + 0.84 × pageBackground)`.
 This is an opaque premixed colour, not alpha transparency or an OKLCH interpolation.
@@ -184,7 +185,7 @@ The fill-only opacity of an untagged compound leaves its border and label opaque
 Tinting does not itself guarantee accessible text contrast; validate the resolved foreground and fill.
 
 There are separate background layers.
-The page uses `themes.<mode>.bg` through `--rd-bg`; diagram panels use `themes.<mode>.surface` through `--rd-surface`.
+The page uses `themes.<mode>.background` through `--rd-background`; diagram panels use `themes.<mode>.card` through `--rd-card`.
 The Mermaid SVG and Cytoscape canvas are transparent, revealing that panel.
 Category tints nevertheless mix against the **page background**, so their flat fill can differ from the panel underneath.
 Mermaid's edge-label background also uses the page background.

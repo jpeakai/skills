@@ -223,8 +223,8 @@ function rdDeckPalette(tokens, theme) {
     // The frame is a GUIDE, so it takes the muted-text token — not the plotly
     // `grid` colour, which is tuned to sit behind a 2D chart and vanishes
     // against a 3D scene's own background.
-    ink: (dg && dg.ink) || th.muted || pl.grid || "#858585",
-    text: (dg && dg.text) || pl.font || th.fg || "#dddddd",
+    ink: (dg && dg.ink) || th.mutedForeground || pl.grid || "#858585",
+    text: (dg && dg.text) || pl.font || th.foreground || "#dddddd",
     // Clipping is a warning, and the brand already owns a warning colour.
     warn: (dg && dg.warn) || status.warning || "#ebb25f",
     series: pl.series || []
@@ -357,7 +357,7 @@ function rdTooltip(spec, pal, tokens) {
       return {
         text: (o.topic ? o.topic.toUpperCase() + "\n" : "") + o.text,
         style: {
-          background: pal.background, color: pal.text, fontFamily: tokens.fonts.body,
+          background: pal.background, color: pal.text, fontFamily: tokens.fonts.sans,
           fontSize: "12px", border: "1px solid " + pal.ink, borderRadius: "6px",
           padding: "8px 10px", maxWidth: "320px", whiteSpace: "normal", lineHeight: "1.4"
         }

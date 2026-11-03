@@ -28,17 +28,17 @@
   position: sticky; top: 0; z-index: 1;
   display: flex; align-items: center; gap: 0.5rem;
   min-height: 2.75rem; margin-bottom: 0.4rem;
-  background: var(--rd-bg);
+  background: var(--rd-background);
   border-bottom: 1px solid var(--rd-border);
 }
 .rd-toc-title {
-  flex: 1; font-weight: 600; color: var(--rd-fg);
-  font-family: var(--rd-font-display, var(--rd-font-body));
+  flex: 1; font-weight: 600; color: var(--rd-foreground);
+  font-family: var(--rd-font-heading, var(--rd-font-sans));
 }
 #rd-toc-collapse {
   display: inline-grid; place-items: center;
   flex: 0 0 1.75rem; width: 1.75rem; height: 1.75rem; padding: 0;
-  color: var(--rd-fg); background: var(--rd-surface);
+  color: var(--rd-foreground); background: var(--rd-card);
   border: 1px solid var(--rd-border); border-radius: var(--rd-pill, 999px);
   font: inherit; font-size: 1.1rem; line-height: 1; cursor: pointer;
 }
@@ -63,7 +63,7 @@
 .rd-toc-branch {
   flex: 0 0 1.35rem; width: 1.35rem; height: 1.35rem; margin-top: 0.2rem; padding: 0;
   display: inline-grid; place-items: center;
-  color: var(--rd-muted); background: transparent; border: 0;
+  color: var(--rd-muted-foreground); background: transparent; border: 0;
   border-radius: calc(var(--rd-radius, 8px) / 2); cursor: pointer;
 }
 /* A drawn chevron, so it never depends on the brand's webfont having the glyph. */
@@ -73,21 +73,21 @@
   transform: translateY(-20%) rotate(45deg); transition: transform 160ms ease;
 }
 .rd-toc-branch[aria-expanded=false]::before { transform: rotate(-45deg); }
-.rd-toc-branch:hover { color: var(--rd-fg); background: var(--rd-surface); }
+.rd-toc-branch:hover { color: var(--rd-foreground); background: var(--rd-card); }
 #rd-toc a {
   flex: 1; min-width: 0; display: block; padding: 0.25rem 0.5rem; margin: 1px 0;
-  color: var(--rd-muted); text-decoration: none;
+  color: var(--rd-muted-foreground); text-decoration: none;
   border-left: 2px solid transparent; border-radius: 0 4px 4px 0;
 }
-#rd-toc a:hover { color: var(--rd-fg); background: var(--rd-surface); }
-#rd-toc :is(a, button):focus-visible { outline: 2px solid var(--rd-link, var(--rd-accent)); outline-offset: -2px; }
+#rd-toc a:hover { color: var(--rd-foreground); background: var(--rd-card); }
+#rd-toc :is(a, button):focus-visible { outline: 2px solid var(--rd-link, var(--rd-primary)); outline-offset: -2px; }
 /* The current entry: text-safe accent for the words, the fill only as a rule. */
 #rd-toc a[aria-current] {
-  color: var(--rd-link, var(--rd-accent)); font-weight: 600;
-  border-left-color: var(--rd-accent); background: var(--rd-surface);
+  color: var(--rd-link, var(--rd-primary)); font-weight: 600;
+  border-left-color: var(--rd-primary); background: var(--rd-card);
 }
 /* A folded branch holding the current entry says so on its visible parent. */
-.rd-toc-closed > .rd-toc-row > a.rd-toc-trail { color: var(--rd-fg); border-left-color: var(--rd-border); }
+.rd-toc-closed > .rd-toc-row > a.rd-toc-trail { color: var(--rd-foreground); border-left-color: var(--rd-border); }
 
 /* Narrow: the sidebar becomes a drawer over the article, which keeps its width.
    Closed is display:none there, so a closed drawer is out of the tab order. */
@@ -97,7 +97,7 @@
     display: block;
     position: fixed; left: 0; bottom: 0; z-index: 20;
     width: min(18rem, 85vw); height: auto;
-    background: var(--rd-bg);
+    background: var(--rd-background);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
   }
 }
@@ -114,7 +114,7 @@
   flex: 0 0 auto; position: relative; top: 0.15rem;
   display: inline-grid; place-items: center;
   width: 1.5rem; height: 1.5rem; padding: 0;
-  color: var(--rd-muted); background: transparent;
+  color: var(--rd-muted-foreground); background: transparent;
   border: 1px solid var(--rd-border); border-radius: var(--rd-radius, 8px);
   cursor: pointer;
 }
@@ -125,8 +125,8 @@
   transform: translateY(-20%) rotate(45deg); transition: transform 160ms ease;
 }
 .rd-fold[aria-expanded=false]::before { transform: rotate(-45deg); }
-.rd-fold:hover, .rd-fold[aria-expanded=false] { color: var(--rd-fg); background: var(--rd-surface); }
-.rd-fold:focus-visible { outline: 2px solid var(--rd-link, var(--rd-accent)); outline-offset: 2px; }
+.rd-fold:hover, .rd-fold[aria-expanded=false] { color: var(--rd-foreground); background: var(--rd-card); }
+.rd-fold:focus-visible { outline: 2px solid var(--rd-link, var(--rd-primary)); outline-offset: 2px; }
 /* Folded, but NOT display:none. The body keeps its width in the layout, so a
    chart or diagram re-rendered while folded (a theme flip) still measures a real
    box; mermaid in particular lays out garbage in a display:none parent.
@@ -138,11 +138,11 @@
 /* ── Print ───────────────────────────────────────────────────────────── */
 .rd-review {
   flex: 0 0 auto; padding: 0.25rem 0.45rem; font: inherit; font-size: 0.75rem;
-  color: var(--rd-fg); background: var(--rd-surface);
+  color: var(--rd-foreground); background: var(--rd-card);
   border: 1px solid var(--rd-border); border-radius: var(--rd-radius, 8px); cursor: pointer;
 }
-.rd-review[aria-pressed=true] { border-color: var(--rd-link, var(--rd-accent)); }
-.rd-review:focus-visible { outline: 2px solid var(--rd-link, var(--rd-accent)); outline-offset: 2px; }
+.rd-review[aria-pressed=true] { border-color: var(--rd-link, var(--rd-primary)); }
+.rd-review:focus-visible { outline: 2px solid var(--rd-link, var(--rd-primary)); outline-offset: 2px; }
 .rd-review-nav { margin-left: auto; }
 #rd-toc a[data-rd-reviewed=true]::after { content: " ✓"; }
 #rd-toc a[data-rd-reviewed=mixed]::after { content: " ◐"; }

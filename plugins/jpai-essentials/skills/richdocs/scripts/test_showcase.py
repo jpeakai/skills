@@ -132,19 +132,24 @@ def test_scoped_profile_dark_block_applies_in_dark_mode(tmp_path: Path) -> None:
     )
 
 
-def test_no_asset_uses_the_accent_fill_as_text_colour() -> None:
-    """`--rd-accent` is a FILL with no text-contrast duty (ADR-012).
+def test_no_asset_uses_the_primary_fill_as_text_colour() -> None:
+    """`--rd-primary` is a FILL with no text-contrast duty (ADR-012).
 
     themecheck never scores it as text, so text set in it is unchecked. A brand
     whose dark fill is deep (a shadcn `primary`) renders that text unreadable.
     Text takes `--rd-link`; the fill is only for backgrounds, borders and rules.
+    Covers the shared assets and every built-in theme's own CSS.
     """
-    text_in_fill = re.compile(r"(?<![\w-])color\s*:\s*var\(--rd-accent\b")
-    assets = Path(__file__).resolve().parent.parent / "assets"
+    text_in_fill = re.compile(r"(?<![\w-])color\s*:\s*var\(--rd-primary(?![\w-])")
+    skill = Path(__file__).resolve().parent.parent
+    sources = [
+        p
+        for p in sorted(skill.glob("assets/*.*"))
+        if p.suffix in {".css", ".html", ".js"}
+    ] + sorted(skill.glob("resources/themes/*/theme.css"))
     offenders = [
-        f"{path.name}:{n}"
-        for path in sorted(assets.glob("*.*"))
-        if path.suffix in {".css", ".html", ".js"}
+        f"{path.relative_to(skill)}:{n}"
+        for path in sources
         for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1)
         if text_in_fill.search(line)
     ]

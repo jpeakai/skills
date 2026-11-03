@@ -2,7 +2,7 @@
 
 Generate shared theme CSS and DTCG design tokens from one shadcn preset string.
 The profile includes light and dark modes, font loading, rendering surfaces, and ten five-shade chart palettes.
-Hue and accent seeds remain available for offline authoring.
+Hue and primary-colour seeds remain available for offline authoring.
 All scripts run under Node.js or Bun; saved profiles rebuild without Python or installed packages.
 Example seeds explicitly set `radius`, including `0` for square corners; `radius.dark` can override dark mode.
 Every CSS export includes the shadcn theme-variable contract, plus fonts, expanded palettes, and profile chrome variables.
@@ -15,7 +15,7 @@ A preset resolves its theme and fonts before curation produces reusable profile 
 flowchart LR
     P["Preset string"]:::input --> R["Resolve theme and fonts"]:::process
     R --> C["Curate profile and chart palettes"]:::process
-    H["Hue or accent seed"]:::input --> C
+    H["Hue or primary seed"]:::input --> C
     C --> CSS["theme.css"]:::output
     C --> T["design-tokens.json"]:::output
     classDef input fill:#1e40af,stroke:#93c5fd,color:#fff,stroke-width:2px
@@ -39,7 +39,7 @@ flowchart TD
     P["Preset string"]:::input --> D["shadcn/preset decoder"]:::process
     D --> R["Theme and font registry"]:::process
     R --> S["Stored seed snapshot"]:::artifact
-    H["Hue or accent seed"]:::input --> C["Curation"]:::process
+    H["Hue or primary seed"]:::input --> C["Curation"]:::process
     S --> C
     E["Stated IR edits"]:::input --> C
     C -->|Preset profiles| W["10 hue roots and 50 shades"]:::process
@@ -74,7 +74,7 @@ Omitting `--name` uses `preset-CODE`.
 The first import requires registry access.
 Generated CSS loads fonts from CDN stylesheets.
 The [preset reference](resources/shadcn-presets.md) explains output tokens, chart formulas, and rebuilding.
-The [runtime instructions](SKILL.md) also cover hue, accent, and shipped example seeds.
+The [runtime instructions](SKILL.md) also cover hue, primary-colour and shipped example seeds.
 
 ## Maintain the skill
 

@@ -28,6 +28,8 @@ flowchart LR
     PT["Prebuilt Theme"]:::record
     CAT["Categorical Scheme"]:::info
     SEQ["Sequential Scheme"]:::info
+    RN["Role Name"]:::rule
+    RX["Role Extension"]:::rule
     M -- states --> R
     R -- guides --> A
     A -- uses --> D
@@ -43,6 +45,8 @@ flowchart LR
     DP -- provides --> CAT
     DP -- provides --> SEQ
     DP -- compiles --> PT
+    SP -- defines --> RN
+    DP -- adds --> RX
     classDef people fill:#1e40af,stroke:#93c5fd,color:#fff,stroke-width:2px
     classDef info fill:#92400e,stroke:#fcd34d,color:#fff,stroke-width:2px
     classDef rule fill:#6d28d9,stroke:#c4b5fd,color:#fff,stroke-width:2px
@@ -105,6 +109,22 @@ Its CSS and matching tokens are regenerated together through the design-profiles
 ## Requirement
 
 A behavior or constraint explicitly required by the Maintainer.
+
+## Role Extension
+
+A colour role shadcn has no variable for, named in shadcn's grammar and documented as an extension.
+The extensions are:
+
+- `link`: brand-coloured text that is readable on the page.
+- `faint-foreground`: text quieter than `muted-foreground`.
+- `primary-subtle`: a faint brand tint behind content.
+- `border-strong`: a border that must stay visible.
+- `selected`: the fill of a selected item.
+
+## Role Name
+
+A shadcn theme-variable name used for a colour role on every consumer-facing surface, such as `primary` or `muted-foreground`.
+A plain name is a background; its `-foreground` partner is the text that sits on it.
 
 ## Sequential Scheme
 

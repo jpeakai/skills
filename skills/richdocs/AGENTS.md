@@ -107,7 +107,7 @@ invariant (`.claude/rules/claude_skills/index.md`); it is one log, just split ou
 - **Symptom: a theme passes every check but looks nothing like the brand** — the
   brandpack substituted a colour the brand does not own, because one token was
   asked to be both a fill and a text colour. Run `themecheck.py`; split
-  `accent` / `onAccent` / `link` (ADR-012).
+  `primary` / `primaryForeground` / `link` (ADR-012, names from ADR-033).
 - **Symptom: a brandpack names a webfont but the page renders in system fonts** —
   the pack *chooses* faces, it cannot *load* them. Use `--theme`, whose `theme.css`
   does the `@import`. (A doc can also `@import` in its own `<style>` block.)

@@ -134,10 +134,10 @@ def test_the_viewer_draws_mermaid_on_the_surface_token() -> None:
     css = (md2html.ASSETS_DIR / "viewer.css").read_text(encoding="utf-8")
     canvas = re.search(r"\.rd-canvas \{([^}]*)\}", css)
     assert canvas, "viewer.css has no .rd-canvas rule"
-    assert "background: var(--rd-surface)" in canvas.group(1)
+    assert "background: var(--rd-card)" in canvas.group(1)
     js = md2html.VIEWER_JS.read_text(encoding="utf-8")
     assert '"rd-canvas rd-" + lang' in js
-    assert '"--rd-surface:" + t.surface' in js
+    assert '"--rd-card:" + t.card' in js
 
 
 @pytest.mark.parametrize("name", md2html.available_themes())
@@ -148,14 +148,16 @@ def test_lint_config_name_each_brand_surface(name: str) -> None:
     plugin, options = config["plugins"][0]
     assert Path(plugin).is_file()
     assert options["options"]["canvas"] == {
-        mode: tokens["themes"][mode]["surface"] for mode in ("light", "dark")
+        mode: tokens["themes"][mode]["card"] for mode in ("light", "dark")
     }
 
 
-def test_lint_config_crash_on_a_brandpack_without_a_surface(tmp_path: Path) -> None:
+def test_lint_config_crash_on_a_brandpack_without_a_card(tmp_path: Path) -> None:
     tokens = tmp_path / "design-tokens.json"
-    tokens.write_text(json.dumps({"themes": {"light": {"bg": "#ffffff"}, "dark": {}}}))
-    with pytest.raises(KeyError, match="surface"):
+    tokens.write_text(
+        json.dumps({"themes": {"light": {"background": "#ffffff"}, "dark": {}}})
+    )
+    with pytest.raises(KeyError, match="card"):
         md2html.lint_canvas_config(tokens)
 
 
@@ -330,7 +332,7 @@ def test_installed_brandpacks_declare_a_display_face() -> None:
         tokens = json.loads(
             md2html.load_theme(name).tokens_path.read_text(encoding="utf-8")
         )
-        assert "display" in tokens["fonts"], f"{name} has no fonts.display"
+        assert "heading" in tokens["fonts"], f"{name} has no fonts.heading"
 
 
 def test_themes_are_real_files_not_symlinks() -> None:
@@ -360,8 +362,8 @@ def test_two_themed_docs_in_one_dir_keep_their_own_brand(tmp_path: Path) -> None
 
     alpha = json.loads((out / "alpha.tokens.json").read_text(encoding="utf-8"))
     beta = json.loads((out / "beta.tokens.json").read_text(encoding="utf-8"))
-    assert "Fraunces" in alpha["fonts"]["display"]
-    assert "Outfit" in beta["fonts"]["display"]
+    assert "Fraunces" in alpha["fonts"]["heading"]
+    assert "Outfit" in beta["fonts"]["heading"]
 
     # and each page must fetch ITS OWN pack, not a shared filename
     assert '"tokensSource": "alpha.tokens.json"' in (out / "alpha.html").read_text(
@@ -451,7 +453,7 @@ def _write_override_theme(root: Path, name: str, marker: str) -> None:
     d.mkdir(parents=True)
     (d / "design-tokens.json").write_text(
         json.dumps(
-            {"fonts": {"display": marker}, "themes": {"light": {}}, "canvas": {}}
+            {"fonts": {"heading": marker}, "themes": {"light": {}}, "canvas": {}}
         ),
         encoding="utf-8",
     )
@@ -675,14 +677,17 @@ def test_brandpack_from_profile_is_a_rename_of_the_profile_tokens() -> None:
     dark = profile_resolver.read_tokens(doc, "dark")
     themes = pack["themes"]
     assert isinstance(themes, dict)
-    assert themes["dark"]["bg"] == dark["color.surface"]
-    assert themes["dark"]["accent"] == dark["color.background.brand.bold"]
+    assert themes["dark"]["background"] == dark["color.surface"]
+    assert themes["dark"]["primary"] == dark["color.background.brand.bold"]
+    assert themes["dark"]["link"] == dark["color.link"]
     canvas = pack["canvas"]
     assert isinstance(canvas, dict)
     plotly = canvas["plotly"]["dark"]
     assert plotly["series"] == [
-        dark[f"color.chart.categorical.{i}"] for i in range(1, 13)
+        dark[f"color.chart.categorical.{i:02d}"]
+        for i in range(1, len(plotly["series"]) + 1)
     ]
+    assert len(plotly["series"]) >= 10
     assert (
         canvas["cytoscape"]["dark"]["nodeFill"]
         == dark["color.background.brand.subtlest"]
@@ -828,3 +833,32 @@ if __name__ == "__main__":  # pragma: no cover
     script_dir = str(Path(__file__).parent.resolve())
     base_args = [__file__, "-v", "--rootdir", script_dir, "-o", "addopts="]
     sys.exit(pytest.main(base_args + sys.argv[1:]))
+
+
+def test_read_brandpack_refuses_pre_adr_033_key_names(tmp_path: Path) -> None:
+    """Old names fail loudly: `accent` and `muted` meant something else in shadcn."""
+    pack = tmp_path / "design-tokens.json"
+    pack.write_text(
+        json.dumps(
+            {
+                "fonts": {"display": "x", "mono": "y"},
+                "themes": {"light": {"accent": "#123456", "muted": "#777777"}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(SystemExit) as err:
+        md2html.read_brandpack(pack)
+    message = str(err.value)
+    assert "themes.<mode>.accent -> primary" in message
+    assert "themes.<mode>.muted -> mutedForeground" in message
+    assert "fonts.display -> heading" in message
+
+
+def test_every_built_in_brandpack_uses_shadcn_key_names() -> None:
+    for name in md2html.available_themes():
+        tokens = md2html.read_brandpack(md2html.load_theme(name).tokens_path)
+        for mode in ("light", "dark"):
+            assert {"background", "foreground", "primary", "card"} <= set(
+                tokens["themes"][mode]
+            ), name

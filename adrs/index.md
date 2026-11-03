@@ -7,8 +7,12 @@
 | [ADR-0001](0001-canonical-agent-instructions.md) | Keep agent instructions canonical in AGENTS.md | accepted |
 | [ADR-0002](0002-human-skill-overviews.md) | Give every canonical skill a dual-density human overview | accepted |
 | [ADR-0003](0003-structured-root-decisions.md) | Declare standard documentation and render root decisions from YAML | accepted |
+| [ADR-0004](0004-shadcn-role-names.md) | Name consumer-facing colour roles with shadcn's vocabulary | accepted |
 # By group
 
+## design-system
+
+* [ADR-0004](0004-shadcn-role-names.md) - shadcn names for shared colour roles, named extensions for the rest
 ## repository-conventions
 
 * [ADR-0001](0001-canonical-agent-instructions.md) - One instruction source shared by agent harnesses

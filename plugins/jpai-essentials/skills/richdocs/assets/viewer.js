@@ -39,31 +39,31 @@ function currentTheme() {
 // token means a brand must either ship an illegible page or quietly substitute a
 // colour it does not own. Both happened. Hence three tokens, with fallbacks so an
 // older pack keeps working.
-function accentRoles(t) {
+function primaryRoles(t) {
   return {
-    fill: t.accent,                    // surfaces, CTA fills, active states
-    on: t.onAccent || t.bg,            // text that sits ON the fill
-    link: t.link || t.accent           // headings, links — must be text-safe
+    fill: t.primary,                    // surfaces, CTA fills, active states
+    on: t.primaryForeground || t.background,            // text that sits ON the fill
+    link: t.link || t.primary           // headings, links — must be text-safe
   };
 }
 
 function applyTokenCss(tokens) {
   var css = "";
-  // A typeface is a brand VALUE, so it belongs in the pack. `fonts.display` is
+  // A typeface is a brand VALUE, so it belongs in the pack. `fonts.heading` is
   // optional and falls back to body — a brand with one face needn't declare two.
   // (theme.css still has to @import the webfile; *choosing* a face and *loading*
   // one are different jobs.)
-  var display = tokens.fonts.display || tokens.fonts.body;
+  var display = tokens.fonts.heading || tokens.fonts.sans;
   ["light", "dark"].forEach(function (theme) {
     var t = tokens.themes[theme];
-    var a = accentRoles(t);
+    var a = primaryRoles(t);
     css += ":root[data-theme=" + theme + "]{"
-      + "--rd-bg:" + t.bg + ";--rd-fg:" + t.fg + ";--rd-muted:" + t.muted + ";"
-      + "--rd-accent:" + a.fill + ";--rd-on-accent:" + a.on + ";--rd-link:" + a.link + ";"
-      + "--rd-surface:" + t.surface + ";--rd-border:" + t.border + ";"
+      + "--rd-background:" + t.background + ";--rd-foreground:" + t.foreground + ";--rd-muted-foreground:" + t.mutedForeground + ";"
+      + "--rd-primary:" + a.fill + ";--rd-primary-foreground:" + a.on + ";--rd-link:" + a.link + ";"
+      + "--rd-card:" + t.card + ";--rd-border:" + t.border + ";"
       + "--rd-radius:" + (t.radius !== undefined ? t.radius : "8px") + ";"
-      + "--rd-font-body:" + tokens.fonts.body + ";--rd-font-mono:" + tokens.fonts.mono + ";"
-      + "--rd-font-display:" + display + ";}";
+      + "--rd-font-sans:" + tokens.fonts.sans + ";--rd-font-mono:" + tokens.fonts.mono + ";"
+      + "--rd-font-heading:" + display + ";}";
   });
   var style = document.getElementById("rd-token-css");
   if (!style) {
@@ -109,7 +109,7 @@ function showError(el, err) {
 //
 // `fontFamily`: mermaid otherwise measures labels in its own default (`trebuchet
 // ms`) while the page paints them in the brand face (viewer.css sets `font-family:
-// var(--rd-font-body)` on body). Hand mermaid the same token plotly already gets
+// var(--rd-font-sans)` on body). Hand mermaid the same token plotly already gets
 // (see renderPlotly) so it measures the face it renders, and so diagrams stop
 // rendering off-brand. This narrows the label-box shortfall but does NOT close it;
 // viewer.css `foreignObject { overflow: visible }` is what actually stops the clip.
@@ -123,8 +123,8 @@ function renderAllMermaid() {
   window.mermaid.initialize({
     startOnLoad: false,
     theme: profileVariables ? "base" : (currentTheme() === "dark" ? "dark" : "default"),
-    themeVariables: profileVariables ? Object.assign({}, profileVariables, { darkMode: currentTheme() === "dark", fontFamily: TOKENS.fonts.body }) : {},
-    fontFamily: TOKENS.fonts.body,
+    themeVariables: profileVariables ? Object.assign({}, profileVariables, { darkMode: currentTheme() === "dark", fontFamily: TOKENS.fonts.sans }) : {},
+    fontFamily: TOKENS.fonts.sans,
     securityLevel: "loose"
   });
   var fontsReady = (document.fonts && document.fonts.ready)
@@ -163,7 +163,7 @@ function plotlyLayout(payload) {
   var layout = Object.assign({}, payload.layout || {});
   layout.paper_bgcolor = p.paper;
   layout.plot_bgcolor = p.plot;
-  layout.font = Object.assign({}, layout.font || {}, { color: p.font, family: TOKENS.fonts.body });
+  layout.font = Object.assign({}, layout.font || {}, { color: p.font, family: TOKENS.fonts.sans });
   layout.colorway = p.series;
   layout.xaxis = Object.assign({}, layout.xaxis || {}, { gridcolor: p.grid });
   layout.yaxis = Object.assign({}, layout.yaxis || {}, { gridcolor: p.grid });

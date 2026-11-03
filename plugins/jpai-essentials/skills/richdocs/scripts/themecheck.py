@@ -14,10 +14,11 @@ that mattered.
 
 Two lessons are encoded here:
 
-1. **`accent` has three jobs** and they must be separate tokens:
-   - `accent`   — the FILL (surfaces, CTAs, rules). No text-contrast duty.
-   - `onAccent` — the text that sits ON that fill.
-   - `link`     — the TEXT-SAFE accent (headings, links). Falls back to `accent`.
+1. **The brand colour has three jobs** and they must be separate tokens
+   (named in shadcn's vocabulary since ADR-033):
+   - `primary`           — the FILL (buttons, active states, rules). No text-contrast duty.
+   - `primaryForeground` — the text that sits ON that fill.
+   - `link`              — the TEXT-SAFE brand colour (headings, links). Falls back to `primary`.
 2. **Check the pairings the CSS actually renders**, not a plausible-looking list.
    Each row below names the real rule it guards.
 """
@@ -25,12 +26,11 @@ Two lessons are encoded here:
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from itertools import pairwise
 from typing import Any
 
-from md2html import THEMES_DIR, available_themes
+from md2html import THEMES_DIR, available_themes, read_brandpack
 
 AA_TEXT = 4.5  # WCAG AA, normal-size text
 AA_UI = 3.0  # WCAG 1.4.11, non-text (chart marks against their plot surface)
@@ -53,22 +53,34 @@ def contrast(a: str, b: str) -> float:
 
 
 def roles(theme: dict[str, str]) -> dict[str, str]:
-    """Resolve the accent's three jobs, applying the same fallbacks the viewer does."""
+    """Resolve the brand colour's three jobs, applying the same fallbacks the viewer does."""
     return {
         **theme,
-        "onAccent": theme.get("onAccent", theme["bg"]),
-        "link": theme.get("link", theme["accent"]),
+        "primaryForeground": theme.get("primaryForeground", theme["background"]),
+        "link": theme.get("link", theme["primary"]),
     }
 
 
 # (label, fg-token, bg-token, floor, the CSS rule this guards)
 CHECKS: list[tuple[str, str, str, float, str]] = [
-    ("body text", "fg", "bg", AA_TEXT, "body { color: fg; background: bg }"),
-    ("body on surface", "fg", "surface", AA_TEXT, "card/table/pre"),
-    ("muted text", "muted", "bg", AA_TEXT, "captions, .sc-eyebrow"),
-    ("heading / link", "link", "bg", AA_TEXT, "h2, main a { color: --rd-link }"),
-    ("link on surface", "link", "surface", AA_TEXT, "links inside a card"),
-    ("text on accent fill", "onAccent", "accent", AA_TEXT, ".sc-btn, active tab"),
+    ("body text", "foreground", "background", AA_TEXT, "body { color: foreground }"),
+    ("body on card", "foreground", "card", AA_TEXT, "card/table/pre"),
+    ("muted text", "mutedForeground", "background", AA_TEXT, "captions, .sc-eyebrow"),
+    (
+        "heading / link",
+        "link",
+        "background",
+        AA_TEXT,
+        "h2, main a { color: --rd-link }",
+    ),
+    ("link on card", "link", "card", AA_TEXT, "links inside a card"),
+    (
+        "text on primary fill",
+        "primaryForeground",
+        "primary",
+        AA_TEXT,
+        ".sc-btn, active tab",
+    ),
 ]
 
 
@@ -338,7 +350,9 @@ def check_theme(name: str, tokens: dict[str, Any]) -> list[str]:
         failures += check_ramps(name, mode, plot)
 
         if "status" in tokens:
-            failures += check_status(name, mode, tokens["status"][mode], t["bg"])
+            failures += check_status(
+                name, mode, tokens["status"][mode], t["background"]
+            )
 
         # A graph node's label must be readable on its own fill.
         cy = tokens["canvas"]["cytoscape"][mode]
@@ -363,7 +377,7 @@ def main(args: argparse.Namespace) -> None:
         if not pack.is_file():
             print(f"error: unknown theme {name!r}", file=sys.stderr)
             raise SystemExit(1)
-        failures = check_theme(name, json.loads(pack.read_text(encoding="utf-8")))
+        failures = check_theme(name, read_brandpack(pack))
         status = "FAIL" if failures else "pass"
         print(f"[{status}] {name}")
         for line in failures:

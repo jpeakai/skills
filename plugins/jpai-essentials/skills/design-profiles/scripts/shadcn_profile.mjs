@@ -24,6 +24,9 @@ export const ROLE_VARIABLES = {
 };
 /** @param {string} role */
 export function padded_role(role) {
+	const css = /^surface\.css\.(.+)$/.exec(role);
+	if (css && css[1] in p.CSS_ROLE_RENAMES)
+		return `surface.css.${p.CSS_ROLE_RENAMES[/** @type {keyof typeof p.CSS_ROLE_RENAMES} */ (css[1])]}`;
 	return role.replace(
 		/^(color\.chart\.(?:categorical|palettes)\.)(\d+)(?=\.|$)/,
 		(_, prefix, index) => prefix + String(Number(index)).padStart(2, "0"),
@@ -432,12 +435,12 @@ export function build_css(ir) {
 					`Profile lacks shadcn variable --${name}; run curate first`,
 				);
 		for (const [role, node] of Object.entries(ir)) {
+			// Shared roles already came from surface.shadcn, the shadcn contract.
+			// Only the extensions shadcn lacks are added, under their own names.
 			if (role.startsWith("surface.css.")) {
 				const key = role.slice("surface.css.".length);
-				variables[key in variables ? `profile-${key}` : key] = css_colour(
-					node,
-					mode,
-				);
+				if (p.CSS_EXTENSIONS.includes(key))
+					variables[key] = css_colour(node, mode);
 			}
 			if (role.startsWith("color.chart.categorical."))
 				variables[`categorical-${role.split(".").at(-1)}`] = css_colour(

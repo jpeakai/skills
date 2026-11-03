@@ -1017,11 +1017,8 @@
             "surface": {
               "$type": "color",
               "css": {
-                "accent": {
-                  "$value": "{color.background.brand.bold}"
-                },
-                "accent-subtlest": {
-                  "$value": "{color.background.brand.subtlest}"
+                "background": {
+                  "$value": "{color.surface.default}"
                 },
                 "border": {
                   "$value": {
@@ -1034,38 +1031,41 @@
                     "hex": "#d3d3d3"
                   }
                 },
-                "border-bold": {
+                "border-strong": {
                   "$value": "{color.border.bold}"
                 },
-                "focus": {
-                  "$value": "{color.border.focused}"
+                "card": {
+                  "$value": "{color.surface.raised}"
+                },
+                "faint-foreground": {
+                  "$value": "{color.text.subtlest}"
+                },
+                "foreground": {
+                  "$value": "{color.text.default}"
                 },
                 "link": {
                   "$value": "{color.link}"
                 },
-                "on-accent": {
+                "muted": {
+                  "$value": "{color.surface.sunken}"
+                },
+                "muted-foreground": {
+                  "$value": "{color.text.subtle}"
+                },
+                "primary": {
+                  "$value": "{color.background.brand.bold}"
+                },
+                "primary-foreground": {
                   "$value": "{color.text.inverse}"
                 },
-                "page": {
-                  "$value": "{color.surface.default}"
+                "primary-subtle": {
+                  "$value": "{color.background.brand.subtlest}"
                 },
-                "raised": {
-                  "$value": "{color.surface.raised}"
+                "ring": {
+                  "$value": "{color.border.focused}"
                 },
                 "selected": {
                   "$value": "{color.background.selected.default}"
-                },
-                "sunken": {
-                  "$value": "{color.surface.sunken}"
-                },
-                "text": {
-                  "$value": "{color.text.default}"
-                },
-                "text-subtle": {
-                  "$value": "{color.text.subtle}"
-                },
-                "text-subtlest": {
-                  "$value": "{color.text.subtlest}"
                 }
               },
               "cytoscape": {
@@ -3123,11 +3123,8 @@
             "surface": {
               "$type": "color",
               "css": {
-                "accent": {
-                  "$value": "{color.background.brand.bold}"
-                },
-                "accent-subtlest": {
-                  "$value": "{color.background.brand.subtlest}"
+                "background": {
+                  "$value": "{color.surface.default}"
                 },
                 "border": {
                   "$value": {
@@ -3140,38 +3137,41 @@
                     "hex": "#2d2d2d"
                   }
                 },
-                "border-bold": {
+                "border-strong": {
                   "$value": "{color.border.bold}"
                 },
-                "focus": {
-                  "$value": "{color.border.focused}"
+                "card": {
+                  "$value": "{color.surface.raised}"
+                },
+                "faint-foreground": {
+                  "$value": "{color.text.subtlest}"
+                },
+                "foreground": {
+                  "$value": "{color.text.default}"
                 },
                 "link": {
                   "$value": "{color.link}"
                 },
-                "on-accent": {
+                "muted": {
+                  "$value": "{color.surface.sunken}"
+                },
+                "muted-foreground": {
+                  "$value": "{color.text.subtle}"
+                },
+                "primary": {
+                  "$value": "{color.background.brand.bold}"
+                },
+                "primary-foreground": {
                   "$value": "{color.text.inverse}"
                 },
-                "page": {
-                  "$value": "{color.surface.default}"
+                "primary-subtle": {
+                  "$value": "{color.background.brand.subtlest}"
                 },
-                "raised": {
-                  "$value": "{color.surface.raised}"
+                "ring": {
+                  "$value": "{color.border.focused}"
                 },
                 "selected": {
                   "$value": "{color.background.selected.default}"
-                },
-                "sunken": {
-                  "$value": "{color.surface.sunken}"
-                },
-                "text": {
-                  "$value": "{color.text.default}"
-                },
-                "text-subtle": {
-                  "$value": "{color.text.subtle}"
-                },
-                "text-subtlest": {
-                  "$value": "{color.text.subtlest}"
                 }
               },
               "cytoscape": {

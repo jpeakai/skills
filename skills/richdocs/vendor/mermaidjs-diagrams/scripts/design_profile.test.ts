@@ -160,7 +160,7 @@ describe("a real profile", () => {
       const config = mermaidConfig(doc, mode);
       expect(config.theme).toBe("base");
       expect(config.themeVariables.primaryColor).toBe(flat["color.background.brand.subtlest"]);
-      expect(config.themeVariables.cScale0).toBe(flat["color.chart.categorical.1"]);
+      expect(config.themeVariables.cScale0).toBe(flat["color.chart.categorical.01"]);
       expect(config.themeVariables.darkMode).toBe(mode === "dark");
       expect(String(config.themeVariables.fontFamily)).toContain("Fira Sans");
       // Mermaid drops 8-digit hex for some keys, so every colour is opaque.

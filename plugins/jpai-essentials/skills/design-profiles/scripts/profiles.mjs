@@ -40,6 +40,29 @@ export const CHART_SHADES = [
 /** Shadcn's semantic CSS contract, mapped to the profile's curated roles.
  * Imported values take precedence over these fallback projections.
  * @type {Record<string,string>} */
+/** Old `surface.css` role keys and their shadcn-aligned names. Saved profiles
+ * migrate on load, so a stated edit under an old name is kept under the new one. */
+export const CSS_ROLE_RENAMES = {
+	page: "background",
+	sunken: "muted",
+	raised: "card",
+	text: "foreground",
+	"text-subtle": "muted-foreground",
+	"text-subtlest": "faint-foreground",
+	accent: "primary",
+	"on-accent": "primary-foreground",
+	"accent-subtlest": "primary-subtle",
+	"border-bold": "border-strong",
+	focus: "ring",
+};
+/** `surface.css` roles shadcn has no variable for. CSS exports them as is. */
+export const CSS_EXTENSIONS = [
+	"link",
+	"faint-foreground",
+	"primary-subtle",
+	"border-strong",
+	"selected",
+];
 export const SHADCN_VARIABLES = {
 	background: "color.surface",
 	foreground: "color.text",
@@ -945,19 +968,21 @@ export class Curator {
 			this.categorical_role(i + 1),
 		);
 		const mappings = {
+			// shadcn names wherever shadcn has the role; the rest are named
+			// extensions (CSS_EXTENSIONS). See CSS_ROLE_RENAMES for the old names.
 			css: {
-				page: "color.surface",
-				sunken: "color.surface.sunken",
-				raised: "color.surface.raised",
-				text: "color.text",
-				"text-subtle": "color.text.subtle",
-				"text-subtlest": "color.text.subtlest",
-				accent: "color.background.brand.bold",
-				"on-accent": "color.text.inverse",
-				"accent-subtlest": "color.background.brand.subtlest",
+				background: "color.surface",
+				muted: "color.surface.sunken",
+				card: "color.surface.raised",
+				foreground: "color.text",
+				"muted-foreground": "color.text.subtle",
+				"faint-foreground": "color.text.subtlest",
+				primary: "color.background.brand.bold",
+				"primary-foreground": "color.text.inverse",
+				"primary-subtle": "color.background.brand.subtlest",
 				link: "color.link",
-				"border-bold": "color.border.bold",
-				focus: "color.border.focused",
+				"border-strong": "color.border.bold",
+				ring: "color.border.focused",
 				selected: "color.background.selected",
 			},
 			cytoscape: {
@@ -1618,6 +1643,8 @@ export async function main(argv = process.argv.slice(2)) {
 			hue: { type: "string" },
 			radius: { type: "string" },
 			"radius-dark": { type: "string" },
+			primary: { type: "string" },
+			// Deprecated alias of --primary (DT-NAMES-1): `accent` is a hover tint in shadcn.
 			accent: { type: "string" },
 			example: { type: "string" },
 			force: { type: "boolean" },
@@ -1627,7 +1654,7 @@ export async function main(argv = process.argv.slice(2)) {
 	});
 	if (!cmd || cmd === "--help" || values.help) {
 		console.log(
-			"profiles.mjs init|curate|build|all|lineage|status|set-default [NAME...] [--store DIR|--user] [--format css|tokens|both]\ninit NAME --hue DEGREES|--accent HEX|--example NAME [--radius VALUE] [--radius-dark VALUE] [--force]",
+			"profiles.mjs init|curate|build|all|lineage|status|set-default [NAME...] [--store DIR|--user] [--format css|tokens|both]\ninit NAME --hue DEGREES|--primary HEX|--example NAME [--radius VALUE] [--radius-dark VALUE] [--force]",
 		);
 		return;
 	}
@@ -1653,12 +1680,15 @@ export async function main(argv = process.argv.slice(2)) {
 		const path = join(folder, "seed.json");
 		if (resolver.isFile(path) && !values.force)
 			throw new Error(`error: ${path} exists; pass --force to replace it`);
+		const primary = values.primary ?? values.accent;
+		if (values.primary !== undefined && values.accent !== undefined)
+			throw new Error("error: --accent is the old name of --primary; pass one");
 		if (
-			[values.hue, values.accent, values.example].filter((v) => v !== undefined)
+			[values.hue, primary, values.example].filter((v) => v !== undefined)
 				.length !== 1
 		)
 			throw new Error(
-				"error: init needs --hue, --accent or --example (choose one)",
+				"error: init needs --hue, --primary or --example (choose one)",
 			);
 		/** @type {Dict} */ let seed;
 		if (values.example) {
@@ -1672,7 +1702,7 @@ export async function main(argv = process.argv.slice(2)) {
 			if (!Number.isFinite(Number(values.hue))) throw new Error("Invalid hue");
 			seed = { "brand.hue": Number(values.hue) };
 		} else {
-			const [L, C, h] = exact_oklch(/** @type {string} */ (values.accent));
+			const [L, C, h] = exact_oklch(/** @type {string} */ (primary));
 			seed = { "brand.hue": h, "brand.chroma": C, "brand.lightness": L };
 		}
 		if (values.radius !== undefined) seed.radius = values.radius;

@@ -1,31 +1,31 @@
 {
   "defaultTheme": "light",
   "fonts": {
-    "display": "'Montserrat', Arial, sans-serif",
-    "body": "'Source Serif 4', Georgia, serif",
+    "heading": "'Montserrat', Arial, sans-serif",
+    "sans": "'Source Serif 4', Georgia, serif",
     "mono": "ui-monospace, 'SF Mono', Menlo, Consolas, monospace"
   },
   "themes": {
     "light": {
-      "bg": "#fefefe",
-      "fg": "#2c2f2f",
-      "muted": "#616363",
-      "accent": "#0B8651",
-      "surface": "#ebf0f1",
+      "background": "#fefefe",
+      "foreground": "#2c2f2f",
+      "mutedForeground": "#616363",
+      "primary": "#0B8651",
+      "card": "#ebf0f1",
       "border": "#cacbcb",
-      "onAccent": "#fefefe",
+      "primaryForeground": "#fefefe",
       "link": "#097245",
       "radius": "4px",
       "pill": "999px"
     },
     "dark": {
-      "bg": "#102c22",
-      "fg": "#fefefe",
-      "muted": "#bfd0c8",
-      "accent": "#00e862",
-      "surface": "#1b3b30",
+      "background": "#102c22",
+      "foreground": "#fefefe",
+      "mutedForeground": "#bfd0c8",
+      "primary": "#00e862",
+      "card": "#1b3b30",
       "border": "#637b70",
-      "onAccent": "#102c22",
+      "primaryForeground": "#102c22",
       "link": "#65f6a2",
       "radius": "4px",
       "pill": "999px"

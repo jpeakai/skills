@@ -1,7 +1,7 @@
 ---
 name: design-profiles
 description: "Generate a shared design profile from one shadcn preset code, a brand hue, or an accent color. Export theme.css with font loading and/or DTCG design-tokens.json, including light and dark modes, ten-by-five chart palettes, and baked rendering surfaces for richdocs and mermaidjs-diagrams. Use to create, tune, rebuild or select design profiles and design tokens. Preset imports require Bun or Node and network access; saved profiles rebuild offline under Node.js or Bun without Python."
-argument-hint: "[preset CODE --name NAME --format css|tokens|both] | [init NAME --hue H | --accent HEX | --example BRAND] | [curate|build|all|status|set-default] [NAME]"
+argument-hint: "[preset CODE --name NAME --format css|tokens|both] | [init NAME --hue H | --primary HEX | --example BRAND] | [curate|build|all|status|set-default] [NAME]"
 user-invocable: true
 ---
 
@@ -26,7 +26,7 @@ own built-in themes when there is none. They say which they used.
 |---|---|
 | A profile from a shadcn preset code | `bun <skill>/scripts/shadcn.mjs CODE`; see [preset imports](resources/shadcn-presets.md) |
 | A profile from one brand hue | `init <name> --hue 295`, then `all <name>` |
-| A profile from a brand's accent colour (scraped or given) | `init <name> --accent '#5c4295'`, then `all <name>` |
+| A profile from a brand's primary colour (scraped or given) | `init <name> --primary '#5c4295'`, then `all <name>` |
 | One of the shipped brands as a starting point | `init <name> --example osakanights`, then `all <name>` |
 | To tune a value | edit `ir.json`, then `all <name>` (the edit is held) |
 | To change a parameter | edit `seed.json`, then `all <name>` |
@@ -55,7 +55,7 @@ node .claude/skills/design-profiles/scripts/profiles.mjs set-default acme
 | Command | Does |
 |---|---|
 | `init <name> --hue H` | writes `seed.json` stating only the brand hue (OKLCH degrees) |
-| `init <name> --accent HEX` | states the hex's exact OKLCH lightness, chroma and hue |
+| `init <name> --primary HEX` | states the hex's exact OKLCH lightness, chroma and hue; `--accent` is a deprecated alias |
 | `init <name> --example BRAND` | copies a shipped seed: `fernline`, `freshgreens`, `gandalf`, `locomotif`, `osakanights`, `v2ai` |
 | `curate [name ...]` | `seed.json` → `ir.json`: imputes what is absent, keeps what is stated, scores contrast |
 | `build [name ...]` | `ir.json` → `design-tokens.json` and `theme.css`, a pure transform |
@@ -106,7 +106,7 @@ The resolved `dimension.radius` token and CSS `--radius` preserve the value and 
 ```
 
 Scrape heuristics: `background|bg|surface|canvas` → ground;
-`accent|brand|primary|cta|highlight` → brand accent (use `init --accent`).
+`accent|brand|primary|cta|highlight` → brand primary colour (use `init --primary`).
 
 ## Rules
 
@@ -122,6 +122,9 @@ Scrape heuristics: `background|bg|surface|canvas` → ground;
 - **`themecheck.py` never runs on a profile.** It gates richdocs' built-in themes.
 
 ## Role vocabulary
+
+The core tokens below use an Atlassian-style vocabulary and stay the source of truth.
+Every surface a consumer reads speaks shadcn instead (DT-NAMES-1, root ADR-0004).
 
 ```text
 color.surface.sunken            color.text                  color.border
@@ -142,7 +145,8 @@ Surfaces, each baked by curation so no consumer computes one:
 
 `surface.shadcn` maps every profile onto shadcn's background/foreground, action, chart, sidebar, font and radius variables.
 Imported preset values win over fallback mappings.
-Legacy chrome collisions export as `--profile-accent` and `--profile-border`.
+`surface.css` uses shadcn names wherever shadcn has the role (DT-NAMES-1).
+Its extensions, which shadcn lacks, export under their own names: `--link`, `--faint-foreground`, `--primary-subtle`, `--border-strong` and `--selected`.
 The IR records every projection as an alias or derived value, including typed font and radius aliases for DTCG and lineage.
 
 ## Finding a profile

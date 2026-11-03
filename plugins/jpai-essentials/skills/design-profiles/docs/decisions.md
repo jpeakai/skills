@@ -280,3 +280,14 @@ Generate `themes.css` and matching DTCG tokens together through the design-profi
 Consumers read baked values and delegate curation to design-profiles where available.
 Keep runtime readers self-contained and verify prebuilt artifacts against producer output.
 Preserve Richdocs' explicit brand themes and original showcase.
+
+## DT-NAMES-1: consumer surfaces use shadcn role names
+
+This supersedes DT-SHADCN-1's clause that prefixes colliding legacy chrome variables with `profile-`, and applies root ADR-0004.
+Shared words with different jobs misled readers: our `accent` was shadcn's `primary`, and our `muted` was shadcn's `muted-foreground`.
+Rename every `surface.css` role to its shadcn name where shadcn has the role: `background`, `card`, `muted`, `foreground`, `muted-foreground`, `primary`, `primary-foreground`, `ring`, `border`.
+Name the roles shadcn lacks as extensions in shadcn's grammar: `link`, `faint-foreground`, `primary-subtle`, `border-strong`, `selected`.
+CSS exports each role once; `surface.shadcn` supplies the shared roles and only extensions come from `surface.css`.
+Keep the Atlassian-style core tokens (`color.surface.raised`, `color.text.subtle`) as the source vocabulary.
+Migrate older `surface.css` keys on curation, keeping stated edits under the new names.
+`init --primary HEX` seeds the brand fill; `--accent` stays as a deprecated alias.

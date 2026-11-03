@@ -93,9 +93,28 @@ test("every example exports a superset of the reference shadcn variables", async
 				expect(vars[key]).toBeDefined();
 			const flat = r.read_tokens(tokens, mode);
 			expect(hex_value(vars.primary)).toBe(flat["color.background.brand.bold"]);
-			expect(hex_value(vars["profile-accent"])).toBe(
-				flat["color.background.brand.bold"],
+			// No duplicate or prefixed copies of shadcn roles: one name per role.
+			expect(Object.keys(vars).filter((k) => k.startsWith("profile-"))).toEqual(
+				[],
 			);
+			// shadcn lacks these, so they export under their own extension names.
+			expect(hex_value(vars.link)).toBe(flat["color.link"]);
+			expect(hex_value(vars["faint-foreground"])).toBe(
+				flat["color.text.subtlest"],
+			);
+			expect(hex_value(vars["primary-subtle"])).toBe(
+				flat["color.background.brand.subtlest"],
+			);
+			expect(hex_value(vars["border-strong"])).toBe(flat["color.border.bold"]);
+			expect(hex_value(vars.selected)).toBe(flat["color.background.selected"]);
+			for (const old of [
+				"page",
+				"raised",
+				"sunken",
+				"text-subtle",
+				"on-accent",
+			])
+				expect(vars[old]).toBeUndefined();
 			expect(hex_value(vars.accent)).toBe(
 				flat["color.background.selected.hovered"],
 			);
@@ -428,7 +447,7 @@ test("stated edits survive offline rebuilds, unknown roles, releases and seed re
 				),
 			),
 		).toBe(true);
-		expect(after["surface.css.page"].light).toBe("#ffffff");
+		expect(after["surface.css.background"].light).toBe("#ffffff");
 		expect(after["color.text.brand"]).toEqual(ir["color.text.brand"]);
 		const tokens = p.read_json(await p.build_profile(f));
 		expect(r.read_tokens(tokens, "light")["surface.mermaid.primaryColor"]).toBe(
@@ -510,7 +529,7 @@ test("CLI command API, output formats and validation", async () => {
 	try {
 		await p.main([]);
 		await p.main(["init", "p", "--hue", "100", ...where]);
-		await p.main(["init", "a", "--accent", "#5c4295", ...where]);
+		await p.main(["init", "a", "--primary", "#5c4295", ...where]);
 		await p.main(["init", "e", "--example", "osakanights", ...where]);
 		await p.main(["all", ...where]);
 		await p.main(["set-default", "p", ...where]);
@@ -540,6 +559,18 @@ test("CLI command API, output formats and validation", async () => {
 		await expect(
 			p.main(["curate", "--store", join(store, "missing")]),
 		).rejects.toThrow("no profiles");
+		// --accent is the deprecated alias of --primary; both at once is ambiguous.
+		await expect(
+			p.main([
+				"init",
+				"r",
+				"--primary",
+				"#5c4295",
+				"--accent",
+				"#5c4295",
+				...where,
+			]),
+		).rejects.toThrow("old name of --primary");
 		expect(p.store_dir({ user: true })).toEndWith(".design-profiles");
 		const ir = p.read_json(join(store, "a/ir.json"));
 		expect(

@@ -108,7 +108,7 @@ def make_build_id(now: datetime | None = None) -> str:
 class Theme(NamedTuple):
     """A named brand theme: its brandpack, plus optional CSS the pack can't express.
 
-    The brandpack *chooses* the faces (`fonts.display` / `body` / `mono`) — a typeface
+    The brandpack *chooses* the faces (`fonts.heading` / `sans` / `mono`) — a typeface
     is a brand value. But a JSON file cannot `@import` a webfile, and cannot express
     layout (sizes, tracking, borders). `theme.css` does those. It is optional.
     """
@@ -146,13 +146,13 @@ def brandpack_from_profile(doc: dict[str, Any]) -> dict[str, object]:
             return profile_resolver.series(src, name)
 
         themes[mode] = {
-            "bg": css["page"],
-            "fg": css["text"],
-            "muted": css["text-subtle"],
-            "accent": css["accent"],
-            "surface": css["raised"],
+            "background": css["background"],
+            "foreground": css["foreground"],
+            "mutedForeground": css["muted-foreground"],
+            "primary": css["primary"],
+            "card": css["card"],
             "border": css["border"],
-            "onAccent": css["on-accent"],
+            "primaryForeground": css["primary-foreground"],
             "link": css["link"],
             "radius": radius_css,
             "pill": "999px",
@@ -212,8 +212,8 @@ def brandpack_from_profile(doc: dict[str, Any]) -> dict[str, object]:
     return {
         "defaultTheme": profile_resolver.default_mode(doc),
         "fonts": {
-            "display": flat["font.family.display"],
-            "body": flat["font.family.body"],
+            "heading": flat["font.family.display"],
+            "sans": flat["font.family.body"],
             "mono": flat["font.family.mono"],
         },
         "themes": themes,
@@ -310,6 +310,45 @@ def theme_search_dirs(project_dir: Path = PROJECT_THEMES_DIR) -> list[Path]:
     return dirs
 
 
+# Brandpack keys before ADR-033, and their shadcn names. Two of the old words meant
+# something else in shadcn: our `accent` was shadcn's `primary`, our `muted` its
+# `muted-foreground`. An old pack fails loudly rather than rendering blank colours.
+LEGACY_THEME_KEYS = {
+    "bg": "background",
+    "fg": "foreground",
+    "muted": "mutedForeground",
+    "accent": "primary",
+    "surface": "card",
+    "onAccent": "primaryForeground",
+}
+LEGACY_FONT_KEYS = {"display": "heading", "body": "sans"}
+
+
+def read_brandpack(path: Path) -> dict[str, Any]:
+    """Load a brandpack, refusing one that still uses the pre-ADR-033 key names."""
+    tokens: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+    old = sorted(
+        {
+            f"themes.<mode>.{k} -> {LEGACY_THEME_KEYS[k]}"
+            for mode in tokens.get("themes", {}).values()
+            for k in mode
+            if k in LEGACY_THEME_KEYS
+        }
+        | {
+            f"fonts.{k} -> {LEGACY_FONT_KEYS[k]}"
+            for k in tokens.get("fonts", {})
+            if k in LEGACY_FONT_KEYS
+        }
+    )
+    if old:
+        raise SystemExit(
+            f"error: {path} uses brandpack key names retired by ADR-033.\n"
+            "       Rename them to the shadcn names:\n         "
+            + "\n         ".join(old)
+        )
+    return tokens
+
+
 def available_themes(project_dir: Path = PROJECT_THEMES_DIR) -> list[str]:
     """Theme names: directories holding a brandpack, unioned across the search dirs.
 
@@ -376,7 +415,7 @@ def resolve_default_theme(tokens: dict[str, object] | None) -> str:
 
 def lint_canvas_config(tokens_path: Path) -> dict[str, object]:
     """Native Slopstopper remark configuration for the viewer's actual diagram surfaces."""
-    tokens = json.loads(tokens_path.read_text(encoding="utf-8"))
+    tokens = read_brandpack(tokens_path)
     themes = tokens["themes"]
     plugin = (
         SCRIPT_DIR
@@ -395,7 +434,7 @@ def lint_canvas_config(tokens_path: Path) -> dict[str, object]:
                 {
                     "options": {
                         "canvas": {
-                            mode: themes[mode]["surface"] for mode in ("light", "dark")
+                            mode: themes[mode]["card"] for mode in ("light", "dark")
                         }
                     }
                 },
@@ -550,7 +589,7 @@ def write_multi(
     """Write <out>/<stem>.html + <stem>.md copy + design-tokens.json copy."""
     out_dir.mkdir(parents=True, exist_ok=True)
     stem = doc.stem
-    tokens = json.loads(tokens_path.read_text(encoding="utf-8"))
+    tokens = read_brandpack(tokens_path)
     html_path = out_dir / f"{stem}.html"
     html_path.write_text(
         build_multi_html(
@@ -582,7 +621,7 @@ def write_inline(
 ) -> Path:
     """Write a single self-contained <out>/<stem>.html."""
     out_dir.mkdir(parents=True, exist_ok=True)
-    tokens = json.loads(tokens_path.read_text(encoding="utf-8"))
+    tokens = read_brandpack(tokens_path)
     html_path = out_dir / f"{doc.stem}.html"
     html = build_inline_html(
         doc.read_text(encoding="utf-8"),

@@ -4,31 +4,31 @@
     "seriesContrast": "Ghibli Pastel L0.80/C0.11 is a defining stylistic identity of OsakaNights and is used identically in Day and Night. Categorical marks are always legended (colour-never-alone) and clear CVD adjacency (worst ΔE 9.3), so the sub-3:1 mark contrast on the light plot surface is an accepted, deliberate trade for this theme. Do not darken the palette or the chart bed to satisfy the gate."
   },
   "fonts": {
-    "display": "'Fraunces', Georgia, serif",
-    "body": "'Fira Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    "heading": "'Fraunces', Georgia, serif",
+    "sans": "'Fira Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     "mono": "'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace"
   },
   "themes": {
     "light": {
-      "bg": "#faf8f9",
-      "fg": "#1c1a20",
-      "muted": "#57525e",
-      "accent": "#5c4295",
-      "surface": "#ffffff",
+      "background": "#faf8f9",
+      "foreground": "#1c1a20",
+      "mutedForeground": "#57525e",
+      "primary": "#5c4295",
+      "card": "#ffffff",
       "border": "#d6ccd2",
-      "onAccent": "#ffffff",
+      "primaryForeground": "#ffffff",
       "link": "#5c4295",
       "radius": "12px",
       "pill": "999px"
     },
     "dark": {
-      "bg": "#101010",
-      "fg": "#dddddd",
-      "muted": "#adadad",
-      "accent": "#c3b0fd",
-      "surface": "#1a1a1c",
+      "background": "#101010",
+      "foreground": "#dddddd",
+      "mutedForeground": "#adadad",
+      "primary": "#c3b0fd",
+      "card": "#1a1a1c",
       "border": "#3d3d3d",
-      "onAccent": "#101010",
+      "primaryForeground": "#101010",
       "link": "#c3b0fd",
       "radius": "12px",
       "pill": "999px"
@@ -116,7 +116,7 @@
             "#c1645e",
             "#a83634"
           ],
-          "label": "violet \u2194 red"
+          "label": "violet ↔ red"
         },
         "divergingAlt": {
           "good": [
@@ -130,7 +130,7 @@
             "#c1645e",
             "#a83634"
           ],
-          "label": "teal \u2194 red (green semantics)"
+          "label": "teal ↔ red (green semantics)"
         }
       },
       "dark": {
@@ -183,7 +183,7 @@
             "#e68078",
             "#d55753"
           ],
-          "label": "violet \u2194 red"
+          "label": "violet ↔ red"
         },
         "divergingAlt": {
           "good": [
@@ -197,7 +197,7 @@
             "#e68078",
             "#d55753"
           ],
-          "label": "teal \u2194 red (green semantics)"
+          "label": "teal ↔ red (green semantics)"
         }
       }
     }

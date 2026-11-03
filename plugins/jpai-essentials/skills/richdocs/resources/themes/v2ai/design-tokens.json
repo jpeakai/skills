@@ -1,31 +1,31 @@
 {
   "defaultTheme": "light",
   "fonts": {
-    "display": "'Outfit', system-ui, sans-serif",
-    "body": "'Outfit', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+    "heading": "'Outfit', system-ui, sans-serif",
+    "sans": "'Outfit', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
     "mono": "'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace"
   },
   "themes": {
     "light": {
-      "bg": "#ffffff",
-      "fg": "#1a1818",
-      "muted": "#666666",
-      "surface": "#ebebeb",
+      "background": "#ffffff",
+      "foreground": "#1a1818",
+      "mutedForeground": "#666666",
+      "card": "#ebebeb",
       "border": "#c9c9c9",
-      "accent": "#ffc000",
-      "onAccent": "#000000",
+      "primary": "#ffc000",
+      "primaryForeground": "#000000",
       "link": "#1a1818",
       "radius": "0",
       "pill": "0"
     },
     "dark": {
-      "bg": "#000000",
-      "fg": "#ebebeb",
-      "muted": "#bfbfbf",
-      "surface": "#1a1818",
+      "background": "#000000",
+      "foreground": "#ebebeb",
+      "mutedForeground": "#bfbfbf",
+      "card": "#1a1818",
       "border": "#4d4d4d",
-      "accent": "#ffc000",
-      "onAccent": "#000000",
+      "primary": "#ffc000",
+      "primaryForeground": "#000000",
       "link": "#ebebeb",
       "radius": "0",
       "pill": "0"
@@ -105,7 +105,7 @@
             "#c36570",
             "#a73449"
           ],
-          "label": "cyan \u2194 pink"
+          "label": "cyan ↔ pink"
         }
       },
       "dark": {
@@ -150,7 +150,7 @@
             "#df7883",
             "#c6495d"
           ],
-          "label": "cyan \u2194 pink"
+          "label": "cyan ↔ pink"
         }
       }
     }

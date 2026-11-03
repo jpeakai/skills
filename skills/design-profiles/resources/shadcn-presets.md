@@ -77,8 +77,19 @@ An imported `color.shadcn.<name>` takes precedence when available.
 | `radius` | Typed `dimension.radius` |
 | `font-sans`, `font-heading`, `font-mono` | Body, display and monospace families |
 
-The legacy brand-accent chrome variable becomes `--profile-accent`; `--accent` is reserved for shadcn interaction styling.
-The chrome border remains available as `--profile-border` alongside shadcn's `--border`.
+Each role exports once, under its shadcn name.
+`--accent` is shadcn's hover and selection tint, never the brand fill; the brand fill is `--primary`.
+Roles shadcn lacks export under their own extension names:
+
+| Extension | Profile role | Meaning |
+| --- | --- | --- |
+| `link` | `color.link` | Brand-coloured text that is readable on the page |
+| `faint-foreground` | `color.text.subtlest` | Text quieter than `muted-foreground` |
+| `primary-subtle` | `color.background.brand.subtlest` | A faint brand tint behind content |
+| `border-strong` | `color.border.bold` | A border that must stay visible, such as a diagram edge |
+| `selected` | `color.background.selected` | The fill of a selected item |
+
+Saved profiles that use the older `surface.css` names (`page`, `raised`, `accent`, `on-accent` and others) migrate when curated, keeping stated edits.
 Font and radius projections carry explicit DTCG types rather than inheriting the surface group's color type.
 The IR-to-surfaces lineage includes a `surface.shadcn` group, with dependencies for colors, charts, fonts and radius.
 

@@ -7,7 +7,7 @@ the one place that reads across skills and holds them together:
 * richdocs' Python compatibility reader agrees with the canonical JavaScript reader;
 * mermaidjs-diagrams' TypeScript reader agrees with both;
 * legacy fixture profiles still read consistently across runtimes;
-* the example seeds still state each richdocs brand's exact accents.
+* the example seeds still state each richdocs brand's exact primary (brand fill) colours.
 
     uv run pytest tests/test_design_profile_copies.py
 """
@@ -114,7 +114,7 @@ def test_the_typescript_port_reads_what_python_reads(mode: str, built: Path, tmp
 
 @pytest.mark.parametrize("seed", sorted((CANONICAL.parent / "resources/examples").glob("*/seed.json")),
                          ids=lambda p: p.parent.name)
-def test_example_seeds_state_each_brands_exact_accents(seed: Path) -> None:
+def test_example_seeds_state_each_brands_exact_primary(seed: Path) -> None:
     brand = json.loads((REPO / "skills/richdocs/resources/themes" / seed.parent.name / "design-tokens.json")
                        .read_text(encoding="utf-8"))
     stated = json.loads(seed.read_text(encoding="utf-8"))
@@ -124,4 +124,4 @@ def test_example_seeds_state_each_brands_exact_accents(seed: Path) -> None:
             'import {hex_of} from "./profiles.mjs"; console.log(JSON.stringify(hex_of(JSON.parse(process.argv[1]))));',
             json.dumps(lch),
         )
-        assert actual == brand["themes"][mode]["accent"].lower()
+        assert actual == brand["themes"][mode]["primary"].lower()

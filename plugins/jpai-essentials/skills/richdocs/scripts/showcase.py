@@ -312,14 +312,29 @@ def scope_css(css: str, brand: str) -> str:
         if not selectors or not body:
             continue
         scoped = ", ".join(
-            # `*` and `:root`/`html`/`body` anchor to the scope itself, not below it.
-            f"{prefix} {s.strip()}"
-            if s.strip() not in ("*", ":root", "html", "body")
-            else f"{prefix} {s.strip()}".replace(f"{prefix} :root", prefix)
-            for s in selectors.split(",")
+            _scope_selector(s.strip(), prefix) for s in selectors.split(",")
         )
         out.append(f"{scoped} {{ {body} }}")
     return "\n".join(out)
+
+
+# A selector whose first compound is the document root: `:root`, `html`, or either
+# qualified (`:root[data-theme=dark]`, `html.dark`). Group 1 is the qualifier.
+_ROOT_COMPOUND_RE = re.compile(r"^(?::root|html)(?![\w-])(\S*)")
+
+
+def _scope_selector(selector: str, prefix: str) -> str:
+    """Scope one selector. A root compound merges INTO the scope, never below it.
+
+    `:root[data-theme=dark]` becomes `<prefix>[data-theme=dark]`: the same element,
+    further qualified. Prefixed as a descendant it would ask for a root inside the
+    root, which never matches, so a brand's dark-mode variables would silently
+    never apply.
+    """
+    root = _ROOT_COMPOUND_RE.match(selector)
+    if root:
+        return prefix + root.group(1) + selector[root.end() :]
+    return f"{prefix} {selector}"
 
 
 # ── Stencil architecture → editable SVG ────────────────────────────────────

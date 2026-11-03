@@ -852,15 +852,17 @@ function render() {
   drawDeck();
 }
 
-function setBrand(name) {
+// A brand may be light-native or dark-native: its own default sets the mode the page
+// OPENS in. A later brand switch keeps the current mode, so the same mode can be
+// compared across brands (dark against dark, light against light).
+function setBrand(name, opening) {
   document.documentElement.setAttribute("data-brand", name);
   document.querySelectorAll("#sc-brands button").forEach(function (x) {
     x.setAttribute("aria-pressed", String(x.dataset.brand === name));
   });
-  // A brand may be light-native or dark-native; honour its own default.
   var b = BRANDS.find(function (x) { return x.name === name; });
   var def = b && b.tokens.defaultTheme;
-  if (def === "light" || def === "dark") setMode(def, true);
+  if (opening && (def === "light" || def === "dark")) setMode(def, true);
   render();
 }
 
@@ -915,5 +917,5 @@ rdInitToc(document.querySelector(".wrap"), {
 // Full-screen diagrams with deep zoom, exactly as in a doc (ADR-024): a Mermaid
 // or draw.io SVG opens on click; the Cytoscape.js graph opens from its button.
 rdInitZoom({ pictures: ".sc-mermaid svg, svg.sc-arch" });
-setBrand(SC.defaultBrand || BRANDS[0].name);
+setBrand(SC.defaultBrand || BRANDS[0].name, true);
 

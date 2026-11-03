@@ -192,7 +192,7 @@ Mermaid's edge-label background also uses the page background.
 The showcase has no framework ThemeProvider.
 Its controls set `<html data-brand>` and `<html data-theme>`; scoped CSS variables update the page immediately.
 `render()` then recreates the Cytoscape instance and reinitialises Mermaid with `theme: "base"`, explicit theme variables and regenerated subgraph styles before rendering fresh SVGs.
-A brand change also applies that brand's `defaultTheme`.
+The opening brand's `defaultTheme` sets the first mode; a later brand change keeps the current mode (ADR-032).
 The ordinary document viewer persists mode in local storage and rerenders its blocks.
 A design profile supplies baked Mermaid theme variables on the native `base` theme; legacy explicitly selected brandpacks retain their default/dark behavior.
 The default profile comes from prebuilt `themes/osakanights/themes.css` with matching tokens.

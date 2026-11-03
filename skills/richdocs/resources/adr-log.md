@@ -9,6 +9,18 @@ apply to the next related decision.
 This file holds ADR-014 onwards, newest first. The founding records, ADR-001 to
 ADR-013, are in [`adr-log-foundations.md`](adr-log-foundations.md).
 
+### ADR-032: a brand switch keeps the viewer's mode
+
+- **Status:** accepted; supersedes ADR-011's clause that each brand honours its own
+  `defaultTheme` on selection.
+- **Context:** the gallery exists to compare brands. Forcing each brand's
+  `defaultTheme` on every switch flipped the mode under the reader, so dark could not
+  be compared with dark, nor light with light.
+- **Decision:** the opening brand's `defaultTheme` sets the mode the gallery opens in.
+  A later brand switch keeps the current mode; only the mode toggle changes it.
+  The single-brand showcase is unaffected: it opens in its brand's `defaultTheme`.
+- **Lens:** a comparison control changes one variable at a time.
+
 ### ADR-031: the default is a compiled design profile
 
 - **Status:** accepted; supersedes ADR-028's manually maintained default-theme fallback.

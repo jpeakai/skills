@@ -113,7 +113,8 @@ disambiguation gate, type specimens, components, Plotly charts, a Cytoscape grap
 Mermaid, and architecture diagrams built from the stencil pack.
 
 - **no `--theme`** — a **gallery**: every installed brand, with a brand switcher and a
-  light/dark toggle. Each brand honours its own `defaultTheme` when selected.
+  light/dark toggle. The opening brand's `defaultTheme` sets the first mode; switching
+  brand keeps the current mode, so modes compare like for like.
 - **`--theme NAME`** — that brand **alone**: no switcher, and no other brand's tokens
   or CSS anywhere in the file. Safe to hand to a client.
 

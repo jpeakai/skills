@@ -1,0 +1,25 @@
+{
+  "name": "jpai",
+  "description": "Default agent with the jpeak.ai skills and the codex-conf command allowlist",
+  "tools": ["read", "write", "shell", "web"],
+  "resources": ["skill://.kiro/skills/**/SKILL.md"],
+  "permissions": {
+    "rules": [
+      { "capability": "shell", "match": ["git *"], "effect": "allow" },
+      { "capability": "shell", "match": ["ffmpeg *", "ffprobe *"], "effect": "allow" },
+      {
+        "capability": "shell",
+        "match": [
+          "playwright-cli *",
+          "playwright *",
+          "npx playwright *",
+          "npm exec playwright *",
+          "pnpm exec playwright *",
+          "yarn playwright *",
+          "bun x playwright *"
+        ],
+        "effect": "allow"
+      }
+    ]
+  }
+}

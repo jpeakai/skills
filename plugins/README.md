@@ -130,16 +130,19 @@ The cost is working-tree disk, not history.
 | Change the hook | `../hooks/` | `make fix` |
 | Add or remove a skill from a pack | [`composition.yaml`](composition.yaml) | `make fix` |
 | Update a plugin overview | that pack's `README.md` | `make docs-ci` |
-| Change a pack's name, version or blurb | that pack's two `plugin.json` files | `make ci` |
+| Change a pack's name, version or blurb | that pack's three `plugin.json` files | `make ci` |
 
-Each pack carries two manifests, one per ecosystem:
+Each pack carries three manifests, one per ecosystem:
 
 - `.claude-plugin/plugin.json` for Claude Code.
   Skills and hooks are auto-discovered, so it declares no paths.
 - `.codex-plugin/plugin.json` for Codex.
   Declares `skills` and `hooks` explicitly, plus an `interface` block for presentation.
 
-`validate_plugins.py` asserts the two agree on name and version, so a rename cannot land half-done.
+- `plugin.json` at the pack root for Kiro.
+  The [Agent Plugins](https://agent-plugins.org/) manifest that makes the pack a Kiro power; Kiro requires `keywords`.
+
+`validate_plugins.py` asserts the three agree on name and version, so a rename cannot land half-done.
 
 ## Checks
 

@@ -1,0 +1,37 @@
+id: ADR-0004
+slug: kiro-harness-support
+title: Support Kiro through Agent Plugins manifests and kiro-conf hook wiring
+description: Kiro installs packs as powers and takes its hook from workspace configuration
+plan_id:
+status: proposed
+accepted_on: '2026-11-11'
+last_changed_on: '2026-11-11'
+tags:
+- harness
+group: repository-conventions
+provenance: Maintainer requirement to support Kiro as a harness for skills, plugins and hooks, with a
+  kiro-setup target matching codex-setup.
+enforced_in:
+- plugins/jpai-essentials/plugin.json
+- plugins/jpai-delivery/plugin.json
+- scripts/validate_plugins.py
+- hooks/tool_coach.py
+- kiro-conf/
+- Makefile
+relates_to: []
+decision:
+  given: Kiro installs a directory as a power only when an Agent Plugins plugin.json sits at its root, a power
+    carries skills but no hooks, and a Kiro PreToolUse command denies by exiting non-zero rather than by a JSON
+    decision.
+  we_prefer: a third manifest at each pack root plus a harness flag on the shared hook, wired from kiro-conf/,
+    over a separate Kiro pack tree or a forked hook script
+  because: the existing mirror stays the single source of skills, one hook implementation keeps one set of
+    rules, and the validator keeps all three manifests on one name and version
+  unless: Kiro powers gain hook support, which would move the wiring from kiro-conf/ into the packs
+consequences:
+  pros:
+  - Both packs install with kiro-cli powers install without a new generated tree.
+  - The coaching rules stay identical across Claude Code, Codex and Kiro.
+  cons:
+  - Kiro users run make kiro-setup separately to get the hook.
+  - The hook command assumes Kiro runs it from the workspace root.

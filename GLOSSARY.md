@@ -17,6 +17,8 @@ flowchart LR
     GF["Generated File"]:::record
     S["Signal"]:::info
     N["Noise"]:::forbidden
+    H["Harness"]:::people
+    PW["Power"]:::pipeline
     M -- states --> R
     R -- guides --> A
     A -- uses --> D
@@ -28,6 +30,8 @@ flowchart LR
     DR -- renders --> GF
     S -- improves safeguards in --> CS
     N -- improves review filters for --> CS
+    H -- installs --> P
+    P -- packaged as --> PW
     classDef people fill:#1e40af,stroke:#93c5fd,color:#fff,stroke-width:2px
     classDef info fill:#92400e,stroke:#fcd34d,color:#fff,stroke-width:2px
     classDef rule fill:#6d28d9,stroke:#c4b5fd,color:#fff,stroke-width:2px
@@ -59,6 +63,11 @@ The declared documentation layout and naming conventions in [docs/CONVENTIONS.md
 A file produced from an authoritative source by a documented regeneration command.
 Edit the source, then regenerate the file.
 
+## Harness
+
+An agent host that installs Plugins and runs their hooks: Claude Code, Codex or Kiro.
+Each Harness reads its own manifest and hook wiring.
+
 ## Maintainer
 
 The person responsible for the repository's Requirements and accepted decisions.
@@ -71,6 +80,11 @@ The resulting lesson improves the filter for future reviews.
 ## Plugin
 
 An installable composition of Canonical Skills and optional hooks, declared in `plugins/composition.yaml`.
+
+## Power
+
+Kiro's installable form of a Plugin, recognised by the Agent Plugins `plugin.json` at the pack root.
+A Power carries skills but not hooks, so Kiro hook wiring ships in `kiro-conf/`.
 
 ## Requirement
 

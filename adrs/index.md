@@ -7,6 +7,7 @@
 | [ADR-0001](0001-canonical-agent-instructions.md) | Keep agent instructions canonical in AGENTS.md | accepted |
 | [ADR-0002](0002-human-skill-overviews.md) | Give every canonical skill a dual-density human overview | accepted |
 | [ADR-0003](0003-structured-root-decisions.md) | Declare standard documentation and render root decisions from YAML | accepted |
+| [ADR-0004](0004-kiro-harness-support.md) | Support Kiro through Agent Plugins manifests and kiro-conf hook wiring | proposed |
 # By group
 
 ## repository-conventions
@@ -14,6 +15,7 @@
 * [ADR-0001](0001-canonical-agent-instructions.md) - One instruction source shared by agent harnesses
 * [ADR-0002](0002-human-skill-overviews.md) - Human entry points separate from runtime skill instructions
 * [ADR-0003](0003-structured-root-decisions.md) - Standard documentation dialect with a generated root decision bundle
+* [ADR-0004](0004-kiro-harness-support.md) - Kiro installs packs as powers and takes its hook from workspace configuration
 # Relationship graph
 
 Open [graph.html](graph.html) to explore the records visually: click a node to read it, and links between records navigate the graph.

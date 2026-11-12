@@ -1,4 +1,4 @@
-.PHONY: fix ci skills-ci docs-ci harness-ci adrs adr-ci
+.PHONY: fix ci skills-ci docs-ci harness-ci adrs adr-ci codex-setup kiro-setup
 
 # Regenerate everything that is generated. Safe to run at any time.
 fix:
@@ -63,7 +63,7 @@ skills-ci:
 # Gate root documentation and canonical skill README diagrams once.
 # Plugin mirrors and vendored references remain outside the authored corpus.
 DOCS := README.md CONTRIBUTING.md CODING_STANDARDS.md GLOSSARY.md AGENTS.md \
-        docs/CONVENTIONS.md plugins/README.md hooks/README.md $(wildcard rules/*.md)
+        docs/CONVENTIONS.md plugins/README.md hooks/README.md kiro-conf/README.md $(wildcard rules/*.md)
 SKILL_READMES := $(wildcard skills/*/README.md)
 PLUGIN_READMES := $(wildcard plugins/*/README.md)
 
@@ -91,3 +91,14 @@ harness-ci:
 # Use when this repo is cloned into a project as .claude/ to setup the sibling .codex/
 codex-setup:
 	cp -R codex-conf/ ../.codex/
+
+# Use when this repo is cloned into a project as .claude/ to setup the sibling .kiro/.
+# kiro-conf/ holds the hook wiring and agent profile; Kiro reads workspace skills
+# from .kiro/skills/, so the canonical skills are copied there too, minus the
+# same build artefacts and evals that sync_plugins.py keeps out of the packs.
+KIRO_EXCLUDES := --exclude README.md
+SKILL_EXCLUDES := $(foreach d,node_modules __pycache__ .venv .mmdc_cache .pytest_cache .ruff_cache .mypy_cache .coverage evals,--exclude $(d))
+
+kiro-setup:
+	rsync -a $(KIRO_EXCLUDES) kiro-conf/ ../.kiro/
+	rsync -a $(SKILL_EXCLUDES) skills/ ../.kiro/skills/

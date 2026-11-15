@@ -19,6 +19,8 @@ flowchart LR
     N["Noise"]:::forbidden
     H["Harness"]:::people
     PW["Power"]:::pipeline
+    CW["Cloud Worker"]:::people
+    SS["Setup Script"]:::rule
     M -- states --> R
     R -- guides --> A
     A -- uses --> D
@@ -32,6 +34,8 @@ flowchart LR
     N -- improves review filters for --> CS
     H -- installs --> P
     P -- packaged as --> PW
+    CW -- starts from --> SS
+    SS -- installs --> P
     classDef people fill:#1e40af,stroke:#93c5fd,color:#fff,stroke-width:2px
     classDef info fill:#92400e,stroke:#fcd34d,color:#fff,stroke-width:2px
     classDef rule fill:#6d28d9,stroke:#c4b5fd,color:#fff,stroke-width:2px
@@ -48,6 +52,11 @@ A coding assistant working under [AGENTS.md](AGENTS.md) and applicable scoped in
 
 The authoritative skill directory under `skills/`, containing runtime instructions and supporting resources.
 Plugins contain generated copies of Canonical Skills.
+
+## Cloud Worker
+
+A Claude Code session running in a cloud container that a cloud environment configures.
+Plugin, skill and AWS profile names shorten it to `ccw`.
 
 ## Decision Record
 
@@ -89,6 +98,11 @@ A Power carries skills but not hooks, so Kiro hook wiring ships in `kiro-conf/`.
 ## Requirement
 
 A behavior or constraint explicitly required by the Maintainer.
+
+## Setup Script
+
+The cloud environment's script that runs once per cached snapshot, before the agent starts.
+It cannot read the environment's saved variables, so per-session state belongs to the `ccw-setup` skill.
 
 ## Signal
 

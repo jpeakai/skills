@@ -58,6 +58,19 @@
         "status": "proposed",
         "tags": "harness"
       }
+    },
+    {
+      "data": {
+        "id": "ADR-0005",
+        "label": "0005",
+        "parent": "group-repository-conventions",
+        "colour": "#6366f1",
+        "file": "0005-cloud-setup-script-in-skill.md",
+        "title": "Ship the cloud setup script inside the ccw-setup skill and release it under ccw/ tags",
+        "description": "Machine setup is downloaded from an immutable tag, and per-session state is applied by a skill",
+        "status": "proposed",
+        "tags": "cloud, release"
+      }
     }
   ],
   "layout": {

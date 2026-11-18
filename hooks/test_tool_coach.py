@@ -455,10 +455,11 @@ def run_main(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
     root: Path,
+    argv: list[str] | None = None,
 ) -> tuple[int, str, str]:
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(root))
     monkeypatch.setattr(sys, "stdin", io.StringIO(payload))
-    code = tool_coach.main()
+    code = tool_coach.main(argv or [])
     captured = capsys.readouterr()
     return code, captured.out, captured.err
 
@@ -515,3 +516,61 @@ def test_project_root_falls_back_to_the_payload_cwd(
     assert tool_coach.project_root({"cwd": str(root)}) == root
 
 
+
+
+# -- Kiro -----------------------------------------------------------------
+# Kiro ignores the JSON decision body: a PreToolUse command denies by exiting
+# non-zero, and the model reads stderr. Payloads use Kiro's own tool names.
+KIRO = ["--harness", "kiro"]
+
+
+def kiro(tool_name: str, tool_input: dict) -> str:
+    return json.dumps({"hook_event_name": "PreToolUse", "tool_name": tool_name, "tool_input": tool_input})
+
+
+@pytest.mark.parametrize("tool_name", ["execute_bash", "shell"])
+def test_kiro_shell_denial_exits_2_with_the_reason_on_stderr(
+    tool_name: str, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], root: Path
+) -> None:
+    code, out, err = run_main(kiro(tool_name, {"command": "rm x"}), monkeypatch, capsys, root, KIRO)
+    assert (code, out) == (2, "")
+    assert "Deleting is not allowed" in err
+
+
+@pytest.mark.parametrize("tool_name", ["fs_write", "write"])
+def test_kiro_write_outside_the_project_is_denied(
+    tool_name: str, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], root: Path
+) -> None:
+    payload = kiro(tool_name, {"command": "create", "path": "/" + "tmp/x.txt"})
+    code, _, err = run_main(payload, monkeypatch, capsys, root, KIRO)
+    assert code == 2
+    assert "no-out-of-project-paths" in err
+
+
+def test_kiro_read_checks_every_operation_path(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], root: Path
+) -> None:
+    ops = [{"mode": "Line", "path": str(root / "ok.txt")}, {"mode": "Line", "path": "/" + "tmp/stray.txt"}]
+    code, _, err = run_main(kiro("fs_read", {"operations": ops}), monkeypatch, capsys, root, KIRO)
+    assert code == 2
+    assert "stray.txt" in err
+
+
+def test_kiro_allowed_call_exits_0_silently(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], root: Path
+) -> None:
+    assert run_main(kiro("shell", {"command": "ls -la"}), monkeypatch, capsys, root, KIRO) == (0, "", "")
+
+
+def test_kiro_unknown_tool_is_left_alone(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], root: Path
+) -> None:
+    assert run_main(kiro("web_fetch", {"url": "x"}), monkeypatch, capsys, root, KIRO) == (0, "", "")
+
+
+def test_unknown_arguments_fail_loud(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], root: Path
+) -> None:
+    code, _, err = run_main(json.dumps(bash("ls")), monkeypatch, capsys, root, ["--harness", "nope"])
+    assert code == 1
+    assert "unknown arguments" in err

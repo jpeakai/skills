@@ -176,8 +176,11 @@ def check_hook_wiring(rep: Report) -> None:
         )
 
 
+AGENT_PLUGINS_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
+
+
 def check_manifests(rep: Report) -> None:
-    print("\nEach plugin's two manifests agree with its directory name")
+    print("\nEach plugin's three manifests agree with its directory name")
     composition = load_yaml(REPO / "plugins" / "composition.yaml")["plugins"]
     for plugin in sorted((REPO / "plugins").iterdir()):
         if not plugin.is_dir():
@@ -205,6 +208,21 @@ def check_manifests(rep: Report) -> None:
                 f"{plugin.name}: {label} manifest makes no symlink claim",
                 "the packs hold mirrored copies, not symlinks",
             )
+
+        # Kiro installs a pack as a power only when an Agent Plugins manifest
+        # sits at the pack root; without it `kiro-cli powers install` refuses
+        # the directory. Kiro also requires keywords, which the spec leaves optional.
+        kiro = plugin / "plugin.json"
+        if rep.check(kiro.exists(), f"{kiro.relative_to(REPO)} exists"):
+            kj = load_json(kiro)
+            rep.check(kj.get("$schema") == AGENT_PLUGINS_SCHEMA, f"{plugin.name}: Kiro manifest $schema", kj.get("$schema"))
+            rep.check(kj.get("name") == plugin.name, f"{plugin.name}: Kiro manifest name matches dir", kj.get("name"))
+            rep.check(
+                kj.get("version") == cj.get("version"),
+                f"{plugin.name}: Kiro version agrees",
+                f"claude={cj.get('version')} kiro={kj.get('version')}",
+            )
+            rep.check(bool(kj.get("keywords")), f"{plugin.name}: Kiro manifest has keywords", kj.get("keywords"))
 
         # Codex needs explicit paths; Claude auto-discovers, so only Codex is asserted here.
         rep.check(xj.get("skills") == "./skills", f"{plugin.name}: Codex skills path", xj.get("skills"))

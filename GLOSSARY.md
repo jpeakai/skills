@@ -30,6 +30,8 @@ flowchart LR
     SEQ["Sequential Scheme"]:::info
     RN["Role Name"]:::rule
     RX["Role Extension"]:::rule
+    H["Harness"]:::people
+    PW["Power"]:::pipeline
     M -- states --> R
     R -- guides --> A
     A -- uses --> D
@@ -47,6 +49,8 @@ flowchart LR
     DP -- compiles --> PT
     SP -- defines --> RN
     DP -- adds --> RX
+    H -- installs --> P
+    P -- packaged as --> PW
     classDef people fill:#1e40af,stroke:#93c5fd,color:#fff,stroke-width:2px
     classDef info fill:#92400e,stroke:#fcd34d,color:#fff,stroke-width:2px
     classDef rule fill:#6d28d9,stroke:#c4b5fd,color:#fff,stroke-width:2px
@@ -88,6 +92,11 @@ The declared documentation layout and naming conventions in [docs/CONVENTIONS.md
 A file produced from an authoritative source by a documented regeneration command.
 Edit the source, then regenerate the file.
 
+## Harness
+
+An agent host that installs Plugins and runs their hooks: Claude Code, Codex or Kiro.
+Each Harness reads its own manifest and hook wiring.
+
 ## Maintainer
 
 The person responsible for the repository's Requirements and accepted decisions.
@@ -105,6 +114,11 @@ An installable composition of Canonical Skills and optional hooks, declared in `
 
 A theme compiled from a canonical design-profile seed and shipped with a consumer skill for use without a project profile.
 Its CSS and matching tokens are regenerated together through the design-profiles CLI.
+
+## Power
+
+Kiro's installable form of a Plugin, recognised by the Agent Plugins `plugin.json` at the pack root.
+A Power carries skills but not hooks, so Kiro hook wiring ships in `kiro-conf/`.
 
 ## Requirement
 

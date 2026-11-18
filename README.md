@@ -60,6 +60,21 @@ codex plugin add jpai-delivery@jpeakai
 Codex has no update command, because it caches each version of a plugin in its own directory.
 Adding a pack again installs the version the refreshed snapshot now carries. `codex plugin list` shows the version each pack is on.
 
+### Kiro
+
+Each pack root carries an [Agent Plugins](https://agent-plugins.org/) `plugin.json`, so Kiro installs it as a power.
+
+```sh
+git clone https://github.com/jpeakai/skills.git
+kiro-cli powers install "$PWD/skills/plugins/jpai-essentials"
+kiro-cli powers install "$PWD/skills/plugins/jpai-delivery"
+```
+
+The Kiro IDE imports the same folders through **Add Custom Power**.
+A power carries skills but not hooks.
+For the hook, the agent profile and workspace skills, clone this repo into a project as `.claude/` and run `make kiro-setup`.
+See [kiro-conf/README.md](kiro-conf/README.md).
+
 ### npx skills
 
 [`npx skills`](https://github.com/vercel-labs/skills) treats any GitHub repo as the registry, and installs skills into whichever agents it finds.

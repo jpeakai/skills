@@ -65,6 +65,19 @@
         "status": "accepted",
         "tags": "design-system, naming"
       }
+    },
+    {
+      "data": {
+        "id": "ADR-0005",
+        "label": "0005",
+        "parent": "group-repository-conventions",
+        "colour": "#0891b2",
+        "file": "0005-kiro-harness-support.md",
+        "title": "Support Kiro through Agent Plugins manifests and kiro-conf hook wiring",
+        "description": "Kiro installs packs as powers and takes its hook from workspace configuration",
+        "status": "proposed",
+        "tags": "harness"
+      }
     }
   ],
   "layout": {

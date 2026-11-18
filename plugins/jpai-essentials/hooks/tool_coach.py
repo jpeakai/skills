@@ -49,6 +49,15 @@ positives: writing a *document about* a blocked command would otherwise be
 blocked by the very rule the document describes. The line that opens the
 heredoc is kept, so `uv run python - <<EOF` is still caught by its stdin rule.
 
+Kiro is the third harness, and the one that is not wire-compatible. Its tool
+names differ (`execute_bash`/`shell`, `fs_write`/`write`, `fs_read`/`read`),
+its read tool can carry several paths in `operations`, and it ignores the JSON
+decision body: a PreToolUse command blocks by exiting non-zero, and stderr is
+what the model reads. `--harness kiro` normalises the payload into the Claude
+shape before deciding, then reports a denial as stderr plus exit 2. The wiring
+lives in `kiro-conf/hooks/tool_coach.json`, not in the plugin, because a Kiro
+power cannot bundle hooks.
+
 Contract (Claude Code hooks):
   exit 0 + JSON body  -> decision applied (we emit deny + reason).
   exit 0 + no output  -> no opinion; normal permission flow proceeds.
@@ -510,6 +519,49 @@ def question_problems(tool_input: dict) -> list[str]:
     return problems
 
 
+# -- Kiro adapter ---------------------------------------------------------
+# Kiro CLI 2.x tool ids and their CLI V3 / IDE 1.0 group names, mapped to the
+# Claude tool whose checks apply. A Kiro write covers create and edit alike.
+KIRO_TOOLS = {
+    "execute_bash": "Bash",
+    "execute_cmd": "Bash",
+    "shell": "Bash",
+    "fs_write": "Write",
+    "write": "Write",
+    "fs_read": "Read",
+    "read": "Read",
+}
+
+# Kiro's exit code for "deny this call and show stderr to the model".
+KIRO_DENY_EXIT = 2
+
+
+def kiro_paths(tool_input: dict) -> list[str]:
+    """Every path a Kiro file tool names: top-level, or one per read operation."""
+    paths = [tool_input.get("path") or tool_input.get("file_path") or ""]
+    for op in tool_input.get("operations") or []:
+        if isinstance(op, dict):
+            paths.append(op.get("path") or "")
+    return [p for p in paths if p]
+
+
+def from_kiro(payload: dict) -> list[dict]:
+    """Kiro's PreToolUse event as one Claude-shaped payload per path it names.
+
+    A tool Kiro has with no Claude counterpart comes back unchanged, so it
+    falls through every check exactly as an unknown Claude tool would.
+    """
+    tool = KIRO_TOOLS.get(payload.get("tool_name", ""))
+    tool_input = payload.get("tool_input") or {}
+    if tool is None:
+        return [payload]
+    if tool == "Bash":
+        return [{**payload, "tool_name": tool, "tool_input": {"command": tool_input.get("command", "")}}]
+    return [
+        {**payload, "tool_name": tool, "tool_input": {"file_path": path}} for path in kiro_paths(tool_input)
+    ]
+
+
 # -- Decision -------------------------------------------------------------
 def decide(payload: dict, rules: list[dict], root: Path) -> str | None:
     """The deny reason for this tool call, or None to stay out of the way."""
@@ -556,7 +608,12 @@ def decide(payload: dict, rules: list[dict], root: Path) -> str | None:
     return None
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    args = sys.argv[1:] if argv is None else argv
+    kiro = args == ["--harness", "kiro"]
+    if args and not kiro:
+        return fail(f"unknown arguments {args!r}; the only option is --harness kiro")
+
     raw = sys.stdin.read()
     if not raw.strip():
         return 0  # nothing to inspect
@@ -570,6 +627,15 @@ def main() -> int:
         rules = load_rules(RULES_PATH)
     except (FileNotFoundError, ValueError) as exc:
         return fail(str(exc))
+
+    if kiro:
+        # Kiro reads exit codes, not the JSON body: stderr + 2 denies the call.
+        for call in from_kiro(payload):
+            reason = decide(call, rules, project_root(call))
+            if reason is not None:
+                print(reason, file=sys.stderr)
+                return KIRO_DENY_EXIT
+        return 0
 
     reason = decide(payload, rules, project_root(payload))
     if reason is not None:

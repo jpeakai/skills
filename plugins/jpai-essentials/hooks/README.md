@@ -1,6 +1,7 @@
 # hooks/
 
 A `PreToolUse` guardrail hook, wired once and shared by both ecosystems this repo publishes a plugin for: **Claude Code** and **Codex CLI**.
+**Kiro** runs the same script through `--harness kiro`, wired from [kiro-conf/](../kiro-conf/README.md) because a Kiro power cannot carry hooks.
 
 ## What it does
 
@@ -251,12 +252,24 @@ Claude Code (`.claude/settings.json`, or a project's own `hooks/hooks.json` if i
 
 Copy `tool_coach.py` and `tool_coach_rules.json` to `.claude/hooks/` in the target repo (adjust the path in `command` to match).
 
+### Kiro
+
+Kiro is not wire-compatible, so the script takes `--harness kiro`.
+
+- **Tool names are mapped.** `execute_bash`/`shell` get the Bash checks; `fs_write`/`write` and `fs_read`/`read` get the path check.
+- **Every read path is checked.** A Kiro read can name several paths in `operations`; any one outside the project denies the call.
+- **A denial is stderr plus exit 2.** Kiro ignores the JSON decision body and reads exit codes.
+- **No `AskUserQuestion` check.** Kiro has no equivalent tool.
+
+The wiring is [kiro-conf/hooks/tool_coach.json](../kiro-conf/hooks/tool_coach.json), installed by `make kiro-setup`.
+
 ## Failure behaviour
 
 Fail **loud**, never open.
 A missing or malformed rules file prints one line to stderr and exits 1.
 The hook contract treats that as a non-blocking error.
 The model sees the message, the call proceeds, and the breakage stays visible until it is fixed.
+Kiro blocks the call on any non-zero exit, so under `--harness kiro` a broken rules file fails closed instead.
 
 ## Tests
 

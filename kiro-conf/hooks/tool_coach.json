@@ -1,0 +1,29 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "tool-coach-shell",
+      "trigger": "PreToolUse",
+      "matcher": "shell",
+      "action": { "type": "command", "command": "python3 .claude/hooks/tool_coach.py --harness kiro" },
+      "timeout": 10,
+      "enabled": true
+    },
+    {
+      "name": "tool-coach-write",
+      "trigger": "PreToolUse",
+      "matcher": "write",
+      "action": { "type": "command", "command": "python3 .claude/hooks/tool_coach.py --harness kiro" },
+      "timeout": 10,
+      "enabled": true
+    },
+    {
+      "name": "tool-coach-read",
+      "trigger": "PreToolUse",
+      "matcher": "read",
+      "action": { "type": "command", "command": "python3 .claude/hooks/tool_coach.py --harness kiro" },
+      "timeout": 10,
+      "enabled": true
+    }
+  ]
+}

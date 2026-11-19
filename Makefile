@@ -1,4 +1,4 @@
-.PHONY: fix ci skills-ci docs-ci harness-ci adrs adr-ci profile-themes codex-setup kiro-setup
+.PHONY: fix ci skills-ci docs-ci harness-ci adrs adr-ci ui-ci profile-themes codex-setup kiro-setup
 
 # Regenerate everything that is generated. Safe to run at any time.
 fix: profile-themes
@@ -41,6 +41,7 @@ ci: fix
 	$(MAKE) adr-ci
 	$(MAKE) docs-ci
 	$(MAKE) skills-ci
+	$(MAKE) ui-ci
 	@test -z "$$(git status --porcelain)" || { \
 		git status --short; \
 		echo "ERROR: a skill gate regenerated something - commit it"; \
@@ -70,10 +71,16 @@ skills-ci:
 		$(MAKE) -C "$$d" ci || exit 1; \
 	done
 
+# The richdocs UI build: a dev-time Vite + shadcn project outside the skill
+# (ADR-0006). Only its built output ships in skills/richdocs/assets/; from M1
+# this target also fails when that committed output is stale.
+ui-ci:
+	$(MAKE) -C web/richdocs-ui ci
+
 # Gate root documentation and canonical skill README diagrams once.
 # Plugin mirrors and vendored references remain outside the authored corpus.
 DOCS := README.md CONTRIBUTING.md CODING_STANDARDS.md GLOSSARY.md AGENTS.md \
-        docs/CONVENTIONS.md plugins/README.md hooks/README.md kiro-conf/README.md $(wildcard rules/*.md)
+        docs/CONVENTIONS.md plugins/README.md hooks/README.md kiro-conf/README.md web/richdocs-ui/README.md $(wildcard rules/*.md)
 SKILL_READMES := $(wildcard skills/*/README.md)
 PLUGIN_READMES := $(wildcard plugins/*/README.md)
 

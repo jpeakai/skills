@@ -9,6 +9,7 @@
 | [ADR-0003](0003-structured-root-decisions.md) | Declare standard documentation and render root decisions from YAML | accepted |
 | [ADR-0004](0004-shadcn-role-names.md) | Name consumer-facing colour roles with shadcn's vocabulary | accepted |
 | [ADR-0005](0005-kiro-harness-support.md) | Support Kiro through Agent Plugins manifests and kiro-conf hook wiring | proposed |
+| [ADR-0006](0006-richdocs-ui-build.md) | Build the richdocs pages with a dev-time Vite and shadcn project outside the skill | proposed |
 # By group
 
 ## design-system
@@ -20,6 +21,7 @@
 * [ADR-0002](0002-human-skill-overviews.md) - Human entry points separate from runtime skill instructions
 * [ADR-0003](0003-structured-root-decisions.md) - Standard documentation dialect with a generated root decision bundle
 * [ADR-0005](0005-kiro-harness-support.md) - Kiro installs packs as powers and takes its hook from workspace configuration
+* [ADR-0006](0006-richdocs-ui-build.md) - A dev-time UI Build produces the richdocs viewer and showcase as generated assets
 # Relationship graph
 
 Open [graph.html](graph.html) to explore the records visually: click a node to read it, and links between records navigate the graph.

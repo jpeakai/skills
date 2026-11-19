@@ -32,6 +32,8 @@ flowchart LR
     RX["Role Extension"]:::rule
     H["Harness"]:::people
     PW["Power"]:::pipeline
+    UB["UI Build"]:::pipeline
+    RC["Registry Component"]:::info
     M -- states --> R
     R -- guides --> A
     A -- uses --> D
@@ -51,6 +53,8 @@ flowchart LR
     DP -- adds --> RX
     H -- installs --> P
     P -- packaged as --> PW
+    RC -- composes --> UB
+    UB -- produces --> GF
     classDef people fill:#1e40af,stroke:#93c5fd,color:#fff,stroke-width:2px
     classDef info fill:#92400e,stroke:#fcd34d,color:#fff,stroke-width:2px
     classDef rule fill:#6d28d9,stroke:#c4b5fd,color:#fff,stroke-width:2px
@@ -120,6 +124,11 @@ Its CSS and matching tokens are regenerated together through the design-profiles
 Kiro's installable form of a Plugin, recognised by the Agent Plugins `plugin.json` at the pack root.
 A Power carries skills but not hooks, so Kiro hook wiring ships in `kiro-conf/`.
 
+## Registry Component
+
+A bespoke React component curated in the `jpeakai/ui` shadcn registry and installed into a UI Build at a pinned commit.
+It reads the host's shadcn variables, so the brand injected at runtime themes it.
+
 ## Requirement
 
 A behavior or constraint explicitly required by the Maintainer.
@@ -159,3 +168,8 @@ It records source-token dependencies for colors, charts, fonts and radius so exp
 
 Review feedback supported by evidence and worth acting on within the pull request's intent.
 The resulting fix strengthens safeguards against that category of problem.
+
+## UI Build
+
+The dev-time Vite and shadcn project under `web/richdocs-ui/` that produces the richdocs page bundles.
+Its output ships as Generated Files in `skills/richdocs/assets/`; the project itself never ships.

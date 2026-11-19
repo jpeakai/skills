@@ -78,6 +78,19 @@
         "status": "proposed",
         "tags": "harness"
       }
+    },
+    {
+      "data": {
+        "id": "ADR-0006",
+        "label": "0006",
+        "parent": "group-repository-conventions",
+        "colour": "#0891b2",
+        "file": "0006-richdocs-ui-build.md",
+        "title": "Build the richdocs pages with a dev-time Vite and shadcn project outside the skill",
+        "description": "A dev-time UI Build produces the richdocs viewer and showcase as generated assets",
+        "status": "proposed",
+        "tags": "richdocs, ui"
+      }
     }
   ],
   "layout": {

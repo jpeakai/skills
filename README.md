@@ -5,12 +5,13 @@ Each directory under `skills/` is one skill: a `SKILL.md` carrying YAML frontmat
 
 Contributors: see [CONTRIBUTING.md](CONTRIBUTING.md), [documentation conventions](docs/CONVENTIONS.md), the [glossary](GLOSSARY.md), and the [repository decisions](adrs/index.md).
 
-The skills are published as two installable plugins, so you take the pack you want rather than all of them:
+The skills are published as three installable plugins, so you take the pack you want rather than all of them:
 
 | Plugin | For | Contains |
 |---|---|---|
 | [`jpai-essentials`](plugins/jpai-essentials) | Documentation and diagrams | `librarian`, `adr`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `concise-decisions`, `agnostic`, `tickety-boo`, `snr-pr` |
 | [`jpai-delivery`](plugins/jpai-delivery) | Review feedback, decisions and ticketing | `snr-pr`, `concise-decisions`, `tickety-boo` |
+| [`jpai-ccw`](plugins/jpai-ccw) | Claude Code cloud session setup | `ccw-setup` |
 
 `jpai-essentials` ships the `tool_coach` PreToolUse hook.
 
@@ -27,6 +28,7 @@ The other three routes give you finer control, down to a single skill.
 /plugin marketplace add jpeakai/skills
 /plugin install jpai-essentials@jpeakai
 /plugin install jpai-delivery@jpeakai
+/plugin install jpai-ccw@jpeakai
 ```
 
 To update, refresh the marketplace, then update each pack you installed:
@@ -123,6 +125,7 @@ ln -s "$PWD/skills/librarian" ~/.claude/skills/librarian
 | [`adr`](skills/adr) | essentials | Sets up, migrates, renders and audits architecture decision records, with a compliance audit that exits non-zero so it can gate CI |
 | [`agnostic`](skills/agnostic) | essentials | Keeps documentation generic by renaming project-, client- or company-specific names to open-source-style placeholders |
 | [`snr-pr`](skills/snr-pr) | both | Filters code review results into Signal and Noise, improving review filters and preventing recurring problem categories |
+| [`ccw-setup`](skills/ccw-setup) | ccw | Checks and applies a Claude Code cloud session's per-session setup, and reports when plugins or the pinned setup-script release lag |
 | [`cli`](skills/cli) | none | Playbook for building project-local developer CLIs and the assets they generate: static HTML viewers, workflow templates, stencil diagrams, sticky PR comments |
 | [`concise-decisions`](skills/concise-decisions) | both | Consolidates accumulated ambiguities into a single highest-leverage decision question, answering first from existing decision records |
 | [`gooddocs`](skills/gooddocs) | essentials | Documentation quality in three modes: audit docs against the reality of the code, write or improve them, or restructure one for readability |

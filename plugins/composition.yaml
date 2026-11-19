@@ -39,5 +39,12 @@ plugins:
       - tickety-boo
     hooks: false
 
+  # Claude Code cloud session setup. Its scripts are also downloaded by the
+  # environment's setup script from a ccw/vX.Y.Z tag.
+  jpai-ccw:
+    skills:
+      - ccw-setup            # check and apply per-session cloud setup
+    hooks: false
+
 # Not in any pack: `cli`. It stays canonical in ../skills/cli and is installed
 # manually. Add it to a pack by naming it above.

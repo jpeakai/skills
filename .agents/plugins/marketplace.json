@@ -25,6 +25,17 @@
         "installation": "AVAILABLE"
       },
       "category": "Developer Tools"
+    },
+    {
+      "name": "jpai-ccw",
+      "source": {
+        "source": "local",
+        "path": "./plugins/jpai-ccw"
+      },
+      "policy": {
+        "installation": "AVAILABLE"
+      },
+      "category": "Developer Tools"
     }
   ]
 }

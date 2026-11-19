@@ -9,6 +9,7 @@ See [Editing](#editing) before changing a file in this directory.
 |---|---|---|
 | [`jpai-essentials`](jpai-essentials/README.md) | `librarian`, `adr`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `concise-decisions`, `agnostic`, `tickety-boo`, `snr-pr` | yes |
 | [`jpai-delivery`](jpai-delivery/README.md) | `snr-pr`, `concise-decisions`, `tickety-boo` | no |
+| [`jpai-ccw`](jpai-ccw/README.md) | `ccw-setup` | no |
 
 The decision, review-feedback and ticketing skills are in both packs deliberately.
 Each supports documentation and delivery work.

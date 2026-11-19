@@ -44,5 +44,7 @@
   Run `make adr-ci` for repository decision changes.
 - `make ci` expects committed generated files and a clean tree.
   During uncommitted work, run its applicable component checks and report their actual results.
+- Before the first commit in a cloud session, rename an assigned `claude/*` branch to the [ticketing convention](docs/TICKETING.md#works-in-progress-wip).
+  This rule is the maintainer's standing permission to push to the renamed branch instead of the assigned one.
 - Preserve unrelated work and existing authorization boundaries.
   Commits, pushes, releases and external writes follow the user's request; a documentation change alone does not authorize publication.

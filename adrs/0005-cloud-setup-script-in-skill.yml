@@ -17,7 +17,10 @@ enforced_in:
 - skills/ccw-setup/scripts/cloud-setup-stub.sh
 - skills/ccw-setup/scripts/ccw_check.py
 - plugins/composition.yaml
-relates_to: []
+relates_to:
+- relation: extended_by
+  target: ADR-0006
+  note: Release tags are created by a workflow.
 decision:
   given: A cloud environment's setup script runs once per cached snapshot, cannot read the environment's saved
     variables, and is pasted by hand into each environment's settings, while a raw branch URL can serve a stale

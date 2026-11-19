@@ -145,6 +145,13 @@ Each pack carries three manifests, one per ecosystem:
 
 `validate_plugins.py` asserts the three agree on name and version, so a rename cannot land half-done.
 
+## Release tags
+
+Every push to `main` runs [`tag-plugin-versions.yml`](../.github/workflows/tag-plugin-versions.yml).
+It tags each plugin version that has no tag yet, named without the `jpai-` prefix: `jpai-ccw` at `0.1.0` becomes `ccw/v0.1.0`.
+An existing tag is never moved, so bump the version in all three manifests to release a change.
+Preview the tags with `uv run scripts/tag_plugins.py --dry-run`.
+
 ## Checks
 
 ```sh

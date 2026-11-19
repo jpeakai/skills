@@ -9,6 +9,7 @@
 | [ADR-0003](0003-structured-root-decisions.md) | Declare standard documentation and render root decisions from YAML | accepted |
 | [ADR-0004](0004-kiro-harness-support.md) | Support Kiro through Agent Plugins manifests and kiro-conf hook wiring | proposed |
 | [ADR-0005](0005-cloud-setup-script-in-skill.md) | Ship the cloud setup script inside the ccw-setup skill and release it under ccw/ tags | proposed |
+| [ADR-0006](0006-auto-tag-plugin-versions.md) | Tag every plugin version automatically on main, named without the jpai- prefix | proposed |
 # By group
 
 ## repository-conventions
@@ -18,11 +19,14 @@
 * [ADR-0003](0003-structured-root-decisions.md) - Standard documentation dialect with a generated root decision bundle
 * [ADR-0004](0004-kiro-harness-support.md) - Kiro installs packs as powers and takes its hook from workspace configuration
 * [ADR-0005](0005-cloud-setup-script-in-skill.md) - Machine setup is downloaded from an immutable tag, and per-session state is applied by a skill
+* [ADR-0006](0006-auto-tag-plugin-versions.md) - A workflow creates each missing release tag, so no release waits on a person with tag access
 # Relationship graph
 
 Open [graph.html](graph.html) to explore the records visually: click a node to read it, and links between records navigate the graph.
 The same edge set is rendered as prose in [graph.md](graph.md), and as data in [graph.json](graph.json).
 
+* ADR-0005 --extended_by--> ADR-0006
+* ADR-0006 --extends--> ADR-0005
 
 # Scoped decision logs
 

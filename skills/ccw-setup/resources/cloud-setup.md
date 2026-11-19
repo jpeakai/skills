@@ -53,7 +53,7 @@ The namespace keeps setup-script releases apart from other tags.
 ### Cutting a release
 
 1. Merge the change, with the `jpai-ccw` version bumped in its three manifests.
-2. Tag the merge commit `ccw/v<version>` and push the tag.
+2. Wait for the tag workflow to create `ccw/v<version>` on `main`.
 3. In each environment's setup script, set `CCW_RELEASE` to the new tag.
 
 ### A plugin-only release

@@ -16,6 +16,10 @@ generated: { by: human:maintainer, at: 2026-11-15T00:00:00Z }
 
 <!-- GENERATED from ADR-0005 by okf_render.py. Do not edit; edit the .yml and regenerate. -->
 
+## Relates to
+
+- Extended by [ADR-0006](0006-auto-tag-plugin-versions.md) (Release tags are created by a workflow.)
+
 ## Decision
 
 ### The lens

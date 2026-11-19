@@ -1,0 +1,108 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Claude Cloud Worker identity for the ccw-setup skill. Creates an IAM user that
+  can only assume the worker role, the worker role, and an optional admin role
+  guarded by an external ID. Create the user's access key after the stack, so the
+  secret never appears in stack outputs.
+
+Parameters:
+  WorkerName:
+    Type: String
+    Default: claude-cloud-worker
+    AllowedPattern: "[A-Za-z0-9+=,.@_-]{1,48}"
+    Description: Base name for the IAM user and roles.
+  WorkerPolicyArn:
+    Type: String
+    Default: arn:aws:iam::aws:policy/ReadOnlyAccess
+    Description: Managed policy attached to the worker role. Grant only what sessions need.
+  AdminPolicyArn:
+    Type: String
+    Default: ""
+    Description: Managed policy for the admin role. Leave empty to skip the admin role.
+  AdminExternalId:
+    Type: String
+    Default: ""
+    NoEcho: true
+    MinLength: 0
+    Description: External ID the admin role requires. Required when AdminPolicyArn is set.
+
+Conditions:
+  CreateAdmin: !Not [!Equals [!Ref AdminPolicyArn, ""]]
+
+Rules:
+  AdminNeedsExternalId:
+    RuleCondition: !Not [!Equals [!Ref AdminPolicyArn, ""]]
+    Assertions:
+      - Assert: !Not [!Equals [!Ref AdminExternalId, ""]]
+        AssertDescription: AdminExternalId is required when AdminPolicyArn is set.
+
+Resources:
+  WorkerUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Ref WorkerName
+
+  WorkerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${WorkerName}-role"
+      Description: Role the ccw AWS profile assumes from a Claude cloud session.
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt WorkerUser.Arn
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Ref WorkerPolicyArn
+
+  AdminRole:
+    Type: AWS::IAM::Role
+    Condition: CreateAdmin
+    Properties:
+      RoleName: !Sub "${WorkerName}-admin"
+      Description: Role the ccw-admin AWS profile assumes with an external ID.
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt WorkerUser.Arn
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                sts:ExternalId: !Ref AdminExternalId
+      ManagedPolicyArns:
+        - !Ref AdminPolicyArn
+
+  AssumeRolesPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: assume-ccw-roles
+      Users:
+        - !Ref WorkerUser
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Resource: !If
+              - CreateAdmin
+              - [!GetAtt WorkerRole.Arn, !GetAtt AdminRole.Arn]
+              - [!GetAtt WorkerRole.Arn]
+
+Outputs:
+  WorkerUserName:
+    Description: Create its access key with the CreateAccessKey command below.
+    Value: !Ref WorkerUser
+  WorkerRoleArn:
+    Description: Save as CCW_ROLE_ARN in the cloud environment.
+    Value: !GetAtt WorkerRole.Arn
+  AdminRoleArn:
+    Condition: CreateAdmin
+    Description: Save as CCW_ADMIN_ROLE_ARN in the admin cloud environment.
+    Value: !GetAtt AdminRole.Arn
+  CreateAccessKey:
+    Description: Run this, then save the key pair as AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.
+    Value: !Sub "aws iam create-access-key --user-name ${WorkerUser}"

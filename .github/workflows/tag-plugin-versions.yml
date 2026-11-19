@@ -1,0 +1,35 @@
+# Tag each plugin's version on main, once. scripts/tag_plugins.py holds the
+# logic and its tests; this workflow only runs it with permission to push tags.
+#
+# Tags are <plugin without jpai->/vX.Y.Z, such as ccw/v0.1.0. The ccw-setup
+# stub downloads its setup script from the ccw/ tag (ADR-0005, ADR-0006).
+name: Tag plugin versions
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tag-plugin-versions
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Identify the tagger
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Tag and push new plugin versions
+        run: python3 scripts/tag_plugins.py --push

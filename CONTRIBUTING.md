@@ -42,3 +42,4 @@ Follow [docs/TICKETING.md](docs/TICKETING.md) for issues, branch naming and PR c
 Describe the resulting behavior and the validation actually performed.
 Keep generated plugin files in the same change as their canonical sources.
 Publish or release only when requested.
+Merging a plugin version bump to `main` tags that release automatically; see [release tags](plugins/README.md#release-tags).

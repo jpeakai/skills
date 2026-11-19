@@ -238,7 +238,7 @@ skills/          canonical skills, one directory each   ← edit here
 hooks/           canonical hook, its rules and tests    ← edit here
 plugins/         generated packs, two manifests each    ← never edit
   composition.yaml   which skills go in which pack
-scripts/         sync, validate, and harness install test
+scripts/         sync, validate, release tags, and harness install test
 tests/           what a marketplace enforces on publication
 pyproject.toml   the repo's own tooling deps, uv-managed   ← never a skill's
 ```

@@ -71,6 +71,39 @@
         "status": "proposed",
         "tags": "cloud, release"
       }
+    },
+    {
+      "data": {
+        "id": "ADR-0006",
+        "label": "0006",
+        "parent": "group-repository-conventions",
+        "colour": "#6366f1",
+        "file": "0006-auto-tag-plugin-versions.md",
+        "title": "Tag every plugin version automatically on main, named without the jpai- prefix",
+        "description": "A workflow creates each missing release tag, so no release waits on a person with tag access",
+        "status": "proposed",
+        "tags": "release"
+      }
+    },
+    {
+      "data": {
+        "id": "ADR-0005-extended_by-ADR-0006",
+        "source": "ADR-0005",
+        "target": "ADR-0006",
+        "label": "extended by",
+        "relation": "extended_by",
+        "note": "Release tags are created by a workflow."
+      }
+    },
+    {
+      "data": {
+        "id": "ADR-0006-extends-ADR-0005",
+        "source": "ADR-0006",
+        "target": "ADR-0005",
+        "label": "extends",
+        "relation": "extends",
+        "note": "Automates the ccw/ release tags ADR-0005 pins."
+      }
     }
   ],
   "layout": {

@@ -21,6 +21,7 @@ flowchart LR
     PW["Power"]:::pipeline
     CW["Cloud Worker"]:::people
     SS["Setup Script"]:::rule
+    RT["Release Tag"]:::record
     M -- states --> R
     R -- guides --> A
     A -- uses --> D
@@ -36,6 +37,8 @@ flowchart LR
     P -- packaged as --> PW
     CW -- starts from --> SS
     SS -- installs --> P
+    P -- versioned by --> RT
+    SS -- downloads from --> RT
     classDef people fill:#1e40af,stroke:#93c5fd,color:#fff,stroke-width:2px
     classDef info fill:#92400e,stroke:#fcd34d,color:#fff,stroke-width:2px
     classDef rule fill:#6d28d9,stroke:#c4b5fd,color:#fff,stroke-width:2px
@@ -94,6 +97,11 @@ An installable composition of Canonical Skills and optional hooks, declared in `
 
 Kiro's installable form of a Plugin, recognised by the Agent Plugins `plugin.json` at the pack root.
 A Power carries skills but not hooks, so Kiro hook wiring ships in `kiro-conf/`.
+
+## Release Tag
+
+A git tag marking one Plugin version, named the plugin without its `jpai-` prefix, then `/v` and the version.
+A workflow creates it on `main`, and it is never moved.
 
 ## Requirement
 

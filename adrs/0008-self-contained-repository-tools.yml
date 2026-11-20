@@ -1,0 +1,30 @@
+id: ADR-0008
+slug: self-contained-repository-tools
+title: Organise repository automation as self-contained CLI Tool subprojects
+description: Focused Tools own their environments, commands, tests and maintenance instructions
+plan_id:
+status: proposed
+accepted_on: '2026-11-20'
+last_changed_on: '2026-11-20'
+tags:
+- tooling
+group: repository-conventions
+provenance: Maintainer requirement for independently curated plugin-ci and harness-ci Tool subprojects.
+enforced_in:
+- tools/AGENTS.md
+- tools/plugin-ci/pyproject.toml
+- tools/harness-ci/pyproject.toml
+- Makefile
+relates_to: []
+decision:
+  given: Repository automation covers distinct publication and harness responsibilities with different dependencies and execution risks.
+  we_prefer: focused CLI Tool subprojects under tools/ with independent manifests and lockfiles over a loose root scripts directory
+  because: each responsibility has explicit commands, curated dependencies, local quality gates and clear maintenance ownership
+  unless: multiple Tools need a shared runtime package whose ownership and dependency contract are recorded separately
+consequences:
+  pros:
+  - Every Tool owns a README, agent instructions, tests and an independently runnable CLI.
+  - Root orchestration delegates to Tool commands while skill-local helpers remain self-contained.
+  - Tool gates enforce formatting, lint, strict typing, cognitive complexity and coverage.
+  cons:
+  - Each Tool maintains its own dependency lockfile and quality configuration.

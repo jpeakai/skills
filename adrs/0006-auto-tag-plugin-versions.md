@@ -8,8 +8,8 @@ accepted_on: 2026-11-19
 provenance: Maintainer requirement in issue 49 after the ccw/v0.1.0 tag from ADR-0005 went missing, with tags named without the jpai- prefix.
 enforced_in:
   - .github/workflows/tag-plugin-versions.yml
-  - scripts/tag_plugins.py
-  - tests/test_tag_plugins.py
+  - tools/plugin-ci/src/plugin_ci/commands/tag_plugins.py
+  - tools/plugin-ci/tests/test_tag_plugins.py
 generated: { by: human:maintainer, at: 2026-11-19T00:00:00Z }
 ---
 
@@ -17,6 +17,7 @@ generated: { by: human:maintainer, at: 2026-11-19T00:00:00Z }
 
 ## Relates to
 
+- Extended by [ADR-0007](0007-publish-generated-plugin-mirrors.md) (Generates and publishes plugin copies before release tags are created.)
 - Extends [ADR-0005](0005-cloud-setup-script-in-skill.md) (Automates the ccw/ release tags ADR-0005 pins.)
 
 ## Decision

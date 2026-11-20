@@ -87,6 +87,45 @@
     },
     {
       "data": {
+        "id": "ADR-0007",
+        "label": "0007",
+        "parent": "group-repository-conventions",
+        "colour": "#6366f1",
+        "file": "0007-publish-generated-plugin-mirrors.md",
+        "title": "Publish generated plugin mirrors on main before creating release tags",
+        "description": "Feature PRs carry canonical sources while publication automation commits validated plugin copies",
+        "status": "proposed",
+        "tags": "release"
+      }
+    },
+    {
+      "data": {
+        "id": "ADR-0008",
+        "label": "0008",
+        "parent": "group-repository-conventions",
+        "colour": "#6366f1",
+        "file": "0008-self-contained-repository-tools.md",
+        "title": "Organise repository automation as self-contained CLI Tool subprojects",
+        "description": "Focused Tools own their environments, commands, tests and maintenance instructions",
+        "status": "proposed",
+        "tags": "tooling"
+      }
+    },
+    {
+      "data": {
+        "id": "ADR-0009",
+        "label": "0009",
+        "parent": "group-repository-conventions",
+        "colour": "#6366f1",
+        "file": "0009-resolve-skill-paths-across-harnesses.md",
+        "title": "Resolve skill locations through a harness-independent SKILLS_ROOT placeholder",
+        "description": "Agent skill instructions resolve their installation path without assuming a harness directory",
+        "status": "accepted",
+        "tags": "skills, portability"
+      }
+    },
+    {
+      "data": {
         "id": "ADR-0005-extended_by-ADR-0006",
         "source": "ADR-0005",
         "target": "ADR-0006",
@@ -97,12 +136,32 @@
     },
     {
       "data": {
+        "id": "ADR-0006-extended_by-ADR-0007",
+        "source": "ADR-0006",
+        "target": "ADR-0007",
+        "label": "extended by",
+        "relation": "extended_by",
+        "note": "Generates and publishes plugin copies before release tags are created."
+      }
+    },
+    {
+      "data": {
         "id": "ADR-0006-extends-ADR-0005",
         "source": "ADR-0006",
         "target": "ADR-0005",
         "label": "extends",
         "relation": "extends",
         "note": "Automates the ccw/ release tags ADR-0005 pins."
+      }
+    },
+    {
+      "data": {
+        "id": "ADR-0007-extends-ADR-0006",
+        "source": "ADR-0007",
+        "target": "ADR-0006",
+        "label": "extends",
+        "relation": "extends",
+        "note": "Generates and publishes plugin copies before release tags are created."
       }
     }
   ],

@@ -7,13 +7,11 @@ from pathlib import Path
 
 
 def test_sync_removes_evals_and_preserves_canonical_sources(tmp_path: Path) -> None:
-    scripts = tmp_path / "scripts"
-    scripts.mkdir()
-    script = scripts / "sync_plugins.py"
-    shutil.copyfile(Path(__file__).resolve().parents[1] / "scripts/sync_plugins.py", script)
     plugins = tmp_path / "plugins"
     plugins.mkdir()
-    (plugins / "composition.yaml").write_text("plugins:\n  example:\n    skills: [example]\n    hooks: false\n")
+    (plugins / "composition.yaml").write_text(
+        "plugins:\n  example:\n    skills: [example]\n    hooks: false\n"
+    )
     source = tmp_path / "skills/example"
     source.mkdir(parents=True)
     (source / "SKILL.md").write_text("Runtime guidance\n")
@@ -25,7 +23,12 @@ def test_sync_removes_evals_and_preserves_canonical_sources(tmp_path: Path) -> N
     shutil.copytree(source, destination)
 
     def run(*args: str) -> subprocess.CompletedProcess[str]:
-        return subprocess.run([sys.executable, str(script), *args], capture_output=True, text=True)
+        return subprocess.run(
+            [sys.executable, "-m", "plugin_ci", "--project-dir", str(tmp_path), "sync", *args],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
 
     assert run("--check").returncode == 1
     assert run().returncode == 0

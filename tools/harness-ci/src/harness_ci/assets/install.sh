@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # End-to-end install test for both harnesses, in throwaway sandboxes.
 #
-# Structural validation (scripts/validate_plugins.py) proves the files are
+# Structural validation (plugin-ci validate) proves the files are
 # shaped right. This proves the two agents actually accept them. It clones the
-# repo at HEAD into a temp directory, so the test runs against a fresh checkout
+# repo at HEAD into the retained sandbox, so the test runs against a fresh checkout
 # carrying exactly what a consumer would get, then installs both plugins into a
 # config directory that has nothing else in it.
 #
@@ -15,25 +15,25 @@
 #                                    personal skills from ~/.agents/skills,
 #                                    which CODEX_HOME does not cover
 #
-# Usage: scripts/test_harness_install.sh [sandbox-dir]
+# Usage: uv run --project tools/harness-ci harness-ci run [sandbox-dir]
 # Exit codes: 0 both harnesses accepted and loaded both plugins, 1 otherwise.
 
 set -uo pipefail
 
-REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SANDBOX="${1:-${TMPDIR:-/tmp}/jpai-skills-harness-test-$(date +%Y%m%d-%H%M%S)}"
+REPO="${HARNESS_CI_PROJECT_DIR:?Run through the harness-ci CLI}"
+SANDBOX="${1:?The harness-ci CLI must supply a sandbox directory}"
 CLONE="$SANDBOX/checkout"
 PLUGINS=(jpai-essentials jpai-delivery)
 
 # Skills that must appear in each plugin, to prove the mirror survived the clone.
-ESSENTIALS_SKILLS=(librarian gooddocs mermaidjs-diagrams richdocs concise-decisions agnostic snr-pr)
+ESSENTIALS_SKILLS=(cli librarian gooddocs mermaidjs-diagrams richdocs concise-decisions agnostic snr-pr)
 DELIVERY_SKILLS=(snr-pr concise-decisions tickety-boo)
 
 pass=0
 fail=0
 
 ok()   { echo "  ok   $1"; pass=$((pass + 1)); }
-bad()  { echo "  FAIL $1${2:+ — $2}"; fail=$((fail + 1)); }
+bad()  { echo "  FAIL $1${2:+: $2}"; fail=$((fail + 1)); }
 check() { if [ "$1" = "0" ]; then ok "$2"; else bad "$2" "${3:-}"; fi; }
 
 echo "Sandbox: $SANDBOX"
@@ -44,6 +44,13 @@ echo
 echo "Cloning HEAD into the sandbox (proves a consumer's checkout works)"
 git clone --quiet --no-hardlinks "$REPO" "$CLONE" 2>/dev/null
 check $? "git clone"
+
+if uv run --locked --project "$CLONE/tools/plugin-ci" plugin-ci --project-dir "$CLONE" sync; then
+    ok "canonical sources regenerate the installed plugins"
+else
+    bad "canonical sources regenerate the installed plugins"
+    exit 1
+fi
 
 # Codex copies a plugin into its cache and drops symlink entries, so a
 # symlinked skill would install as an empty directory with no error. Assert the

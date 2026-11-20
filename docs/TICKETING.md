@@ -17,11 +17,14 @@ Issues are subdivided into:
 
 (Other categories may be added overtime)
 
-Each issue title should be prefixed with:
-- `[bug]`
-- `[feat]`
+Issue titles use `(<target-skill>) <concise summary>`.
+Use the canonical skill name exactly, for example `(ccw-setup) GCP Support`.
+The issue number is supplied by GitHub and is not part of the title.
+For work spanning multiple skills, list their names separated by commas inside the parentheses, for example `(art-gen, art-edit) Import image skills`.
+For repository-wide work without a target skill, use `(repository)`.
 
-And also tagged accordingly.
+Keep bug and feature categories in labels rather than title prefixes.
+Use `bug` for bugs and `enhancement` for features.
 
 This categorisation will assist with prioritising types of work to work on.
 
@@ -81,7 +84,7 @@ gh issue list --state open --json number,title,labels,blockedBy,blocking --limit
 An issue is **ready** when every issue it is blocked by is CLOSED.
 
 To choose the next piece of work, take the ready issues in dependency order (topological order of the DAG).
-Among ready issues, prefer the one blocking the most open work, then `[bug]` before `[feat]`, then the highest demand, then the lowest issue number.
+Among ready issues, prefer the one blocking the most open work, then issues labelled `bug` before those labelled `enhancement`, then the highest demand, then the lowest issue number.
 
 ## Works In Progress (WIP)
 

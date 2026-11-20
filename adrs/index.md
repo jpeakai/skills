@@ -10,6 +10,9 @@
 | [ADR-0004](0004-kiro-harness-support.md) | Support Kiro through Agent Plugins manifests and kiro-conf hook wiring | proposed |
 | [ADR-0005](0005-cloud-setup-script-in-skill.md) | Ship the cloud setup script inside the ccw-setup skill and release it under ccw/ tags | proposed |
 | [ADR-0006](0006-auto-tag-plugin-versions.md) | Tag every plugin version automatically on main, named without the jpai- prefix | proposed |
+| [ADR-0007](0007-publish-generated-plugin-mirrors.md) | Publish generated plugin mirrors on main before creating release tags | proposed |
+| [ADR-0008](0008-self-contained-repository-tools.md) | Organise repository automation as self-contained CLI Tool subprojects | proposed |
+| [ADR-0009](0009-resolve-skill-paths-across-harnesses.md) | Resolve skill locations through a harness-independent SKILLS_ROOT placeholder | accepted |
 # By group
 
 ## repository-conventions
@@ -20,13 +23,18 @@
 * [ADR-0004](0004-kiro-harness-support.md) - Kiro installs packs as powers and takes its hook from workspace configuration
 * [ADR-0005](0005-cloud-setup-script-in-skill.md) - Machine setup is downloaded from an immutable tag, and per-session state is applied by a skill
 * [ADR-0006](0006-auto-tag-plugin-versions.md) - A workflow creates each missing release tag, so no release waits on a person with tag access
+* [ADR-0007](0007-publish-generated-plugin-mirrors.md) - Feature PRs carry canonical sources while publication automation commits validated plugin copies
+* [ADR-0008](0008-self-contained-repository-tools.md) - Focused Tools own their environments, commands, tests and maintenance instructions
+* [ADR-0009](0009-resolve-skill-paths-across-harnesses.md) - Agent skill instructions resolve their installation path without assuming a harness directory
 # Relationship graph
 
 Open [graph.html](graph.html) to explore the records visually: click a node to read it, and links between records navigate the graph.
 The same edge set is rendered as prose in [graph.md](graph.md), and as data in [graph.json](graph.json).
 
 * ADR-0005 --extended_by--> ADR-0006
+* ADR-0006 --extended_by--> ADR-0007
 * ADR-0006 --extends--> ADR-0005
+* ADR-0007 --extends--> ADR-0006
 
 # Scoped decision logs
 

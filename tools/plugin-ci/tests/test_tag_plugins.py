@@ -2,24 +2,35 @@
 
 from __future__ import annotations
 
-import importlib.util
 import json
 import subprocess
 from pathlib import Path
 
 import pytest
 
-SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "tag_plugins.py"
-spec = importlib.util.spec_from_file_location("tag_plugins", SCRIPT)
-assert spec and spec.loader
-tag_plugins = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(tag_plugins)
+from plugin_ci.app import main
+from plugin_ci.commands import tag_plugins
 
-GIT_ID = ["-c", "user.name=Tester", "-c", "user.email=tester@example.com", "-c", "tag.gpgsign=false"]
+REPO = Path(__file__).resolve().parents[3]
+
+GIT_ID = [
+    "-c",
+    "user.name=Tester",
+    "-c",
+    "user.email=tester@example.com",
+    "-c",
+    "tag.gpgsign=false",
+]
+
+
+def invoke(flags: list[str], repo: Path) -> int:
+    return main(["--project-dir", str(repo), "tag", *flags])
 
 
 def git(repo: Path, *args: str) -> str:
-    out = subprocess.run(["git", "-C", str(repo), *GIT_ID, *args], capture_output=True, text=True, check=True)
+    out = subprocess.run(
+        ["git", "-C", str(repo), *GIT_ID, *args], capture_output=True, text=True, check=True
+    )
     return out.stdout.strip()
 
 
@@ -69,54 +80,54 @@ def test_tag_name_drops_the_jpai_prefix() -> None:
 
 
 def test_tags_every_untagged_version_and_pushes(repo: Path) -> None:
-    assert tag_plugins.main(["--push"], repo) == 0
+    assert invoke(["--push"], repo) == 0
     assert remote_tags(repo) == {"ccw/v0.1.0", "essentials/v1.2.0"}
     assert git(repo, "cat-file", "-t", "ccw/v0.1.0") == "tag"
 
 
 def test_rerun_creates_nothing(repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    tag_plugins.main(["--push"], repo)
+    invoke(["--push"], repo)
     capsys.readouterr()
-    assert tag_plugins.main(["--push"], repo) == 0
-    assert "already tagged" in capsys.readouterr().out
+    assert invoke(["--push"], repo) == 0
+    assert "already tagged" in capsys.readouterr().err
 
 
 def test_bump_tags_only_the_new_version_and_keeps_old_tags(repo: Path) -> None:
-    tag_plugins.main(["--push"], repo)
+    invoke(["--push"], repo)
     first = git(repo, "rev-parse", "ccw/v0.1.0^{commit}")
     write_manifest(repo, "jpai-ccw", "0.2.0")
     commit(repo, "bump ccw")
     assert tag_plugins.missing_tags(repo) == ["ccw/v0.2.0"]
-    tag_plugins.main(["--push"], repo)
+    invoke(["--push"], repo)
     assert git(repo, "rev-parse", "ccw/v0.1.0^{commit}") == first
     assert git(repo, "rev-parse", "ccw/v0.2.0^{commit}") == git(repo, "rev-parse", "HEAD")
 
 
 def test_dry_run_creates_nothing(repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    assert tag_plugins.main(["--dry-run"], repo) == 0
-    assert "would tag ccw/v0.1.0" in capsys.readouterr().out
+    assert invoke(["--dry-run"], repo) == 0
+    assert "would tag ccw/v0.1.0" in capsys.readouterr().err
     assert tag_plugins.missing_tags(repo) == ["ccw/v0.1.0", "essentials/v1.2.0"]
 
 
 def test_without_push_tags_stay_local(repo: Path) -> None:
-    assert tag_plugins.main([], repo) == 0
+    assert invoke([], repo) == 0
     assert tag_plugins.missing_tags(repo) == []
     assert remote_tags(repo) == set()
 
 
 def test_push_failure_exits_one(repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    assert tag_plugins.main(["--push", "--remote", "nowhere"], repo) == 1
+    assert invoke(["--push", "--remote", "nowhere"], repo) == 1
     assert "git push failed" in capsys.readouterr().err
 
 
 def test_tag_failure_exits_one(repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
     write_manifest(repo, "jpai-ccw", "bad..version")
-    assert tag_plugins.main([], repo) == 1
+    assert invoke([], repo) == 1
     assert "git tag ccw/vbad..version failed" in capsys.readouterr().err
 
 
 def test_real_manifests_produce_valid_tag_names() -> None:
-    repo = SCRIPT.parent.parent
+    repo = REPO
     for plugin, version in tag_plugins.plugin_versions(repo).items():
         name = tag_plugins.tag_name(plugin, version)
         assert not name.startswith("jpai-")

@@ -16,9 +16,11 @@
 ## Sources and generated output
 
 - Edit canonical skills in `skills/` and canonical hooks in `hooks/`.
-  Declare plugin membership in `plugins/composition.yaml`, then run `make fix`.
+  Declare plugin membership in `plugins/composition.yaml`.
+  Run `make fix` to validate generated copies locally; omit those copies from feature PRs.
+  The main-branch publication workflow commits generated plugin updates before tagging.
 - Never hand-edit `plugins/*/skills/` or `plugins/*/hooks/`.
-  Keep each plugin's Claude and Codex manifests consistent.
+  Keep each plugin's three manifests consistent; version bumps remain authored changes.
 - Preserve `skills/richdocs/vendor/` as an upstream-owned snapshot.
   Refresh it through the documented procedure rather than patching individual files.
 - Keep `evals/` only in canonical skills; exclude it from vendor snapshots and plugin output.
@@ -37,12 +39,14 @@
 - Author repository decisions as `adrs/NNNN-slug.yml` using [adrs/TEMPLATE.yaml](adrs/TEMPLATE.yaml).
   Accepted arguments are immutable; record a changed decision through supersession and reciprocal relations.
   Run `make adrs` after source or template changes; never edit generated decision views.
-- Run `uv run scripts/validate_plugins.py` and `uv run pytest` after composition or publication changes.
+- Run `uv run --project tools/plugin-ci plugin-ci validate` and `uv run pytest` after composition or publication changes.
+- Maintain repository CLI subprojects under `tools/` following [tools/AGENTS.md](tools/AGENTS.md).
+  Run `make tools-ci` after Tool changes.
 - Run `make docs-ci` after authored documentation changes.
   It includes every canonical skill README and checks Mermaid parsing, complexity and contrast.
 - Run the affected skill's `scripts/Makefile` gate when changing its executable code.
   Run `make adr-ci` for repository decision changes.
-- `make ci` expects committed generated files and a clean tree.
+- `make ci` expects committed authored files and permits regenerated plugin changes.
   During uncommitted work, run its applicable component checks and report their actual results.
 - Before the first commit in a cloud session, rename an assigned `claude/*` branch to the [ticketing convention](docs/TICKETING.md#works-in-progress-wip).
   This rule is the maintainer's standing permission to push to the renamed branch instead of the assigned one.

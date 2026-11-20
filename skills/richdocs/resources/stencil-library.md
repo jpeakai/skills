@@ -42,7 +42,7 @@ remain the providers' trademarks — fine for internal architecture docs).
    chosen over CSS: it works in *every* renderer.
 
 ```bash
-uv run --no-project .claude/skills/richdocs/scripts/stencil.py \
+uv run --no-project {SKILLS_ROOT}/richdocs/scripts/stencil.py \
   extract "mxgraph.aws4/lambda" --color '#ED7100' --size 64 --out lambda.svg
 ```
 

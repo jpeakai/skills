@@ -37,7 +37,7 @@ Two valid responses, both provided by this skill:
    architecture and cost data; never expose them to the LAN.
 
 ```bash
-uv run --no-project .claude/skills/richdocs/scripts/serve.py tmp/richdocs --open
+uv run --no-project {SKILLS_ROOT}/richdocs/scripts/serve.py tmp/richdocs --open
 ```
 
 ## Pinned CDN libraries

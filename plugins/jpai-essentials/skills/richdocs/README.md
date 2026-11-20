@@ -15,7 +15,8 @@ The showcase exercises the full visual surface in one animated tour.
 ```mermaid
 flowchart LR
     S["Repositories and documents"]:::input --> M["Source-backed Markdown"]:::process
-    M --> H["HTML companion"]:::process
+    M --> G["Number headings and check visual sections"]:::process
+    G --> H["HTML companion"]:::process
     H --> L["Live local viewer"]:::output
     H --> I["Single-file viewer"]:::output
     classDef input fill:#1e40af,stroke:#93c5fd,color:#fff,stroke-width:2px
@@ -37,6 +38,7 @@ flowchart LR
         TOK["design-tokens.json<br/>(brandpack)"]
     end
     subgraph scripts["scripts/"]
+        CHECK["structure.py"]
         M2H["md2html.py"]
         ST["stencil.py"]
         SRV["serve.py"]
@@ -48,7 +50,7 @@ flowchart LR
     end
     BROWSER["Browser<br/>http://127.0.0.1:8642"]
 
-    MD --> M2H --> HTML
+    MD --> CHECK --> M2H --> HTML
     TOK --> M2H
     ZIP --> ST --> SVG
     HTML --> SRV --> BROWSER
@@ -59,7 +61,7 @@ flowchart LR
     classDef tool fill:#1e293b,stroke:#cbd5e1,color:#f8fafc
     classDef output fill:#dbeafe,stroke:#1d4ed8,color:#1e3a8a
     class MD,DATA,TOK,ZIP src
-    class M2H,ST,SRV tool
+    class CHECK,M2H,ST,SRV tool
     class HTML,SVG,BROWSER output
 ```
 
@@ -83,22 +85,41 @@ documents.
 
 **Direct scripts (from repo root, never `cd`):**
 
+`{SKILLS_ROOT}` means the absolute parent directory of the installed `richdocs/` skill.
+Resolve it from the active harness's supplied skill location and substitute it before running these commands.
+Quote the substituted path when it contains spaces.
+
 ```bash
-uv run --no-project .claude/skills/richdocs/scripts/md2html.py TARGET_ARCHITECTURE.md
-uv run --no-project .claude/skills/richdocs/scripts/serve.py tmp/richdocs --open
+uv run --no-project {SKILLS_ROOT}/richdocs/scripts/md2html.py TARGET_ARCHITECTURE.md
+uv run --no-project {SKILLS_ROOT}/richdocs/scripts/serve.py tmp/richdocs --open
 ```
 
 **Escape hatch (one shareable file, no server):**
 
 ```bash
-uv run --no-project .claude/skills/richdocs/scripts/md2html.py REVIEW.md --inline
+uv run --no-project {SKILLS_ROOT}/richdocs/scripts/md2html.py REVIEW.md --inline
 open tmp/richdocs/REVIEW.html
 ```
+
+## Document structure
+
+Richdocs authors numbered Markdown headings in every output mode.
+Each chart or diagram has a descriptive heading section containing only that visual.
+
+```bash
+uv run --no-project {SKILLS_ROOT}/richdocs/scripts/structure.py DOC.md --fix-headings
+```
+
+The helper updates heading numbers and reports visual sections the agent must correct.
+Run it without `--fix-headings` for a read-only compliance check.
+Numbering is idempotent and shared by the Markdown, HTML headings and contents sidebar.
+Conversion-only requests preserve the supplied source and report structure failures before rendering.
 
 ## Reference
 
 | Piece | What it does |
 |-------|--------------|
+| `scripts/structure.py` | Number headings and reject visuals without a dedicated heading section |
 | `scripts/md2html.py` | Markdown → HTML companion; multi-file live mode or `--inline` single file |
 | `scripts/serve.py` | `127.0.0.1` server with `Cache-Control: no-store`; fixes `file://` fetch blocking |
 | `scripts/stencil.py` | Query/extract tinted SVG icons from the vendored draw.io packs |
@@ -133,4 +154,7 @@ external data file at refresh time. See `resources/rich-blocks.md`.
 ## For maintainers
 
 Design rationale, ADR log, and gotchas: [`AGENTS.md`](AGENTS.md). Dev loop:
-`make -C .claude/skills/richdocs/scripts fix ci`.
+`make -C {SKILLS_ROOT}/richdocs/scripts fix ci`.
+
+Python scripts and tests must keep each function at cognitive complexity 15 or below.
+The `lint` and `ci` targets enforce this with Complexipy, configured in `scripts/pyproject.toml`.

@@ -1,8 +1,8 @@
-.PHONY: fix ci skills-ci docs-ci harness-ci adrs adr-ci codex-setup kiro-setup
+.PHONY: fix ci tools-ci skills-ci docs-ci harness-ci adrs adr-ci codex-setup kiro-setup
 
 # Regenerate everything that is generated. Safe to run at any time.
 fix:
-	uv run scripts/sync_plugins.py
+	uv run --project tools/plugin-ci plugin-ci sync
 	$(MAKE) adrs
 
 adrs:
@@ -11,30 +11,23 @@ adrs:
 adr-ci:
 	uv run --no-project skills/adr/scripts/adr_audit.py .
 
-# Assert the tree is clean after a regenerate: a generated file that differs
-# means someone hand-edited a pack, or edited a canonical skill without
-# re-syncing. Then the layout invariants, the publication contract, and the
-# hook suite.
-#
-# The two gates split by who owns the rule. validate_plugins.py asserts the
-# layout this repo invented (the mirror, the composition, the hook wiring);
-# tests/ asserts what a marketplace enforces on sync, which nothing else
-# available locally checks - not `claude plugin validate --strict`, not
-# harness-ci, not the published marketplace schema.
+# Validate regenerated plugins while requiring authored files to be committed.
+# The main-branch publication workflow owns generated plugin commits.
 ci: fix
-	@test -z "$$(git status --porcelain)" || { \
-		git status --short; \
-		echo "ERROR: regenerate left the tree dirty - commit the generated files"; \
-		exit 1; }
-	uv run scripts/validate_plugins.py
+	uv run --project tools/plugin-ci plugin-ci check-worktree
+	uv run --project tools/plugin-ci plugin-ci validate
 	uv run pytest
+	$(MAKE) tools-ci
 	$(MAKE) adr-ci
 	$(MAKE) docs-ci
 	$(MAKE) skills-ci
-	@test -z "$$(git status --porcelain)" || { \
-		git status --short; \
-		echo "ERROR: a skill gate regenerated something - commit it"; \
-		exit 1; }
+	uv run --project tools/plugin-ci plugin-ci check-worktree
+
+TOOL_GATES := $(patsubst %/Makefile,%,$(wildcard tools/*/Makefile))
+
+tools-ci:
+	@test -n "$(TOOL_GATES)"
+	@for directory in $(TOOL_GATES); do $(MAKE) -C "$$directory" ci || exit 1; done
 
 # A skill opts into its own script gate by shipping scripts/Makefile with a `ci`
 # target. Discovered, never listed here: adding the file is the opt-in, and the
@@ -63,7 +56,8 @@ skills-ci:
 # Gate root documentation and canonical skill README diagrams once.
 # Plugin mirrors and vendored references remain outside the authored corpus.
 DOCS := README.md CONTRIBUTING.md CODING_STANDARDS.md GLOSSARY.md AGENTS.md \
-        docs/CONVENTIONS.md plugins/README.md hooks/README.md kiro-conf/README.md $(wildcard rules/*.md)
+        docs/CONVENTIONS.md plugins/README.md hooks/README.md kiro-conf/README.md $(wildcard rules/*.md) \
+        tools/README.md tools/AGENTS.md $(wildcard tools/*/README.md) $(wildcard tools/*/AGENTS.md)
 SKILL_READMES := $(wildcard skills/*/README.md)
 PLUGIN_READMES := $(wildcard plugins/*/README.md)
 
@@ -83,10 +77,10 @@ docs-ci:
 
 # The real install test: clones HEAD and installs both packs into throwaway
 # Claude and Codex sandboxes. Kept out of `ci` because it drives two external
-# CLIs and writes sandboxes outside the repo, so it is slower and depends on
+# CLIs and retains isolated sandboxes, so it is slower and depends on
 # more of the host than the other targets.
 harness-ci:
-	./scripts/test_harness_install.sh
+	uv run --locked --project tools/harness-ci harness-ci run
 
 # Use when this repo is cloned into a project as .claude/ to setup the sibling .codex/
 codex-setup:

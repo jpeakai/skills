@@ -17,7 +17,7 @@ So the caps below are **observed**, not documented, and the sync's own
 wording is quoted next to each one. If a sync ever reports a limit different
 from these, the number here is what is wrong.
 
-``scripts/validate_plugins.py`` is the sibling gate and owns a different
+The validation command owns a different
 contract: the internal layout that holds the generated mirror together
 (symlinks, composition, hook wiring, manifest agreement). A rule belongs
 there if this repo invented it, and here if a marketplace will judge it.
@@ -25,7 +25,7 @@ there if this repo invented it, and here if a marketplace will judge it.
 Dependencies are the project's ``dev`` group, so ``make ci`` and a bare run
 resolve identically:
 
-    uv run pytest tests/test_publication_contract.py
+    uv run --directory tools/plugin-ci pytest tests/test_publication_contract.py
 """
 
 from __future__ import annotations
@@ -37,7 +37,7 @@ from pathlib import Path
 import pytest
 from ruamel.yaml import YAML
 
-REPO = Path(__file__).resolve().parent.parent
+REPO = Path(__file__).resolve().parents[3]
 
 # --- The observed caps -----------------------------------------------------
 # "Skill 'skills/gooddocs': field 'description' in SKILL.md must be at most
@@ -164,7 +164,8 @@ def test_plugin_description_within_cap(manifest: Path) -> None:
     carry the same description, so all four had to be fixed."""
     n = len(json.loads(manifest.read_text(encoding="utf-8")).get("description", ""))
     assert n <= PLUGIN_DESCRIPTION_CAP, (
-        f"{manifest.relative_to(REPO)} description is {n} chars, over the cap by {n - PLUGIN_DESCRIPTION_CAP}"
+        f"{manifest.relative_to(REPO)} description is {n} chars, "
+        f"over the cap by {n - PLUGIN_DESCRIPTION_CAP}"
     )
 
 
@@ -181,7 +182,9 @@ def test_one_skill_md_per_skill(skill: Path) -> None:
     a second time and the whole plugin was rejected.
     """
     nested = sorted(
-        p.relative_to(REPO) for p in skill.rglob("SKILL.md") if p.parent != skill and "node_modules" not in p.parts
+        p.relative_to(REPO)
+        for p in skill.rglob("SKILL.md")
+        if p.parent != skill and "node_modules" not in p.parts
     )
     assert not nested, "SKILL.md below a skill's root: " + "; ".join(
         f"{p} — rename to {p.parent.name}.md" for p in nested
@@ -228,7 +231,9 @@ def test_vendored_runtime_surfaces_cite_the_renamed_entrypoint(copy: Path) -> No
     """
     surfaces = [copy / f"{copy.name}.md", *sorted((copy / "resources").rglob("*.md"))]
     offenders = [
-        str(p.relative_to(REPO)) for p in surfaces if p.is_file() and "SKILL.md" in p.read_text(encoding="utf-8")
+        str(p.relative_to(REPO))
+        for p in surfaces
+        if p.is_file() and "SKILL.md" in p.read_text(encoding="utf-8")
     ]
     assert not offenders, (
         "vendored runtime surface still cites SKILL.md, which does not exist in the copy: "
@@ -249,7 +254,8 @@ def test_frontmatter_name_matches_directory(skill: Path) -> None:
 @pytest.mark.parametrize("skill", SKILLS, ids=SKILL_IDS)
 def test_skill_name_is_a_lowercase_slug(skill: Path) -> None:
     assert SKILL_NAME.match(skill.name), (
-        f"{skill.name!r} is not a lowercase hyphenated slug; it would install but not be invocable as typed"
+        f"{skill.name!r} is not a lowercase hyphenated slug; "
+        "it would install but not be invocable as typed"
     )
 
 
@@ -258,8 +264,12 @@ def test_description_is_present_and_substantial(skill: Path) -> None:
     """An absent or throwaway description is the quietest way to break a skill:
     it installs, it lists, and the model never chooses it."""
     description = frontmatter(skill / "SKILL.md").get("description", "")
-    assert description.strip(), f"{skill.name} has no description — the model would never auto-invoke it"
-    assert len(description) >= 40, f"{skill.name} description is {len(description)} chars, too thin to route on"
+    assert description.strip(), (
+        f"{skill.name} has no description — the model would never auto-invoke it"
+    )
+    assert len(description) >= 40, (
+        f"{skill.name} description is {len(description)} chars, too thin to route on"
+    )
 
 
 @pytest.mark.parametrize("skill", SKILLS, ids=SKILL_IDS)
@@ -270,7 +280,6 @@ def test_frontmatter_keys_are_known(skill: Path) -> None:
     unknown = sorted(set(frontmatter(skill / "SKILL.md")) - KNOWN_FRONTMATTER_KEYS)
     assert not unknown, (
         f"{skill.name} has unrecognised frontmatter key(s) {unknown}. "
-        "Fix the spelling, or add the key to KNOWN_FRONTMATTER_KEYS with the source that documents it."
+        "Fix the spelling, or add the key to KNOWN_FRONTMATTER_KEYS "
+        "with the source that documents it."
     )
-
-

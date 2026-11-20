@@ -1,49 +1,26 @@
-#!/usr/bin/env -S uv run
-"""Structural gate for the multi-plugin layout.
-
-The repo keeps one canonical copy of every skill (``skills/``) and of the hook
-implementation (``hooks/``), and composes them into plugins under ``plugins/``
-by symlink. That buys single-sourcing but moves a whole class of breakage off
-the type system and into the filesystem: a dangling link, a plugin whose
-manifests disagree about its own name, a marketplace pointing at a directory
-that was renamed, a per-plugin ``hooks.json`` that drifted from the canonical
-wiring.
-
-This script asserts the invariants that hold the layout together.
-
-Run it with no arguments from anywhere:
-
-    uv run scripts/validate_plugins.py
-
-Dependencies are the project's ``dev`` group in ``pyproject.toml``, so ``uv
-run`` syncs them and there is no environment to prepare.
-
-Exit codes: 0 all invariants hold, 1 at least one failed.
-"""
-
 from __future__ import annotations
 
-import argparse
+import io
 import json
-import subprocess
-import sys
+from contextlib import redirect_stdout
 from pathlib import Path
+from typing import Any, cast
 
 from ruamel.yaml import YAML
 
-REPO = Path(__file__).resolve().parent.parent
+from .sync_plugins import sync
 
 # What a *marketplace* enforces on publication — description caps, unique skill
 # names, no second SKILL.md inside a vendored copy — is asserted in
-# tests/test_publication_contract.py, not here, and the caps are declared there
+# tools/plugin-ci/tests/test_publication_contract.py, not here, and the caps are declared there
 # once. This script owns the other half: the internal layout that holds the
 # generated mirror together. A rule belongs there if a marketplace judges it,
 # and here if this repo invented it.
 
 # hooks.json must be a REGULAR FILE inside each plugin, not a symlink:
 # `claude plugin validate --strict` reads hook config without following
-# symlinks and fails the plugin if it cannot read it. The scripts it points at
-# are symlinked, so only this one small wiring file is duplicated.
+# symlinks and fails the plugin if it cannot read it.
+# Hook implementation files are mirrored alongside the regular wiring file.
 WIRING_FILE = "hooks.json"
 
 
@@ -54,7 +31,7 @@ class Report:
         self.failures: list[str] = []
         self.checks = 0
 
-    def check(self, ok: bool, label: str, detail: str = "") -> bool:
+    def check(self, ok: bool, label: str, detail: Any = "") -> bool:
         self.checks += 1
         if ok:
             print(f"  ok   {label}")
@@ -65,15 +42,15 @@ class Report:
         return ok
 
 
-def load_json(path: Path) -> dict:
-    return json.loads(path.read_text(encoding="utf-8"))
+def load_json(path: Path) -> dict[str, Any]:
+    return cast(dict[str, Any], json.loads(path.read_text(encoding="utf-8")))
 
 
-def load_yaml(path: Path) -> dict:
-    return YAML(typ="safe").load(path.read_text(encoding="utf-8"))
+def load_yaml(path: Path) -> dict[str, Any]:
+    return cast(dict[str, Any], YAML(typ="safe").load(path.read_text(encoding="utf-8")))
 
 
-def frontmatter(skill_md: Path) -> dict:
+def frontmatter(skill_md: Path) -> dict[str, Any]:
     """Return a SKILL.md's YAML frontmatter block as a dict.
 
     The block is real YAML, so it is parsed as YAML rather than scanned line by
@@ -90,10 +67,10 @@ def frontmatter(skill_md: Path) -> dict:
 
 
 def frontmatter_name(skill_md: Path) -> str | None:
-    return frontmatter(skill_md).get("name")
+    return cast(str | None, frontmatter(skill_md).get("name"))
 
 
-def check_no_symlinks(rep: Report) -> None:
+def check_no_symlinks(rep: Report, repo: Path) -> None:
     """No entry under plugins/ may be a symlink.
 
     Codex copies a plugin into its cache and skips symlink entries, so a
@@ -104,57 +81,63 @@ def check_no_symlinks(rep: Report) -> None:
     other.
     """
     print("\nNo symlinks under plugins/ (Codex silently drops them)")
-    links = sorted(p for p in (REPO / "plugins").rglob("*") if p.is_symlink())
+    links = sorted(p for p in (repo / "plugins").rglob("*") if p.is_symlink())
     rep.check(
         not links,
         "plugins/ is free of symlinks",
-        ", ".join(str(p.relative_to(REPO)) for p in links[:5]),
+        ", ".join(str(p.relative_to(repo)) for p in links[:5]),
     )
 
 
-def check_mirror_in_sync(rep: Report) -> None:
+def check_mirror_in_sync(rep: Report, repo: Path) -> None:
     """Delegate the content comparison to the sync script's own --check mode."""
     print("\nMirror matches the canonical skills/ and hooks/ trees")
-    # Invoked through `uv run` rather than this interpreter, so the sibling
-    # script gets the project environment whatever this one was started with.
-    result = subprocess.run(
-        ["uv", "run", str(REPO / "scripts" / "sync_plugins.py"), "--check"],
-        capture_output=True,
-        text=True,
-    )
-    rep.check(
-        result.returncode == 0,
-        "plugins/ mirror is in sync",
-        "run: uv run scripts/sync_plugins.py",
-    )
-    if result.returncode != 0:
-        for line in result.stdout.splitlines()[1:6]:
+    output = io.StringIO()
+    with redirect_stdout(output):
+        result = sync(True, repo)
+    rep.check(result == 0, "plugins/ mirror is in sync", "run: plugin-ci sync")
+    if result:
+        for line in output.getvalue().splitlines()[1:6]:
             print(f"       {line.strip()}")
 
 
-def check_composition(rep: Report) -> None:
+def check_composition(rep: Report, repo: Path) -> None:
     """plugins/composition.yaml is the declaration; the tree must match it."""
     print("\nEach plugin tree matches plugins/composition.yaml")
-    composition = load_yaml(REPO / "plugins" / "composition.yaml")["plugins"]
-    dirs = {p.name for p in (REPO / "plugins").iterdir() if p.is_dir()}
-    rep.check(set(composition) == dirs, "composition.yaml covers every plugin dir", f"{set(composition)} vs {dirs}")
+    composition = load_yaml(repo / "plugins" / "composition.yaml")["plugins"]
+    dirs = {p.name for p in (repo / "plugins").iterdir() if p.is_dir()}
+    rep.check(
+        set(composition) == dirs,
+        "composition.yaml covers every plugin dir",
+        f"{set(composition)} vs {dirs}",
+    )
     for plugin, spec in sorted(composition.items()):
         declared = set(spec["skills"])
-        present = {p.name for p in (REPO / "plugins" / plugin / "skills").iterdir() if not p.name.startswith(".")}
-        rep.check(declared == present, f"{plugin}: composed skills match declaration", f"{declared} vs {present}")
+        present = {
+            p.name
+            for p in (repo / "plugins" / plugin / "skills").iterdir()
+            if not p.name.startswith(".")
+        }
+        rep.check(
+            declared == present,
+            f"{plugin}: composed skills match declaration",
+            f"{declared} vs {present}",
+        )
         for name in sorted(declared):
-            rep.check((REPO / "skills" / name).is_dir(), f"{plugin}: canonical skills/{name} exists")
+            rep.check(
+                (repo / "skills" / name).is_dir(), f"{plugin}: canonical skills/{name} exists"
+            )
 
 
-def check_hook_wiring(rep: Report) -> None:
+def check_hook_wiring(rep: Report, repo: Path) -> None:
     print("\nHook wiring is a regular file and matches the canonical copy")
-    canonical = (REPO / "hooks" / WIRING_FILE).read_bytes()
-    composition = load_yaml(REPO / "plugins" / "composition.yaml")["plugins"]
-    for plugin in sorted((REPO / "plugins").iterdir()):
+    canonical = (repo / "hooks" / WIRING_FILE).read_bytes()
+    composition = load_yaml(repo / "plugins" / "composition.yaml")["plugins"]
+    for plugin in sorted((repo / "plugins").iterdir()):
         if not plugin.is_dir():
             continue
         wiring = plugin / "hooks" / WIRING_FILE
-        rel = wiring.relative_to(REPO)
+        rel = wiring.relative_to(repo)
         if not composition.get(plugin.name, {}).get("hooks"):
             rep.check(
                 not (plugin / "hooks").exists(),
@@ -179,21 +162,29 @@ def check_hook_wiring(rep: Report) -> None:
 AGENT_PLUGINS_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
 
 
-def check_manifests(rep: Report) -> None:
+def check_manifests(rep: Report, repo: Path) -> None:
     print("\nEach plugin's three manifests agree with its directory name")
-    composition = load_yaml(REPO / "plugins" / "composition.yaml")["plugins"]
-    for plugin in sorted((REPO / "plugins").iterdir()):
+    composition = load_yaml(repo / "plugins" / "composition.yaml")["plugins"]
+    for plugin in sorted((repo / "plugins").iterdir()):
         if not plugin.is_dir():
             continue
         claude = plugin / ".claude-plugin" / "plugin.json"
         codex = plugin / ".codex-plugin" / "plugin.json"
-        if not rep.check(claude.exists(), f"{claude.relative_to(REPO)} exists"):
+        if not rep.check(claude.exists(), f"{claude.relative_to(repo)} exists"):
             continue
-        if not rep.check(codex.exists(), f"{codex.relative_to(REPO)} exists"):
+        if not rep.check(codex.exists(), f"{codex.relative_to(repo)} exists"):
             continue
         cj, xj = load_json(claude), load_json(codex)
-        rep.check(cj.get("name") == plugin.name, f"{plugin.name}: Claude manifest name matches dir", cj.get("name"))
-        rep.check(xj.get("name") == plugin.name, f"{plugin.name}: Codex manifest name matches dir", xj.get("name"))
+        rep.check(
+            cj.get("name") == plugin.name,
+            f"{plugin.name}: Claude manifest name matches dir",
+            cj.get("name"),
+        )
+        rep.check(
+            xj.get("name") == plugin.name,
+            f"{plugin.name}: Codex manifest name matches dir",
+            xj.get("name"),
+        )
         rep.check(
             cj.get("version") == xj.get("version"),
             f"{plugin.name}: versions agree",
@@ -213,19 +204,33 @@ def check_manifests(rep: Report) -> None:
         # sits at the pack root; without it `kiro-cli powers install` refuses
         # the directory. Kiro also requires keywords, which the spec leaves optional.
         kiro = plugin / "plugin.json"
-        if rep.check(kiro.exists(), f"{kiro.relative_to(REPO)} exists"):
+        if rep.check(kiro.exists(), f"{kiro.relative_to(repo)} exists"):
             kj = load_json(kiro)
-            rep.check(kj.get("$schema") == AGENT_PLUGINS_SCHEMA, f"{plugin.name}: Kiro manifest $schema", kj.get("$schema"))
-            rep.check(kj.get("name") == plugin.name, f"{plugin.name}: Kiro manifest name matches dir", kj.get("name"))
+            rep.check(
+                kj.get("$schema") == AGENT_PLUGINS_SCHEMA,
+                f"{plugin.name}: Kiro manifest $schema",
+                kj.get("$schema"),
+            )
+            rep.check(
+                kj.get("name") == plugin.name,
+                f"{plugin.name}: Kiro manifest name matches dir",
+                kj.get("name"),
+            )
             rep.check(
                 kj.get("version") == cj.get("version"),
                 f"{plugin.name}: Kiro version agrees",
                 f"claude={cj.get('version')} kiro={kj.get('version')}",
             )
-            rep.check(bool(kj.get("keywords")), f"{plugin.name}: Kiro manifest has keywords", kj.get("keywords"))
+            rep.check(
+                bool(kj.get("keywords")),
+                f"{plugin.name}: Kiro manifest has keywords",
+                kj.get("keywords"),
+            )
 
         # Codex needs explicit paths; Claude auto-discovers, so only Codex is asserted here.
-        rep.check(xj.get("skills") == "./skills", f"{plugin.name}: Codex skills path", xj.get("skills"))
+        rep.check(
+            xj.get("skills") == "./skills", f"{plugin.name}: Codex skills path", xj.get("skills")
+        )
         if composition.get(plugin.name, {}).get("hooks"):
             rep.check(
                 xj.get("hooks") == f"./hooks/{WIRING_FILE}",
@@ -242,9 +247,9 @@ def check_manifests(rep: Report) -> None:
             )
 
 
-def check_skills(rep: Report) -> None:
+def check_skills(rep: Report, repo: Path) -> None:
     print("\nEvery composed skill resolves to a real SKILL.md whose name matches")
-    for plugin in sorted((REPO / "plugins").iterdir()):
+    for plugin in sorted((repo / "plugins").iterdir()):
         if not plugin.is_dir():
             continue
         skills = plugin / "skills"
@@ -256,26 +261,30 @@ def check_skills(rep: Report) -> None:
             if not rep.check(skill_md.exists(), f"{rel}/SKILL.md exists"):
                 continue
             name = frontmatter_name(skill_md)
-            rep.check(name == entry.name, f"{rel}: frontmatter name matches directory", f"got {name!r}")
+            rep.check(
+                name == entry.name, f"{rel}: frontmatter name matches directory", f"got {name!r}"
+            )
 
 
-def check_marketplaces(rep: Report) -> None:
+def check_marketplaces(rep: Report, repo: Path) -> None:
     print("\nBoth marketplaces list the same plugins, and each source path exists")
-    on_disk = {p.name for p in (REPO / "plugins").iterdir() if p.is_dir()}
+    on_disk = {p.name for p in (repo / "plugins").iterdir() if p.is_dir()}
 
-    claude_mp = load_json(REPO / ".claude-plugin" / "marketplace.json")
+    claude_mp = load_json(repo / ".claude-plugin" / "marketplace.json")
     claude_names = set()
     for entry in claude_mp.get("plugins", []):
         claude_names.add(entry["name"])
-        src = (REPO / entry["source"]).resolve()
+        src = (repo / entry["source"]).resolve()
         rep.check(src.is_dir(), f"Claude marketplace source for {entry['name']}", entry["source"])
 
-    codex_mp = load_json(REPO / ".agents" / "plugins" / "marketplace.json")
+    codex_mp = load_json(repo / ".agents" / "plugins" / "marketplace.json")
     codex_names = set()
     for entry in codex_mp.get("plugins", []):
         codex_names.add(entry["name"])
-        src = (REPO / entry["source"]["path"]).resolve()
-        rep.check(src.is_dir(), f"Codex marketplace source for {entry['name']}", entry["source"]["path"])
+        src = (repo / entry["source"]["path"]).resolve()
+        rep.check(
+            src.is_dir(), f"Codex marketplace source for {entry['name']}", entry["source"]["path"]
+        )
         # Codex 0.153.x rejects the whole marketplace file on an unknown
         # `authentication` variant, so assert only the accepted keys are used.
         policy = entry.get("policy", {})
@@ -285,32 +294,35 @@ def check_marketplaces(rep: Report) -> None:
             f"unexpected {sorted(set(policy) - {'installation'})}",
         )
 
-    rep.check(claude_names == on_disk, "Claude marketplace covers every plugin dir", f"{claude_names} vs {on_disk}")
-    rep.check(codex_names == on_disk, "Codex marketplace covers every plugin dir", f"{codex_names} vs {on_disk}")
+    rep.check(
+        claude_names == on_disk,
+        "Claude marketplace covers every plugin dir",
+        f"{claude_names} vs {on_disk}",
+    )
+    rep.check(
+        codex_names == on_disk,
+        "Codex marketplace covers every plugin dir",
+        f"{codex_names} vs {on_disk}",
+    )
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.parse_args()
+def validate(repo: Path) -> int:
 
-    print(f"Validating plugin layout in {REPO}")
+    print(f"Validating plugin layout in {repo}")
     rep = Report()
-    check_no_symlinks(rep)
-    check_mirror_in_sync(rep)
-    check_composition(rep)
-    check_hook_wiring(rep)
-    check_manifests(rep)
-    check_skills(rep)
-    check_marketplaces(rep)
+    check_no_symlinks(rep, repo)
+    check_mirror_in_sync(rep, repo)
+    check_composition(rep, repo)
+    check_hook_wiring(rep, repo)
+    check_manifests(rep, repo)
+    check_skills(rep, repo)
+    check_marketplaces(rep, repo)
 
     print(f"\n{rep.checks} checks run.")
     if rep.failures:
         print(f"{len(rep.failures)} FAILED:")
         for f in rep.failures:
             print(f"  - {f}")
-        sys.exit(1)
+        return 1
     print("All invariants hold.")
-
-
-if __name__ == "__main__":
-    main()
+    return 0

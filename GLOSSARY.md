@@ -22,6 +22,9 @@ flowchart LR
     CW["Cloud Worker"]:::people
     SS["Setup Script"]:::rule
     RT["Release Tag"]:::record
+    T["Tool"]:::pipeline
+    T -- validates --> P
+    M -- maintains --> T
     M -- states --> R
     R -- guides --> A
     A -- uses --> D
@@ -116,3 +119,8 @@ It cannot read the environment's saved variables, so per-session state belongs t
 
 Review feedback supported by evidence and worth acting on within the pull request's intent.
 The resulting fix strengthens safeguards against that category of problem.
+
+## Tool
+
+A self-contained command-line subproject under `tools/<category>/` that automates a focused repository responsibility.
+Each Tool owns its dependencies, lockfile, tests, README and agent instructions, and follows the repository coding standards.

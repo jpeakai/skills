@@ -14,7 +14,7 @@ provenance: Maintainer requirement to support Kiro as a harness for skills, plug
 enforced_in:
 - plugins/jpai-essentials/plugin.json
 - plugins/jpai-delivery/plugin.json
-- scripts/validate_plugins.py
+- tools/plugin-ci/src/plugin_ci/commands/validate_plugins.py
 - hooks/tool_coach.py
 - kiro-conf/
 - Makefile

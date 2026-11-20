@@ -13,9 +13,12 @@ provenance: Maintainer requirement in issue 49 after the ccw/v0.1.0 tag from ADR
   named without the jpai- prefix.
 enforced_in:
 - .github/workflows/tag-plugin-versions.yml
-- scripts/tag_plugins.py
-- tests/test_tag_plugins.py
+- tools/plugin-ci/src/plugin_ci/commands/tag_plugins.py
+- tools/plugin-ci/tests/test_tag_plugins.py
 relates_to:
+- relation: extended_by
+  target: ADR-0007
+  note: Generates and publishes plugin copies before release tags are created.
 - relation: extends
   target: ADR-0005
   note: Automates the ccw/ release tags ADR-0005 pins.

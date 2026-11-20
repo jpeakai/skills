@@ -1,0 +1,32 @@
+id: ADR-0009
+slug: resolve-skill-paths-across-harnesses
+title: Resolve skill locations through a harness-independent SKILLS_ROOT placeholder
+description: Agent skill instructions resolve their installation path without assuming a harness directory
+plan_id:
+status: accepted
+accepted_on: '2026-11-20'
+last_changed_on: '2026-11-20'
+tags:
+- skills
+- portability
+group: repository-conventions
+provenance: Maintainer requirement that agent skills work across Claude, Codex and Kiro.
+enforced_in:
+- skills/richdocs/SKILL.md
+- skills/richdocs/README.md
+- skills/richdocs/AGENTS.md
+relates_to: []
+decision:
+  given: Claude, Codex and Kiro can install the same skill in different locations, including plugin caches and directories outside the target repository.
+  we_prefer: '{SKILLS_ROOT} in agent skill instructions, resolved from the active harness supplied skill location or the installed SKILL.md path, over literal .claude/, .codex/, .kiro/ or .agents/ directory assumptions'
+  because: commands can locate the installed skill consistently while retaining the target repository as their working directory
+  unless: a shared cross-harness installation contract supplies another portable resource-location mechanism
+consequences:
+  pros:
+  - SKILLS_ROOT denotes the absolute parent directory of the installed skill directory.
+  - Agents verify the skill path, substitute the placeholder before execution and quote paths containing spaces.
+  - Runtime instructions and maintained examples share one portable path convention.
+  - Richdocs adopts the convention immediately and the remaining skills are tracked separately.
+  cons:
+  - Agents must resolve the installation location before executing commands.
+  - Accepted historical decision arguments and upstream-owned vendor snapshots retain their original text until supersession or an upstream refresh.

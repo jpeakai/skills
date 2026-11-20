@@ -21,15 +21,16 @@ The language tables distinguish observed enforcement from gaps; this document do
 
 | Tenet | Observed enforcement or gap |
 |---|---|
-| Autoformatting | Skill Makefiles run `ruff format --check`; no root Python formatting gate is declared |
-| Strict linting | Skill Makefiles run `ruff check`; strictest-rule and warning policy are not uniformly configured |
-| Strict typing | ADR skill Makefile runs `mypy --strict`; root tooling has no type-check gate |
-| Coverage | ADR skill tests use `--cov-fail-under=90`; root pytest has no coverage threshold |
+| Autoformatting | Tool and skill Makefiles run `ruff format --check` |
+| Strict linting | Tool and skill Makefiles run `ruff check`; Tools enable broad error, import, modernization and correctness rules |
+| Strict typing | Tool subprojects and the ADR skill run strict mypy |
+| Coverage | Tool subprojects and the ADR skill enforce at least 90 percent coverage; root hook tests have no threshold |
 | Real dependencies | ADR audit tests use real temporary Git repositories; no repository-wide mock prohibition is mechanically enforced |
 | Behavioral tests | Publication and hook suites check observable contracts; review remains responsible for test quality |
-| Complexity | No repository-wide Python complexity cap is configured |
+| Complexity | Tools and Richdocs enforce cognitive complexity at most 15 per function with their local `pyproject.toml` |
 
-Repository tooling uses the development group in [pyproject.toml](pyproject.toml).
+Repository Tools own their dependencies and lockfiles under [tools/](tools/README.md).
+The root [pyproject.toml](pyproject.toml) owns hook tests and evaluation dependencies.
 Shipped Python helpers declare standalone dependencies through PEP-723 headers and run with `uv run --no-project`.
 Do not add consumer dependencies to the repository's development environment to hide a missing script declaration.
 
@@ -73,4 +74,4 @@ Derive diagram palettes from the Mermaid skill's color references and pass the p
 
 YAML decision sources must validate against [adrs/record.schema.json](adrs/record.schema.json).
 Generated decision views and plugin mirrors are never edited by hand.
-Publication constraints are enforced by [tests/test_publication_contract.py](tests/test_publication_contract.py).
+Publication constraints are enforced by [tools/plugin-ci/tests/test_publication_contract.py](tools/plugin-ci/tests/test_publication_contract.py).

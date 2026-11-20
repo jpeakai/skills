@@ -7,7 +7,7 @@ See [Editing](#editing) before changing a file in this directory.
 
 | Plugin | Skills | Hook |
 |---|---|---|
-| [`jpai-essentials`](jpai-essentials/README.md) | `librarian`, `adr`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `concise-decisions`, `agnostic`, `tickety-boo`, `snr-pr` | yes |
+| [`jpai-essentials`](jpai-essentials/README.md) | `librarian`, `adr`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `concise-decisions`, `agnostic`, `tickety-boo`, `snr-pr`, `cli` | yes |
 | [`jpai-delivery`](jpai-delivery/README.md) | `snr-pr`, `concise-decisions`, `tickety-boo` | no |
 | [`jpai-ccw`](jpai-ccw/README.md) | `ccw-setup` | no |
 
@@ -15,12 +15,11 @@ The decision, review-feedback and ticketing skills are in both packs deliberatel
 Each supports documentation and delivery work.
 Installing both packs is fine: each harness namespaces skills by plugin.
 
-The `cli` skill is not in either pack.
-It stays canonical in [`../skills/cli`](../skills/cli) and is installed manually; add it to a pack by naming it in [`composition.yaml`](composition.yaml).
+The `cli` skill is included in Essentials and remains available directly from [`../skills/cli`](../skills/cli).
 
 ## How a pack is built
 
-`../skills/` and `../hooks/` are the source of truth. `composition.yaml` declares which skills each pack composes, and [`../scripts/sync_plugins.py`](../scripts/sync_plugins.py) copies them in.
+`../skills/` and `../hooks/` are the source of truth. `composition.yaml` declares which skills each pack composes, and [`../tools/plugin-ci/src/plugin_ci/commands/sync_plugins.py`](../tools/plugin-ci/src/plugin_ci/commands/sync_plugins.py) copies them in.
 
 ```mermaid
 flowchart LR
@@ -53,7 +52,7 @@ flowchart LR
 ```mermaid
 flowchart TB
     CF["composition.yaml"]:::cfg
-    SY["scripts/sync_plugins.py"]:::proc
+    SY["tools/plugin-ci/src/plugin_ci/commands/sync_plugins.py"]:::proc
 
     subgraph src["Canonical — hand-edited"]
         SKD["../skills/&lt;name&gt;/<br/>SKILL.md + resources"]:::src
@@ -127,9 +126,9 @@ The cost is working-tree disk, not history.
 
 | To do this | Change this | Then run |
 |---|---|---|
-| Change a skill | `../skills/<name>/` | `make fix` |
-| Change the hook | `../hooks/` | `make fix` |
-| Add or remove a skill from a pack | [`composition.yaml`](composition.yaml) | `make fix` |
+| Change a skill | `../skills/<name>/` | `make fix` for validation; omit generated copies from the PR |
+| Change the hook | `../hooks/` | `make fix` for validation; omit generated copies from the PR |
+| Add or remove a skill from a pack | [`composition.yaml`](composition.yaml) | `make fix` for validation; omit generated copies from the PR |
 | Update a plugin overview | that pack's `README.md` | `make docs-ci` |
 | Change a pack's name, version or blurb | that pack's three `plugin.json` files | `make ci` |
 
@@ -147,19 +146,33 @@ Each pack carries three manifests, one per ecosystem:
 
 ## Release tags
 
+Feature PRs contain canonical skill and hook changes, composition, manifests and plugin overviews.
+Generated `plugins/*/skills/` and `plugins/*/hooks/` copies stay out of feature PRs.
+The pull-request job builds them locally and runs layout validation and publication tests with read-only repository permissions.
+
 Every push to `main` runs [`tag-plugin-versions.yml`](../.github/workflows/tag-plugin-versions.yml).
-It tags each plugin version that has no tag yet, named without the `jpai-` prefix: `jpai-ccw` at `0.1.0` becomes `ccw/v0.1.0`.
+The publisher checks out the latest `main`, regenerates plugins, validates their layout and runs publication tests.
+If generated files changed, it commits and pushes only those files as `github-actions[bot]` before creating release tags.
+An unchanged mirror creates no commit.
+
+Publication runs are serialised; a concurrent update to `main` causes a normal push rejection and stops tagging.
+Rerun the workflow to publish from the latest `main`.
+Repository rules must permit the workflow token to push this generated commit.
+The workflow uses [`GITHUB_TOKEN`](https://docs.github.com/en/actions/concepts/security/github_token), whose pushes do not trigger another workflow run.
+
+It tags the validated commit for each plugin version that has no tag yet, named without the `jpai-` prefix: `jpai-ccw` at `0.1.0` becomes `ccw/v0.1.0`.
 An existing tag is never moved, so bump the version in all three manifests to release a change.
-Preview the tags with `uv run scripts/tag_plugins.py --dry-run`.
+Preview the tags with `uv run --project tools/plugin-ci plugin-ci tag --dry-run`.
 
 ## Checks
 
 ```sh
-make ci           # mirror is committed, every layout invariant, the hook suite
+make ci           # authored files committed, plugins regenerated and validated
 make harness-ci   # real install into both harnesses
 ```
 
-`make ci` runs `make fix` first, so a canonical skill edited without re-syncing fails the build rather than shipping a stale pack.
+`make ci` runs `make fix` first, then validates the regenerated packs.
+Authored files must be committed; generated plugin copies may differ from HEAD.
 
 The last one clones HEAD into a temp directory, then installs both packs into a throwaway `CLAUDE_CONFIG_DIR` and a throwaway `CODEX_HOME`. `HOME` is replaced as well, because Codex reads personal skills from `~/.agents/skills`, which `CODEX_HOME` does not cover.
 It then asserts each skill reaches the model-visible prompt and that no external skill root leaked into the sandbox.

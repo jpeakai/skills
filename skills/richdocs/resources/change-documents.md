@@ -36,7 +36,7 @@ labels) are scored on that theme's light and dark `surface`, the page the
 viewer draws diagrams on:
 
 ```bash
-uv run --no-project .claude/skills/richdocs/scripts/md2html.py SOURCE.md --theme NAME --lint-flags \
+uv run --no-project {SKILLS_ROOT}/richdocs/scripts/md2html.py SOURCE.md --theme NAME --lint-flags \
   | xargs bunx @jpeakai/mermaidjs-lint@0.7.0 SOURCE.md
 ```
 

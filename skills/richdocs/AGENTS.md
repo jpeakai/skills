@@ -23,6 +23,8 @@ Resolve `{SKILLS_ROOT}` from the installed skill location as described in `SKILL
 | `resources/discovery.md` | source-backed systems discovery document type |
 | `resources/upgrade-recipes.md` | per-archetype upgrade recipes, fidelity ladder |
 | `resources/prose-style.md` | global-audience standard for **authored** prose (no em-dash, Australian English, short clauses, inclusive language, standard vocabulary); self-contained copy (ADR-015) |
+| `resources/charts/legends.md` | chart legend placement contract and Plotly validation gate |
+| `scripts/legends.py` | read-only Plotly fence legend placement gate |
 | `scripts/serve.py` | no-store localhost server (stdlib) |
 | `scripts/stencil.py` | stencil query/extract CLI (stdlib, in-memory zip load) |
 | `scripts/themecheck.py` | **brandpack contrast gate** — part of `make ci`. Checks the pairings the CSS actually renders (ADR-012) |
@@ -67,6 +69,13 @@ Resolve `{SKILLS_ROOT}` from the installed skill location as described in `SKILL
 - Outputs go to project-local `tmp/richdocs/`, never system `/tmp`.
 - Anything embedded in a `<script>` escapes `</` → `<\/`.
 - Same input → same output modulo `{{BUILD_ID}}`.
+
+## Documentation and review guidance
+
+- Keep entrypoint obligations and routing in `SKILL.md`; place detailed format contracts and commands under `resources/<category>/` and link them from the entrypoint.
+- Treat explanation questions as questions, rather than defect findings, unless they establish a concrete failure or convention breach.
+- Before proposing unconditional test imports, inspect each test entrypoint's isolated dependency declarations.
+- Before recommending a standard-library replacement, identify an equivalent API that preserves the helper's accepted inputs and rejected values.
 
 ## ADR log
 

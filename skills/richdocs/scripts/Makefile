@@ -4,7 +4,7 @@
 # ── Python source ──────────────────────────────────────────────────────────
 
 # Public Python scripts (referenced in SKILL.md)
-PY_SCRIPTS = serve stencil md2html showcase themecheck structure
+PY_SCRIPTS = serve stencil md2html showcase themecheck structure legends
 
 # Private scripts: maintenance helpers for the skill itself (none yet)
 PRIVATE_PY_SCRIPTS =

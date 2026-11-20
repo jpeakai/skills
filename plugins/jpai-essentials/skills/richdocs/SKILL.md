@@ -82,6 +82,12 @@ uv run --no-project {SKILLS_ROOT}/richdocs/scripts/stencil.py extract "mxgraph.a
 
 Run everything from the repo root. Never `cd`.
 
+## Chart legends (mandatory before delivery)
+
+Every chart must place its legend on the right, outside the plotting area.
+Before authoring or upgrading charts, read [the chart legend contract](resources/charts/legends.md) for layout settings and the mandatory Plotly check.
+A failing legend check blocks delivery.
+
 ## Document structure (mandatory before delivery)
 
 Always number every section heading by hierarchy in Markdown, including the document title.
@@ -285,7 +291,10 @@ Beyond standard markdown + ` ```mermaid `, the HTML companion renders:
 ## 1.2 Cost trend
 
 ```plotly
-{ "data": "cost_series.json" }
+{ "data": "cost_series.json",
+  "layout": { "showlegend": true,
+    "legend": { "orientation": "v", "xref": "paper", "x": 1.02,
+      "xanchor": "left", "y": 1, "yanchor": "top" } } }
 ```
 ````
 

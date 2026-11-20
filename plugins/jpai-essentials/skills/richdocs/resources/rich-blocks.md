@@ -47,8 +47,14 @@ pass `bunx @jpeakai/mermaidjs-lint` (parse, complexity and contrast). See the
 
 ```json
 { "data": [ { "type": "scatter", "x": [1,2,3], "y": [4,1,7] } ],
-  "layout": { "title": "Cost by month" } }
+  "layout": { "title": "Cost by month", "showlegend": true,
+    "legend": { "orientation": "v", "xref": "paper", "x": 1.02,
+      "xanchor": "left", "y": 1, "yanchor": "top" } } }
 ```
+
+Follow [the chart legend contract](charts/legends.md) for required placement, named legends and the blocking Plotly check.
+Data-pointer fences must include the same explicit local layout; it overrides any layout in the fetched payload.
+These settings use [Plotly's legend layout reference](https://plotly.com/javascript/reference/layout/#layout-legend).
 
 Rendered with `Plotly.react`. The theme's `canvas.plotly.<theme>` tokens set
 `paper_bgcolor`, `plot_bgcolor`, font colour, gridlines, and `colorway`

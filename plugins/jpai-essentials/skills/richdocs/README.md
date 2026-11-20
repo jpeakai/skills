@@ -101,6 +101,19 @@ uv run --no-project {SKILLS_ROOT}/richdocs/scripts/md2html.py REVIEW.md --inline
 open tmp/richdocs/REVIEW.html
 ```
 
+## Chart legends
+
+Every chart places its legend vertically on the right, outside the plotting area.
+Plotly definitions use explicit visible legend settings from [the chart legend contract](resources/charts/legends.md).
+Check their fenced JSON before rendering:
+
+```sh
+uv run --no-project {SKILLS_ROOT}/richdocs/scripts/legends.py DOC.md
+```
+
+The command reports file and line diagnostics without changing the source.
+Other chart formats and final legend clipping require a visual check.
+
 ## Document structure
 
 Richdocs authors numbered Markdown headings in every output mode.

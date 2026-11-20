@@ -23,6 +23,7 @@ Resolve `{SKILLS_ROOT}` from the installed skill location as described in `SKILL
 | `resources/discovery.md` | source-backed systems discovery document type |
 | `resources/upgrade-recipes.md` | per-archetype upgrade recipes, fidelity ladder |
 | `resources/prose-style.md` | global-audience standard for **authored** prose (no em-dash, Australian English, short clauses, inclusive language, standard vocabulary); self-contained copy (ADR-015) |
+| `scripts/legends.py` | read-only Plotly fence legend placement gate |
 | `scripts/serve.py` | no-store localhost server (stdlib) |
 | `scripts/stencil.py` | stencil query/extract CLI (stdlib, in-memory zip load) |
 | `scripts/themecheck.py` | **brandpack contrast gate** — part of `make ci`. Checks the pairings the CSS actually renders (ADR-012) |

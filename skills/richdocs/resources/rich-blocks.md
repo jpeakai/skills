@@ -47,8 +47,20 @@ pass `bunx @jpeakai/mermaidjs-lint` (parse, complexity and contrast). See the
 
 ```json
 { "data": [ { "type": "scatter", "x": [1,2,3], "y": [4,1,7] } ],
-  "layout": { "title": "Cost by month" } }
+  "layout": { "title": "Cost by month", "showlegend": true,
+    "legend": { "orientation": "v", "xref": "paper", "x": 1.02,
+      "xanchor": "left", "y": 1, "yanchor": "top" } } }
 ```
+
+Every chart puts its legend on the right, outside the plotting area.
+For Plotly, the explicit layout above is the standard placement.
+`legends.py` requires `showlegend: true`, vertical orientation, paper-relative `x` from `1.02` to `3`, left anchoring, `y` from `0` to `1`, and top anchoring.
+Set the same fields on each named legend, including legends referenced by traces.
+Never set a legend's `visible` field to `false`.
+Data-pointer fences must include the same explicit local layout; it overrides any layout in the fetched payload.
+Run the checker on the containing Markdown file before rendering.
+Leave enough room for the longest legend label and inspect the final output for clipping.
+These settings use [Plotly's legend layout reference](https://plotly.com/javascript/reference/layout/#layout-legend).
 
 Rendered with `Plotly.react`. The theme's `canvas.plotly.<theme>` tokens set
 `paper_bgcolor`, `plot_bgcolor`, font colour, gridlines, and `colorway`

@@ -22,6 +22,8 @@ import themecheck
 @pytest.fixture(autouse=True, scope="session")
 def _reload_for_coverage() -> None:
     """Reload modules under test so pytest-cov captures module-level code."""
+    if "legends" in sys.modules:
+        importlib.reload(sys.modules["legends"])
     if "structure" in sys.modules:
         importlib.reload(sys.modules["structure"])
     importlib.reload(serve)

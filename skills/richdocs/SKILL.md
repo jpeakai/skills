@@ -82,6 +82,27 @@ uv run --no-project {SKILLS_ROOT}/richdocs/scripts/stencil.py extract "mxgraph.a
 
 Run everything from the repo root. Never `cd`.
 
+## Chart legends (mandatory before delivery)
+
+Always place every chart's legend on the right-hand side, vertically stacked outside the plotting area.
+Apply this rule to all chart formats and all output modes, including static charts authored outside Plotly.
+Do not place legends above, below, inside or to the left of a chart.
+Keep legend labels readable and reserve enough right-side space to avoid clipping.
+For formats the script cannot inspect, verify the rendered chart manually.
+
+For every Plotly fence, explicitly set `layout.showlegend` to `true` and define `layout.legend` using the settings in `resources/rich-blocks.md`.
+Apply the same positioning to named legends such as `legend2`.
+Do not rely on Plotly defaults or hide the legend to bypass the rule.
+Run the deterministic check on the Markdown source before rendering or delivery:
+
+```sh
+uv run --no-project {SKILLS_ROOT}/richdocs/scripts/legends.py DOC.md
+```
+
+A non-zero exit blocks delivery.
+Correct every reported file-and-line diagnostic and rerun the check.
+The helper parses Plotly fenced JSON; it does not inspect rendered images or other chart languages and never rewrites source.
+
 ## Document structure (mandatory before delivery)
 
 Always number every section heading by hierarchy in Markdown, including the document title.
@@ -285,7 +306,10 @@ Beyond standard markdown + ` ```mermaid `, the HTML companion renders:
 ## 1.2 Cost trend
 
 ```plotly
-{ "data": "cost_series.json" }
+{ "data": "cost_series.json",
+  "layout": { "showlegend": true,
+    "legend": { "orientation": "v", "xref": "paper", "x": 1.02,
+      "xanchor": "left", "y": 1, "yanchor": "top" } } }
 ```
 ````
 

@@ -26,6 +26,45 @@ Update each affected skill's README when its behavior changes.
 Keep examples generic and link new documentation from an existing entry point.
 Record binding repository decisions in [adrs/](adrs/index.md), then run `make adrs` and `make adr-ci`.
 
+## Choose plugin versions
+
+Every PR must assess its semantic changes against the latest `origin/main` before choosing plugin version increments.
+Fetch the current base and verify that it is included in the PR branch:
+
+```sh
+git fetch --no-tags origin main
+git merge-base --is-ancestor origin/main HEAD
+git diff --name-only origin/main...HEAD
+```
+
+If the ancestry check fails, update the PR branch from the latest `origin/main` through the repository's authorised branch-update workflow before calculating versions.
+Repeat the assessment after the base advances or the PR's scope changes.
+
+Identify every affected plugin using `plugins/composition.yaml`, including shared skills and hooks.
+Read each affected plugin's version from the freshly fetched `origin/main` manifest.
+Calculate one increment for the complete PR relative to that version; do not increment an already bumped branch version for each additional commit.
+
+| Semantic change | Increment |
+|---|---|
+| Incompatible public behaviour or contract at version `1.0.0` or later | Major |
+| New functionality compatible with existing usage | Minor |
+| Corrections that preserve the public contract | Patch |
+| Incompatible changes during `0.y.z` development | Minor |
+| Repository-only maintenance with no shipped plugin change | None |
+
+Use the highest required increment for each affected plugin.
+Changes to shipped skill instructions count when they alter agent behaviour.
+Unchanged plugins retain their versions.
+Update all three manifests for each affected plugin in the PR:
+
+- `plugins/<plugin>/.claude-plugin/plugin.json`
+- `plugins/<plugin>/.codex-plugin/plugin.json`
+- `plugins/<plugin>/plugin.json`
+
+The PR description must state each affected plugin's base version, proposed version and semantic reason, or explain why no increment is needed.
+Reviewers check that assessment against the current base before merge.
+Version selection is a contributor and review responsibility; automation publishes mirrors and tags but does not choose or increment versions.
+
 ## Validate
 
 ```sh

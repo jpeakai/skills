@@ -104,7 +104,7 @@ open tmp/richdocs/REVIEW.html
 ## Chart legends
 
 Every chart places its legend vertically on the right, outside the plotting area.
-Plotly definitions use explicit visible legend settings from [the rich block contract](resources/rich-blocks.md).
+Plotly definitions use explicit visible legend settings from [the chart legend contract](resources/charts/legends.md).
 Check their fenced JSON before rendering:
 
 ```sh

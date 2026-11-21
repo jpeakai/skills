@@ -21,3 +21,9 @@ tmp/
 
 # uv project environment
 .venv/
+
+# Tool caches the agent hooks route into the project (uv, bun, npm, TMPDIR)
+/node_modules/
+
+.DS_Store
+.design-profiles/

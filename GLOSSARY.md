@@ -34,6 +34,12 @@ flowchart LR
     PW["Power"]:::pipeline
     UB["UI Build"]:::pipeline
     RC["Registry Component"]:::info
+    CW["Cloud Worker"]:::people
+    SS["Setup Script"]:::rule
+    RT["Release Tag"]:::record
+    T["Tool"]:::pipeline
+    T -- validates --> P
+    M -- maintains --> T
     M -- states --> R
     R -- guides --> A
     A -- uses --> D
@@ -55,6 +61,10 @@ flowchart LR
     P -- packaged as --> PW
     RC -- composes --> UB
     UB -- produces --> GF
+    CW -- starts from --> SS
+    SS -- installs --> P
+    P -- versioned by --> RT
+    SS -- downloads from --> RT
     classDef people fill:#1e40af,stroke:#93c5fd,color:#fff,stroke-width:2px
     classDef info fill:#92400e,stroke:#fcd34d,color:#fff,stroke-width:2px
     classDef rule fill:#6d28d9,stroke:#c4b5fd,color:#fff,stroke-width:2px
@@ -76,6 +86,11 @@ Plugins contain generated copies of Canonical Skills.
 
 A color palette used to distinguish unordered groups.
 Design Profiles use a golden-angle hue walk to generate categorical chart roots.
+
+## Cloud Worker
+
+A Claude Code session running in a cloud container that a cloud environment configures.
+Plugin, skill and AWS profile names shorten it to `ccw`.
 
 ## Decision Record
 
@@ -129,6 +144,11 @@ A Power carries skills but not hooks, so Kiro hook wiring ships in `kiro-conf/`.
 A bespoke React component curated in the `jpeakai/ui` shadcn registry and installed into a UI Build at a pinned commit.
 It reads the host's shadcn variables, so the brand injected at runtime themes it.
 
+## Release Tag
+
+A git tag marking one Plugin version, named the plugin without its `jpai-` prefix, then `/v` and the version.
+A workflow creates it on `main`, and it is never moved.
+
 ## Requirement
 
 A behavior or constraint explicitly required by the Maintainer.
@@ -154,6 +174,11 @@ A plain name is a background; its `-foreground` partner is the text that sits on
 A color palette used to represent ordered magnitude.
 A Design Profile expands each categorical hue into a five-shade Sequential Scheme.
 
+## Setup Script
+
+The cloud environment's script that runs once per cached snapshot, before the agent starts.
+It cannot read the environment's saved variables, so per-session state belongs to the `ccw-setup` skill.
+
 ## Shadcn Preset
 
 A versioned string selecting shadcn theme, font, chart, and component-style options.
@@ -168,6 +193,11 @@ It records source-token dependencies for colors, charts, fonts and radius so exp
 
 Review feedback supported by evidence and worth acting on within the pull request's intent.
 The resulting fix strengthens safeguards against that category of problem.
+
+## Tool
+
+A self-contained command-line subproject under `tools/<category>/` that automates a focused repository responsibility.
+Each Tool owns its dependencies, lockfile, tests, README and agent instructions, and follows the repository coding standards.
 
 ## UI Build
 

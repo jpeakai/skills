@@ -1,0 +1,22 @@
+{
+  "name": "jpai-ccw",
+  "version": "0.1.0",
+  "description": "Claude Code cloud session setup from jpeak.ai: a versioned setup script for the environment, and a ccw-setup skill that checks and applies per-session state (git author, AWS profiles) and reports when plugins or the pinned setup-script release lag the latest.",
+  "author": {
+    "name": "jpeak.ai",
+    "url": "https://github.com/jpeakai"
+  },
+  "homepage": "https://github.com/jpeakai/skills",
+  "repository": "https://github.com/jpeakai/skills",
+  "license": "MIT",
+  "keywords": ["cloud", "setup", "aws", "git"],
+  "skills": "./skills",
+  "interface": {
+    "displayName": "jpeak.ai Cloud Worker",
+    "shortDescription": "Cloud session setup script and per-session checks",
+    "longDescription": "Setup for Claude Code cloud sessions. The environment's setup script downloads cloud-setup.sh from a pinned ccw/ release tag to install plugins, the AWS CLI and AWS profiles once per cached snapshot. The ccw-setup skill then applies what only a running session can: the git commit author and the AWS profiles' saved values, such as an admin profile's external ID. It also reports when the installed plugins or the pinned release lag the latest, and names the setup script change needed. The skill is mirrored from the canonical skills/ tree by scripts/sync_plugins.py.",
+    "developerName": "jpeak.ai",
+    "category": "Developer Tools",
+    "capabilities": ["cloud", "setup", "aws", "git"]
+  }
+}

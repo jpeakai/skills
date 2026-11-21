@@ -1,0 +1,71 @@
+name: Sync and tag plugins
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: plugin-publication-${{ github.event.pull_request.number || 'main' }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          python-version: '3.12'
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            tools/plugin-ci/uv.lock
+      - name: Build plugin mirrors
+        run: uv run --locked --project tools/plugin-ci plugin-ci sync
+      - name: Validate generated plugins
+        run: uv run --locked --project tools/plugin-ci plugin-ci validate
+      - name: Test publication contracts
+        run: |
+          uv run --locked --directory tools/plugin-ci pytest
+          uv run --locked pytest
+
+  tag:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          fetch-tags: true
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          python-version: '3.12'
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            tools/plugin-ci/uv.lock
+      - name: Identify the publisher
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Build plugin mirrors
+        run: uv run --locked --project tools/plugin-ci plugin-ci sync
+      - name: Validate generated plugins
+        run: uv run --locked --project tools/plugin-ci plugin-ci validate
+      - name: Test publication contracts
+        run: |
+          uv run --locked --directory tools/plugin-ci pytest
+          uv run --locked pytest
+      - name: Commit and push generated plugins
+        run: uv run --locked --project tools/plugin-ci plugin-ci commit --push
+      - name: Tag and push new plugin versions
+        run: uv run --locked --project tools/plugin-ci plugin-ci tag --push

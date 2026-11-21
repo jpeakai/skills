@@ -33,7 +33,7 @@ Use native remark configuration for the same selected profile or theme and its d
 
 ```bash
 mkdir -p tmp/richdocs
-uv run --no-project .claude/skills/richdocs/scripts/md2html.py SOURCE.md --theme NAME --lint-config > tmp/richdocs/lint-config.json
+uv run --no-project {SKILLS_ROOT}/richdocs/scripts/md2html.py SOURCE.md --theme NAME --lint-config > tmp/richdocs/lint-config.json
 bunx @jpeakai/remark-lint-slopstopper@0.1.2 SOURCE.md --config tmp/richdocs/lint-config.json
 ```
 

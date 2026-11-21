@@ -14,6 +14,10 @@
     {
       "name": "jpai-delivery",
       "source": "./plugins/jpai-delivery"
+    },
+    {
+      "name": "jpai-ccw",
+      "source": "./plugins/jpai-ccw"
     }
   ]
 }

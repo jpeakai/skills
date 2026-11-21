@@ -72,11 +72,11 @@
         "label": "0005",
         "parent": "group-repository-conventions",
         "colour": "#0891b2",
-        "file": "0005-kiro-harness-support.md",
-        "title": "Support Kiro through Agent Plugins manifests and kiro-conf hook wiring",
-        "description": "Kiro installs packs as powers and takes its hook from workspace configuration",
+        "file": "0005-cloud-setup-script-in-skill.md",
+        "title": "Ship the cloud setup script inside the ccw-setup skill and release it under ccw/ tags",
+        "description": "Machine setup is downloaded from an immutable tag, and per-session state is applied by a skill",
         "status": "proposed",
-        "tags": "harness"
+        "tags": "cloud, release"
       }
     },
     {
@@ -85,11 +85,116 @@
         "label": "0006",
         "parent": "group-repository-conventions",
         "colour": "#0891b2",
-        "file": "0006-richdocs-ui-build.md",
+        "file": "0006-auto-tag-plugin-versions.md",
+        "title": "Tag every plugin version automatically on main, named without the jpai- prefix",
+        "description": "A workflow creates each missing release tag, so no release waits on a person with tag access",
+        "status": "proposed",
+        "tags": "release"
+      }
+    },
+    {
+      "data": {
+        "id": "ADR-0007",
+        "label": "0007",
+        "parent": "group-repository-conventions",
+        "colour": "#0891b2",
+        "file": "0007-publish-generated-plugin-mirrors.md",
+        "title": "Publish generated plugin mirrors on main before creating release tags",
+        "description": "Feature PRs carry canonical sources while publication automation commits validated plugin copies",
+        "status": "proposed",
+        "tags": "release"
+      }
+    },
+    {
+      "data": {
+        "id": "ADR-0008",
+        "label": "0008",
+        "parent": "group-repository-conventions",
+        "colour": "#0891b2",
+        "file": "0008-self-contained-repository-tools.md",
+        "title": "Organise repository automation as self-contained CLI Tool subprojects",
+        "description": "Focused Tools own their environments, commands, tests and maintenance instructions",
+        "status": "proposed",
+        "tags": "tooling"
+      }
+    },
+    {
+      "data": {
+        "id": "ADR-0009",
+        "label": "0009",
+        "parent": "group-repository-conventions",
+        "colour": "#0891b2",
+        "file": "0009-resolve-skill-paths-across-harnesses.md",
+        "title": "Resolve skill locations through a harness-independent SKILLS_ROOT placeholder",
+        "description": "Agent skill instructions resolve their installation path without assuming a harness directory",
+        "status": "accepted",
+        "tags": "skills, portability"
+      }
+    },
+    {
+      "data": {
+        "id": "ADR-0010",
+        "label": "0010",
+        "parent": "group-repository-conventions",
+        "colour": "#0891b2",
+        "file": "0010-kiro-harness-support.md",
+        "title": "Support Kiro through Agent Plugins manifests and kiro-conf hook wiring",
+        "description": "Kiro installs packs as powers and takes its hook from workspace configuration",
+        "status": "proposed",
+        "tags": "harness"
+      }
+    },
+    {
+      "data": {
+        "id": "ADR-0011",
+        "label": "0011",
+        "parent": "group-repository-conventions",
+        "colour": "#0891b2",
+        "file": "0011-richdocs-ui-build.md",
         "title": "Build the richdocs pages with a dev-time Vite and shadcn project outside the skill",
         "description": "A dev-time UI Build produces the richdocs viewer and showcase as generated assets",
         "status": "proposed",
         "tags": "richdocs, ui"
+      }
+    },
+    {
+      "data": {
+        "id": "ADR-0005-extended_by-ADR-0006",
+        "source": "ADR-0005",
+        "target": "ADR-0006",
+        "label": "extended by",
+        "relation": "extended_by",
+        "note": "Release tags are created by a workflow."
+      }
+    },
+    {
+      "data": {
+        "id": "ADR-0006-extended_by-ADR-0007",
+        "source": "ADR-0006",
+        "target": "ADR-0007",
+        "label": "extended by",
+        "relation": "extended_by",
+        "note": "Generates and publishes plugin copies before release tags are created."
+      }
+    },
+    {
+      "data": {
+        "id": "ADR-0006-extends-ADR-0005",
+        "source": "ADR-0006",
+        "target": "ADR-0005",
+        "label": "extends",
+        "relation": "extends",
+        "note": "Automates the ccw/ release tags ADR-0005 pins."
+      }
+    },
+    {
+      "data": {
+        "id": "ADR-0007-extends-ADR-0006",
+        "source": "ADR-0007",
+        "target": "ADR-0006",
+        "label": "extends",
+        "relation": "extends",
+        "note": "Generates and publishes plugin copies before release tags are created."
       }
     }
   ],

@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "plugin-ci"
+version = "0.1.0"
+description = "Plugin generation, validation and publication contracts"
+requires-python = ">=3.12"
+dependencies = ["ruamel.yaml>=0.18"]
+
+[project.scripts]
+plugin-ci = "plugin_ci.app:main"
+
+[dependency-groups]
+dev = ["complexipy>=5", "mypy>=1.15", "pytest>=8", "pytest-cov>=6", "ruff>=0.11"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "PL", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["PLR2004"]
+
+[tool.mypy]
+strict = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=plugin_ci --cov-report=term-missing --cov-fail-under=90"
+
+[tool.coverage.run]
+branch = true
+
+[tool.complexipy]
+max-complexity-allowed = 15

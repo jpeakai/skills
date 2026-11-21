@@ -5,12 +5,13 @@ Each directory under `skills/` is one skill: a `SKILL.md` carrying YAML frontmat
 
 Contributors: see [CONTRIBUTING.md](CONTRIBUTING.md), [documentation conventions](docs/CONVENTIONS.md), the [glossary](GLOSSARY.md), and the [repository decisions](adrs/index.md).
 
-The skills are published as two installable plugins, so you take the pack you want rather than all of them:
+The skills are published as three installable plugins, so you take the pack you want rather than all of them:
 
 | Plugin | For | Contains |
 |---|---|---|
-| [`jpai-essentials`](plugins/jpai-essentials) | Documentation and diagrams | `librarian`, `adr`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `concise-decisions`, `agnostic`, `tickety-boo`, `snr-pr` |
+| [`jpai-essentials`](plugins/jpai-essentials) | Documentation and diagrams | `librarian`, `adr`, `gooddocs`, `mermaidjs-diagrams`, `richdocs`, `concise-decisions`, `agnostic`, `tickety-boo`, `snr-pr`, `cli` |
 | [`jpai-delivery`](plugins/jpai-delivery) | Review feedback, decisions and ticketing | `snr-pr`, `concise-decisions`, `tickety-boo` |
+| [`jpai-ccw`](plugins/jpai-ccw) | Claude Code cloud session setup | `ccw-setup` |
 
 `jpai-essentials` ships the `tool_coach` PreToolUse hook.
 
@@ -27,6 +28,7 @@ The other three routes give you finer control, down to a single skill.
 /plugin marketplace add jpeakai/skills
 /plugin install jpai-essentials@jpeakai
 /plugin install jpai-delivery@jpeakai
+/plugin install jpai-ccw@jpeakai
 ```
 
 To update, refresh the marketplace, then update each pack you installed:
@@ -85,7 +87,7 @@ npx skills add jpeakai/skills --skill librarian
 npx skills add jpeakai/skills --skill '*' --global
 ```
 
-It resolves the canonical `skills/` tree rather than the packs, so it reaches `cli` but brings no hook.
+It resolves the canonical `skills/` tree and installs individual skills without the hook.
 Skills land in the current project unless `--global` sends them to your user directory.
 Afterwards use the list, update and remove subcommands to manage installed skills.
 
@@ -114,7 +116,7 @@ git clone https://github.com/jpeakai/skills.git
 ln -s "$PWD/skills/librarian" ~/.claude/skills/librarian
 ```
 
-[`cli`](skills/cli) is in neither pack, so this and the two skill-level routes above are the only ways to get it.
+[`cli`](skills/cli) is included in Essentials and is also available through these individual-skill routes.
 
 ## The skills
 
@@ -123,7 +125,8 @@ ln -s "$PWD/skills/librarian" ~/.claude/skills/librarian
 | [`adr`](skills/adr) | essentials | Sets up, migrates, renders and audits architecture decision records, with a compliance audit that exits non-zero so it can gate CI |
 | [`agnostic`](skills/agnostic) | essentials | Keeps documentation generic by renaming project-, client- or company-specific names to open-source-style placeholders |
 | [`snr-pr`](skills/snr-pr) | both | Filters code review results into Signal and Noise, improving review filters and preventing recurring problem categories |
-| [`cli`](skills/cli) | none | Playbook for building project-local developer CLIs and the assets they generate: static HTML viewers, workflow templates, stencil diagrams, sticky PR comments |
+| [`ccw-setup`](skills/ccw-setup) | ccw | Checks and applies a Claude Code cloud session's per-session setup, and reports when plugins or the pinned setup-script release lag |
+| [`cli`](skills/cli) | essentials | Playbook for building project-local developer CLIs and the assets they generate: static HTML viewers, workflow templates, stencil diagrams, sticky PR comments |
 | [`concise-decisions`](skills/concise-decisions) | both | Consolidates accumulated ambiguities into a single highest-leverage decision question, answering first from existing decision records |
 | [`gooddocs`](skills/gooddocs) | essentials | Documentation quality in three modes: audit docs against the reality of the code, write or improve them, or restructure one for readability |
 | [`librarian`](skills/librarian) | essentials | Repo documentation organisation: ensures the canonical document set exists and every doc lives where its content says it belongs |
@@ -135,7 +138,7 @@ ln -s "$PWD/skills/librarian" ~/.claude/skills/librarian
 
 `skills/` and `hooks/` are canonical.
 The packs under `plugins/` are **generated** from them.
-[`plugins/composition.yaml`](plugins/composition.yaml) declares what each pack composes, and `scripts/sync_plugins.py` copies it in.
+[`plugins/composition.yaml`](plugins/composition.yaml) declares what each pack composes, and `tools/plugin-ci/src/plugin_ci/commands/sync_plugins.py` copies it in.
 
 ```mermaid
 flowchart LR
@@ -182,15 +185,15 @@ flowchart TB
         MD[mermaidjs-diagrams]:::src
         RD[richdocs]:::src
         TB[tickety-boo]:::src
-        CLI["cli<br/>in no pack"]:::orphan
+        CLI["cli"]:::src
         TC["hooks/tool_coach.py"]:::src
         HJ["hooks/hooks.json"]:::src
     end
 
     CF["plugins/composition.yaml"]:::cfg
-    SY["scripts/sync_plugins.py"]:::proc
-    VL["scripts/validate_plugins.py"]:::gate
-    TH["scripts/test_harness_install.sh"]:::gate
+    SY["tools/plugin-ci/src/plugin_ci/commands/sync_plugins.py"]:::proc
+    VL["tools/plugin-ci/src/plugin_ci/commands/validate_plugins.py"]:::gate
+    TH["tools/harness-ci/src/harness_ci/assets/install.sh"]:::gate
 
     subgraph packs["Generated packs — never edit"]
         ES["jpai-essentials<br/>skills + hook"]:::pack
@@ -205,7 +208,7 @@ flowchart TB
     CC["Claude Code"]:::host
     CX["Codex"]:::host
 
-    AD & AG & BP & CD & GD & LB & MD & RD & TB --> SY
+    AD & AG & BP & CD & CLI & GD & LB & MD & RD & TB --> SY
     TC & HJ --> SY
     CF --> SY
     SY --> ES
@@ -233,11 +236,12 @@ Both packs include the decision, review-feedback and ticketing skills.
 ```
 skills/          canonical skills, one directory each   ← edit here
 hooks/           canonical hook, its rules and tests    ← edit here
-plugins/         generated packs, two manifests each    ← never edit
+plugins/         manifests and generated skill/hook copies
   composition.yaml   which skills go in which pack
-scripts/         sync, validate, and harness install test
-tests/           what a marketplace enforces on publication
-pyproject.toml   the repo's own tooling deps, uv-managed   ← never a skill's
+tools/           self-contained repository CLI subprojects
+  plugin-ci/     generation, validation, publication and contract tests
+  harness-ci/    isolated live harness installation checks
+pyproject.toml   root hook-test and evaluation dependencies
 ```
 
 Copies rather than symlinks, because Codex drops symlinked plugin components and installs an empty pack without erroring.
@@ -248,7 +252,8 @@ To change a skill, edit it under `skills/` and re-sync:
 
 ```sh
 make fix          # mirror the canonical trees into the packs
-make ci           # assert the mirror is committed, then the layout invariants, the publication contract, the hook suite and every skill gate
+make ci           # require committed authored files, regenerate plugins, then run layout, publication, hook and skill gates
+make tools-ci     # local checks for every Tool subproject
 make skills-ci    # just the per-skill script gates, discovered from skills/*/scripts/Makefile
 make docs-ci      # prose, diagram-complexity and colour-contrast gates over the authored markdown
 make harness-ci   # install both packs into throwaway Claude and Codex sandboxes
@@ -259,21 +264,23 @@ Skills without a script gate need no exemption entry.
 The discovery glob is one level deep, which keeps a vendored copy's gate out: that copy is read-only and its upstream is already gated here.
 
 Dependencies split by what ships.
-[`pyproject.toml`](pyproject.toml) holds the repo's own tooling in a uv `dev` group, so `pytest` is pinned in one place and `uv run` syncs it.
+Each [Tool](tools/README.md) owns its `pyproject.toml` and `uv.lock`.
+The root [`pyproject.toml`](pyproject.toml) owns hook-test and evaluation dependencies.
+
 Anything published inside a pack stays self-contained instead.
 Every `skills/*/scripts/*.py`, its `test_*.py` sibling, and `tool_coach.py` carry their own dependencies and run under `uv run --no-project`.
 Those execute on a machine that has never seen this repo, so a shared manifest would be a dependency they could not resolve.
 
 ## The publication contract
 
-[`tests/test_publication_contract.py`](tests/test_publication_contract.py) asserts what a marketplace enforces when this repo is published, parametrised over every skill so a new one is covered without touching the file.
+[`tools/plugin-ci/tests/test_publication_contract.py`](tools/plugin-ci/tests/test_publication_contract.py) asserts what a marketplace enforces when this repo is published, parametrised over every skill so a new one is covered without touching the file.
 
 Every rule in it came from a real failed or warned sync, and each names the incident.
 It exists because nothing else available locally catches these. `claude plugin validate --strict` passes on a tree that fails the sync. `make harness-ci` installs both packs happily while the tree is in breach, and the published marketplace schema declares no length limit at all.
 So the description caps it checks are observed rather than documented, and the sync's own wording is quoted beside each one.
 
 ```sh
-uv run pytest tests/test_publication_contract.py
+uv run --directory tools/plugin-ci pytest tests/test_publication_contract.py
 ```
 
 ## Hooks

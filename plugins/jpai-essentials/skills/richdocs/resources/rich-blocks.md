@@ -15,7 +15,7 @@ with `cache: no-store` + `?v=<BUILD_ID>`.
 Rendered by mermaid 11.x. Theme follows the document theme (`default` /
 `dark`), re-initialised and re-rendered on every theme flip. The source must
 pass `bunx @jpeakai/remark-lint-slopstopper` (parse, complexity and contrast). See the
-"Mermaid gate" section in `SKILL.md`.
+"Source lint and profile theming" section in `SKILL.md`.
 
 ### ` ```cytoscape `
 
@@ -46,8 +46,14 @@ pass `bunx @jpeakai/remark-lint-slopstopper` (parse, complexity and contrast). S
 
 ```json
 { "data": [ { "type": "scatter", "x": [1,2,3], "y": [4,1,7] } ],
-  "layout": { "title": "Cost by month" } }
+  "layout": { "title": "Cost by month", "showlegend": true,
+    "legend": { "orientation": "v", "xref": "paper", "x": 1.02,
+      "xanchor": "left", "y": 1, "yanchor": "top" } } }
 ```
+
+Follow [the chart legend contract](charts/legends.md) for required placement, named legends and the blocking Plotly check.
+Data-pointer fences must include the same explicit local layout; it overrides any layout in the fetched payload.
+These settings use [Plotly's legend layout reference](https://plotly.com/javascript/reference/layout/#layout-legend).
 
 Rendered with `Plotly.react`. The theme's `canvas.plotly.<theme>` tokens set
 `paper_bgcolor`, `plot_bgcolor`, font colour, gridlines, and `colorway`

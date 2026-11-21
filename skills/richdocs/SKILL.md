@@ -50,28 +50,81 @@ the conversion routes below.
 | "Show off / compare the themes" | `showcase.py` → gallery of all brands; `showcase.py --theme NAME` → that brand alone |
 | "Upgrade an existing doc" | read `resources/upgrade-recipes.md` (per-archetype recipes) |
 
+## Resolve the skill location
+
+This skill works across Claude, Codex and Kiro.
+`{SKILLS_ROOT}` is a placeholder for the absolute directory containing this installed skill's `richdocs/` directory.
+Determine it from the skill location supplied by the active harness or the resolved path of this `SKILL.md`.
+Verify that `{SKILLS_ROOT}/richdocs/SKILL.md` exists before running helpers.
+Substitute the resolved absolute path for `{SKILLS_ROOT}` in commands, quote paths containing spaces, and never pass the placeholder literally to a shell.
+Keep the working directory at the target repository root.
+Do not infer the installation location from the harness name or assume a repository-local installation.
+
 ## Quickstart
 
 ```bash
 # 1. Render a markdown doc into a rich HTML companion (multi-file, live mode)
-uv run --no-project .claude/skills/richdocs/scripts/md2html.py TARGET_ARCHITECTURE.md
+uv run --no-project {SKILLS_ROOT}/richdocs/scripts/md2html.py TARGET_ARCHITECTURE.md
 
 # 2. Serve it (no-store headers, CDN libs load fine over http://localhost)
-uv run --no-project .claude/skills/richdocs/scripts/serve.py tmp/richdocs --open
+uv run --no-project {SKILLS_ROOT}/richdocs/scripts/serve.py tmp/richdocs --open
 
 # 3. Or produce one self-contained file (no server needed)
-uv run --no-project .claude/skills/richdocs/scripts/md2html.py REVIEW.md --inline
+uv run --no-project {SKILLS_ROOT}/richdocs/scripts/md2html.py REVIEW.md --inline
 
 # 3b. Render in a brand theme (default is osakanights; pass --theme for another)
-uv run --no-project .claude/skills/richdocs/scripts/md2html.py DOC.md --theme v2ai
+uv run --no-project {SKILLS_ROOT}/richdocs/scripts/md2html.py DOC.md --theme v2ai
 
 # 4. Grab a tinted provider icon
-uv run --no-project .claude/skills/richdocs/scripts/stencil.py search lambda
-uv run --no-project .claude/skills/richdocs/scripts/stencil.py extract "mxgraph.aws4/lambda" \
+uv run --no-project {SKILLS_ROOT}/richdocs/scripts/stencil.py search lambda
+uv run --no-project {SKILLS_ROOT}/richdocs/scripts/stencil.py extract "mxgraph.aws4/lambda" \
   --color '#ED7100' --out diagrams/lambda.svg
 ```
 
 Run everything from the repo root. Never `cd`.
+
+## Chart legends (mandatory before delivery)
+
+Every chart must place its legend on the right, outside the plotting area.
+Before authoring or upgrading charts, read [the chart legend contract](resources/charts/legends.md) for layout settings and the mandatory Plotly check.
+A failing legend check blocks delivery.
+
+## Document structure (mandatory before delivery)
+
+Always number every section heading by hierarchy in Markdown, including the document title.
+Run the structure helper on every document this skill authors or upgrades, in all three output modes:
+
+```bash
+uv run --no-project {SKILLS_ROOT}/richdocs/scripts/structure.py DOC.md --fix-headings
+```
+
+The helper numbers headings automatically, for example `1. Guide`, `1.1 Setup`, `1.1.1 Local`, `1.2 Usage`, and `2. Reference`.
+Sibling numbers advance and child numbers restart under each parent.
+Skipped Markdown heading levels follow the actual parent hierarchy without adding zero segments.
+Existing numeric prefixes are replaced, so repeated runs do not duplicate numbering.
+ATX and Setext headings are supported, including headings in lists and blockquotes.
+Front matter, fenced examples and non-heading prose are preserved.
+Heading numbers live in the source, so rendered headings and navigation share the same text.
+After numbering, update local heading links to their numbered anchors and verify them in the final output.
+
+Every chart or diagram must have its own descriptive heading section.
+This includes Mermaid, Plotly, Cytoscape.js, deck.gl, Markdown images and raw HTML SVG, image or canvas elements.
+A visual belongs to its nearest preceding heading of any depth.
+That section may contain at most one visual; give multiple visuals separate sibling or child headings.
+Explanatory prose may accompany a visual in its section.
+Choose headings that describe the visual's subject; the helper checks structure, not descriptive quality.
+
+A non-zero exit blocks delivery and rendering.
+The helper reports file and line diagnostics for unheaded visuals or shared sections.
+Correct the Markdown by adding descriptive headings, then rerun until it exits zero.
+The helper never invents headings or splits visual content.
+After final edits, run `structure.py DOC.md` without `--fix-headings` to check compliance without writing.
+Run the source lint next; it covers Mermaid fences too.
+Repeat both gates after changes to the paired Markdown during live authoring.
+
+For conversion-only requests, check with `structure.py DOC.md` first.
+If the source fails, report the diagnostics and ask before changing the user's Markdown.
+The renderer itself preserves supplied Markdown as written.
 
 ## Source lint and profile theming
 
@@ -84,9 +137,9 @@ Do not select another palette or put unresolved CSS variables in Mermaid source.
 Every authored source document must pass Slopstopper before rendering:
 
 ```bash
-bun install --cwd .claude/skills/richdocs/scripts --frozen-lockfile
+bun install --cwd {SKILLS_ROOT}/richdocs/scripts --frozen-lockfile
 mkdir -p tmp/richdocs
-uv run --no-project .claude/skills/richdocs/scripts/md2html.py SOURCE.md --lint-config > tmp/richdocs/lint-config.json
+uv run --no-project {SKILLS_ROOT}/richdocs/scripts/md2html.py SOURCE.md --lint-config > tmp/richdocs/lint-config.json
 bunx @jpeakai/remark-lint-slopstopper@0.1.2 SOURCE.md --config tmp/richdocs/lint-config.json
 ```
 
@@ -123,8 +176,8 @@ Architecture SVGs carry their `mxfile` source in a `content` attribute, so
 shapes rather than a flat image.
 
 ```bash
-uv run --no-project .claude/skills/richdocs/scripts/showcase.py                     # gallery
-uv run --no-project .claude/skills/richdocs/scripts/showcase.py --theme osakanights # one brand
+uv run --no-project {SKILLS_ROOT}/richdocs/scripts/showcase.py                     # gallery
+uv run --no-project {SKILLS_ROOT}/richdocs/scripts/showcase.py --theme osakanights # one brand
 ```
 
 ### `md2html.py DOC.md [--out DIR] [--inline] [--profile NAME] [--theme NAME] [--tokens FILE] [--title T] [--lint-config]`
@@ -227,6 +280,8 @@ close-match suggestions.
 Beyond standard markdown + ` ```mermaid `, the HTML companion renders:
 
 ````markdown
+## 1.1 Service relationships
+
 ```cytoscape
 { "elements": [ {"data": {"id": "a", "label": "API"}},
                 {"data": {"id": "b", "label": "DB"}},
@@ -234,8 +289,13 @@ Beyond standard markdown + ` ```mermaid `, the HTML companion renders:
   "height": 420 }
 ```
 
+## 1.2 Cost trend
+
 ```plotly
-{ "data": "cost_series.json" }
+{ "data": "cost_series.json",
+  "layout": { "showlegend": true,
+    "legend": { "orientation": "v", "xref": "paper", "x": 1.02,
+      "xanchor": "left", "y": 1, "yanchor": "top" } } }
 ```
 ````
 
@@ -278,6 +338,7 @@ Beyond standard markdown + ` ```mermaid `, the HTML companion renders:
 | `resources/discovery.md` | Source-backed systems discovery document type and output modes |
 | `resources/upgrade-recipes.md` | Recipes for upgrading existing diagram, table, and prose documents to rich HTML |
 | `resources/prose-style.md` | Global-audience standard for prose this skill authors: no em-dash, Australian English, short clauses, inclusive language, standardised vocabulary (self-contained copy) |
+| `scripts/structure.py` | Hierarchical heading numbering and one-visual-per-section gate |
 | `scripts/serve.py` | No-store localhost server |
 | `scripts/stencil.py` | Stencil library query/extract CLI |
 | `scripts/md2html.py` | Paired markdown → rich HTML generator |

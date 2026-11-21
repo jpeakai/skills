@@ -1,0 +1,19 @@
+{
+  "name": "jpai-ccw",
+  "displayName": "jpeak.ai Cloud Worker",
+  "version": "0.1.0",
+  "description": "Claude Code cloud session setup from jpeak.ai: a versioned setup script for the environment, and a ccw-setup skill that checks and applies per-session state (git author, AWS profiles) and reports when plugins or the pinned setup-script release lag the latest.",
+  "author": {
+    "name": "jpeak.ai",
+    "url": "https://github.com/jpeakai"
+  },
+  "homepage": "https://github.com/jpeakai/skills",
+  "repository": "https://github.com/jpeakai/skills",
+  "license": "MIT",
+  "keywords": [
+    "cloud",
+    "setup",
+    "aws",
+    "git"
+  ]
+}

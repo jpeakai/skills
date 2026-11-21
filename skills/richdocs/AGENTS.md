@@ -5,9 +5,11 @@ records in [`resources/adr-log-foundations.md`](resources/adr-log-foundations.md
 changing anything; every structural choice here was deliberate. Dev loop:
 
 ```bash
-make -C .claude/skills/richdocs/scripts fix   # mutate: format + lint-fix
-make -C .claude/skills/richdocs/scripts ci    # gate: must exit 0 before handoff
+make -C {SKILLS_ROOT}/richdocs/scripts fix   # mutate: format + lint-fix
+make -C {SKILLS_ROOT}/richdocs/scripts ci    # gate: must exit 0 before handoff
 ```
+
+Resolve `{SKILLS_ROOT}` from the installed skill location as described in `SKILL.md`; substitute its absolute path before running commands.
 
 ## File map
 
@@ -21,6 +23,8 @@ make -C .claude/skills/richdocs/scripts ci    # gate: must exit 0 before handoff
 | `resources/discovery.md` | source-backed systems discovery document type |
 | `resources/upgrade-recipes.md` | per-archetype upgrade recipes, fidelity ladder |
 | `resources/prose-style.md` | global-audience standard for **authored** prose (no em-dash, Australian English, short clauses, inclusive language, standard vocabulary); self-contained copy (ADR-015) |
+| `resources/charts/legends.md` | chart legend placement contract and Plotly validation gate |
+| `scripts/legends.py` | read-only Plotly fence legend placement gate |
 | `scripts/serve.py` | no-store localhost server (stdlib) |
 | `scripts/stencil.py` | stencil query/extract CLI (stdlib, in-memory zip load) |
 | `scripts/themecheck.py` | **brandpack contrast gate** — part of `make ci`. Checks the pairings the CSS actually renders (ADR-012) |
@@ -44,7 +48,7 @@ make -C .claude/skills/richdocs/scripts ci    # gate: must exit 0 before handoff
 | `assets/viewer-deckgl.js` | 3D / geographic render (`rdRenderDeckGL`) + the OKLab/OKLCH maths and colour-space projections. Inlined *before* `viewer.js`, same hoisting contract (ADR-014) |
 | `resources/themes/<name>/` | a built-in brand theme: `design-tokens.json` (required) + `theme.css` (optional). Selected with `--theme`; default brand is `osakanights` (ADR-009, ADR-018) |
 | `tmp/richdocs/theme/<name>/` | **optional** project-local theme override (cwd-relative, gitignored). Shadows the built-in of the same name and adds project-only themes; absent ⇒ built-in set only (ADR-018) |
-| `scripts/Makefile` | fix/ci contract per `.claude/rules/claude_skills/scripts.md` |
+| `scripts/Makefile` | fix/ci contract for this skill |
 | `assets/stencils.json.zip` | vendored draw.io icon packs (~3.4 MB; see `assets/NOTICE`) |
 | `assets/design-tokens.json` | default neutral brandpack (schema in `rich-blocks.md`) |
 | `resources/adr-log.md` | the **ADR log**, ADR-014 onwards, newest first — decision lenses; split out of this file for the 500-line invariant |
@@ -54,7 +58,7 @@ make -C .claude/skills/richdocs/scripts ci    # gate: must exit 0 before handoff
 
 ## Invariants
 
-- Every prose file ≤500 lines (`.claude/rules/claude_skills/index.md`).
+- Every prose file ≤500 lines.
 - Scripts are Tier B (stdlib-only, PEP-723, `uv run --no-project`); network
   is only consumed by the *browser* loading pinned CDN libs, never by the
   Python. Missing inputs crash loudly (escalators-not-stairs).
@@ -69,6 +73,13 @@ make -C .claude/skills/richdocs/scripts ci    # gate: must exit 0 before handoff
 - Anything embedded in a `<script>` escapes `</` → `<\/`.
 - Same input → same output modulo `{{BUILD_ID}}`.
 
+## Documentation and review guidance
+
+- Keep entrypoint obligations and routing in `SKILL.md`; place detailed format contracts and commands under `resources/<category>/` and link them from the entrypoint.
+- Treat explanation questions as questions, rather than defect findings, unless they establish a concrete failure or convention breach.
+- Before proposing unconditional test imports, inspect each test entrypoint's isolated dependency declarations.
+- Before recommending a standard-library replacement, identify an equivalent API that preserves the helper's accepted inputs and rejected values.
+
 ## ADR log
 
 The full decision log, each entry carrying its **Lens**, lives in
@@ -76,7 +87,7 @@ The full decision log, each entry carrying its **Lens**, lives in
 [`resources/adr-log-foundations.md`](resources/adr-log-foundations.md) (ADR-001 … 013).
 Read both before changing anything and apply each ADR's Lens to the next related
 decision. The log was promoted to its own nodes to keep each file under the 500-line
-invariant (`.claude/rules/claude_skills/index.md`); it is one log, just split out.
+invariant; it is one log, just split out.
 
 ## Known gotchas
 
@@ -214,4 +225,4 @@ invariant (`.claude/rules/claude_skills/index.md`); it is one log, just split ou
 ## Related (maintainer provenance only — never cite from runtime surfaces)
 
 - `../mermaidjs-diagrams/` — upstream source of `vendor/mermaidjs-diagrams/`, re-vendor per ADR-007
-- `.claude/rules/claude_skills/index.md` — 500-line invariant, tree structure
+- Keep authored prose files within the 500-line invariant.

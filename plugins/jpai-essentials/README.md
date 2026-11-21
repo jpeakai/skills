@@ -1,6 +1,6 @@
 # jpai-essentials
 
-Documentation, diagrams, review feedback, decisions and ticketing in one plugin.
+Documentation, diagrams, developer CLIs and delivery workflow in one plugin.
 Includes the `tool_coach` PreToolUse hook for working-agreement checks and corrective guidance.
 
 ## Overview
@@ -11,6 +11,7 @@ flowchart LR
     P --> D["Documentation"]:::docs
     P --> V["Diagrams and HTML"]:::visual
     P --> W["Delivery workflow"]:::delivery
+    P --> CLI["Developer CLIs"]:::delivery
     P --> H["Working-agreement hook"]:::hook
     classDef plugin fill:#334155,stroke:#cbd5e1,color:#ffffff,stroke-width:2px
     classDef docs fill:#6d28d9,stroke:#c4b5fd,color:#ffffff,stroke-width:2px
@@ -39,6 +40,7 @@ flowchart LR
     W --> S["snr-pr"]:::delivery
     W --> C["concise-decisions"]:::delivery
     W --> T["tickety-boo"]:::delivery
+    P --> CLI["cli"]:::delivery
     P --> H["tool_coach<br/>PreToolUse hook"]:::hook
     classDef plugin fill:#334155,stroke:#cbd5e1,color:#ffffff,stroke-width:2px
     classDef docs fill:#6d28d9,stroke:#c4b5fd,color:#ffffff,stroke-width:2px
@@ -56,6 +58,7 @@ Each skill has its own human overview and runtime instructions; the hook checks 
 | Skill | Purpose |
 |---|---|
 | [librarian](skills/librarian/README.md) | Organise repository documentation and canonical document sets. |
+| [cli](skills/cli/README.md) | Build project-local developer CLIs and supporting assets. |
 | [adr](skills/adr/README.md) | Set up, migrate, render and audit architecture decision records. |
 | [gooddocs](skills/gooddocs/README.md) | Audit, write and restructure documentation. |
 | [agnostic](skills/agnostic/README.md) | Replace project-specific details with generic documentation examples. |

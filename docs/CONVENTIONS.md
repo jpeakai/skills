@@ -15,6 +15,7 @@ Consult it before creating, moving or renaming documentation.
 - Root ADR surface: `okf-yaml` in `adrs/NNNN-slug.yml`, rendered into Markdown, an index and a graph viewer (explicitly requested).
 - Scoped decisions: existing skill-local logs remain in their current layout and retain accepted arguments (observed).
 - ADR links: use relative links between bundle files and to scoped decision logs.
+- Generated plugin copies are validated locally and committed by main-branch publication automation, outside feature PRs.
 - Generated ADR paths:
   - `adrs/NNNN-*.md`
   - `adrs/index.md`
@@ -57,6 +58,7 @@ Consult it before creating, moving or renaming documentation.
 | `codex-conf/` | Codex configuration references | Consumers | Configuration changes |
 | `rules/` | Reusable operating rules | Agents | Rule contracts change |
 | `.claude/` | Existing local harness rules and configuration | Agents | Harness configuration changes |
+| `tools/` | Self-contained repository CLI subprojects and their maintenance rules | Contributors and agents | Automation contracts change |
 | `tmp/` | Unpublished experiments and task evidence | Maintainers | Local work requires scratch space |
 
 ## Naming and links

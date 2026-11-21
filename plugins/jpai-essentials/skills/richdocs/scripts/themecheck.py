@@ -218,6 +218,11 @@ def check_ramps(name: str, mode: str, plot: dict[str, Any]) -> list[str]:
         ):
             failures.append(f"{name}/{mode}: muted greys are not monotone in lightness")
 
+    return failures + _check_diverging(name, mode, plot)
+
+
+def _check_diverging(name: str, mode: str, plot: dict[str, Any]) -> list[str]:
+    failures: list[str] = []
     # Diverging: the two POLES must survive colourblindness. This is what makes
     # green↔red structurally impossible to ship — its poles collapse to ΔE ~1-3.
     for key, floor in (("diverging", CVD_TARGET), ("divergingAlt", CVD_RELIEF)):
@@ -306,6 +311,19 @@ def check_series(
     return failures
 
 
+def _report_series_waiver(name: str, mode: str, plot: dict[str, Any]) -> None:
+    low = [
+        f"{c} {contrast(c, plot['plot']):.2f}:1"
+        for c in plot["series"]
+        if contrast(c, plot["plot"]) < AA_UI
+    ]
+    if low:
+        print(
+            f"[note] {name}/{mode}: series mark-contrast waived by design "
+            f"({len(low)} marks below {AA_UI}:1) — CVD adjacency still enforced"
+        )
+
+
 def check_theme(name: str, tokens: dict[str, Any]) -> list[str]:
     """Return a list of failure lines. Empty means the theme is compliant."""
     failures: list[str] = []
@@ -333,16 +351,7 @@ def check_theme(name: str, tokens: dict[str, Any]) -> list[str]:
         plot = tokens["canvas"]["plotly"][mode]
         waive = bool(tokens.get("waivers", {}).get("seriesContrast"))
         if waive:
-            low = [
-                f"{c} {contrast(c, plot['plot']):.2f}:1"
-                for c in plot["series"]
-                if contrast(c, plot["plot"]) < AA_UI
-            ]
-            if low:
-                print(
-                    f"[note] {name}/{mode}: series mark-contrast waived by design "
-                    f"({len(low)} marks below {AA_UI}:1) — CVD adjacency still enforced"
-                )
+            _report_series_waiver(name, mode, plot)
         failures += check_series(name, mode, plot, "series", waive_contrast=waive)
         if plot.get("seriesAlt"):
             failures += check_series(name, mode, plot, "seriesAlt")

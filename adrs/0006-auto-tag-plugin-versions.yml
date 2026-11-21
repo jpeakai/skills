@@ -1,0 +1,39 @@
+id: ADR-0006
+slug: auto-tag-plugin-versions
+title: Tag every plugin version automatically on main, named without the jpai- prefix
+description: A workflow creates each missing release tag, so no release waits on a person with tag access
+plan_id:
+status: proposed
+accepted_on: '2026-11-19'
+last_changed_on: '2026-11-19'
+tags:
+- release
+group: repository-conventions
+provenance: Maintainer requirement in issue 49 after the ccw/v0.1.0 tag from ADR-0005 went missing, with tags
+  named without the jpai- prefix.
+enforced_in:
+- .github/workflows/tag-plugin-versions.yml
+- tools/plugin-ci/src/plugin_ci/commands/tag_plugins.py
+- tools/plugin-ci/tests/test_tag_plugins.py
+relates_to:
+- relation: extended_by
+  target: ADR-0007
+  note: Generates and publishes plugin copies before release tags are created.
+- relation: extends
+  target: ADR-0005
+  note: Automates the ccw/ release tags ADR-0005 pins.
+decision:
+  given: Plugin versions change in their manifests, the ccw-setup stub downloads from a ccw/ release tag, and
+    agent sessions cannot push tags.
+  we_prefer: a workflow on every push to main that tags each plugin version not yet tagged, named the plugin
+    without its jpai- prefix then /vX.Y.Z, over tagging by hand or one repository-wide version tag
+  because: a version bump that merges is released without a manual step, each plugin versions on its own, and
+    ccw/ tags keep the name ADR-0005's stub already pins
+  unless: plugins move to a release tool that owns tagging and changelogs, which would replace this workflow
+consequences:
+  pros:
+  - A merged version bump gets its tag within minutes, with nobody holding tag access.
+  - An existing tag is never moved, so a pinned stub keeps running the same script.
+  cons:
+  - A version that merges without a bump is never tagged, so the setup script release stays behind.
+  - The first run tags every current version at that commit, not at the commit each version first appeared.

@@ -41,10 +41,19 @@ Both beat the neutral defaults in `src/styles.css`, which sit at zero specificit
 
 ## Output contract
 
+- **The build writes straight into `skills/richdocs/assets/`**: `viewer.html` from `src/viewer/shell.html`, plus `viewer.bundle.js` and `viewer.bundle.css`.
+- **Committed output must match the source**, and `make ui-ci` fails when a rebuild changes it.
 - **One IIFE file and one CSS file per entry**, inlined verbatim by the generator, so no ES modules, chunks or asset URLs.
 - **No `{{` in any bundle**, because only the HTML shell carries placeholders.
 - **Heavy libraries stay on pinned CDNs**, loaded lazily by the page; only React and the shadcn primitives are bundled.
 - **Tailwind scans `src/` only**, so a previous build never feeds the next one.
+
+## Viewer seams
+
+- **React owns the header** and the ids the classic helpers look up, pinned by `src/viewer/Header.test.tsx`.
+- **The skill's classic helpers own the rest**: the `viewer-*.js` files run before the bundle, because the showcase shares them.
+- **Rendered markdown keeps browser defaults**: `src/viewer/viewer.css` reverts Tailwind's reset inside the article, sidebar and zoom modal.
+- **The dev page stands in for md2html**: `src/dev.ts` loads the helpers and a sample document.
 
 ## Components
 

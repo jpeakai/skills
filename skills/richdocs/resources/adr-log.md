@@ -9,6 +9,29 @@ apply to the next related decision.
 This file holds ADR-014 onwards, newest first. The founding records, ADR-001 to
 ADR-013, are in [`adr-log-foundations.md`](adr-log-foundations.md).
 
+### ADR-034: the viewer page is built by the UI Build, not written by hand
+
+- **Status:** accepted; partially supersedes ADR-008 (its hand-written
+  `viewer.html`, `viewer.css` and `viewer.js`, and the two seam tests it names).
+  ADR-008's generator split and `#rd-config` contract stay. Applies root ADR-0011.
+- **Context:** the viewer chrome was being rebuilt from shadcn components, which
+  need React, Tailwind and a bundler. The skill itself must stay Tier B: no
+  toolchain on an end user's machine.
+- **Decision:** `web/richdocs-ui/` builds `assets/viewer.html` (the shell, still the
+  only file with `{{...}}`), `assets/viewer.bundle.js` (one IIFE) and
+  `assets/viewer.bundle.css`. These are Generated Files, committed, and `make ci`
+  fails when they are stale. The React header owns `#rd-toc-toggle`,
+  `#rd-theme-toggle` and `#rd-title`; the classic helpers (`viewer-toc.js`,
+  `viewer-zoom.js`, `viewer-cytoscape.js`, `viewer-deckgl.js`) stay hand-written
+  and inlined before the bundle, because the showcase shares them. md2html escapes
+  `</script` in the bundle. Tailwind's reset is scoped away from `#rd-article`,
+  `#rd-toc` and `.rd-zoom`, so rendered markdown keeps browser defaults. The seam
+  tests are now `test_viewer_bundle_has_no_template_placeholders` and
+  `test_assembled_html_inlines_every_asset`; the header's contract markup is pinned
+  by a fixture here and by `Header.test.tsx` in the UI Build.
+- **Lens:** when a page needs a toolchain the skill must not ship, build it beside
+  the skill and ship only its output. Pin the seam on both sides of the build.
+
 ### ADR-033: brandpack and CSS roles use shadcn names
 
 - **Status:** accepted; supersedes ADR-012's token names (`accent`, `onAccent`) and

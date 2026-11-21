@@ -1,7 +1,7 @@
 "use strict";
 // Deck.GL block renderer — `rdRenderDeckGL(block, tokens, theme)`.
 //
-// Inlined BEFORE viewer.js so its functions are hoisted (same contract as
+// Inlined BEFORE the viewer bundle so its functions are hoisted (same contract as
 // viewer-cytoscape.js). Placeholder-free by ADR-008: this is real, lintable JS.
 //
 // Two views, one renderer:

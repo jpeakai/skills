@@ -24,8 +24,16 @@ const ASSETS = join(import.meta.dir, "..", "assets");
 const TOC_SRC = readFileSync(join(ASSETS, "viewer-toc.js"), "utf-8");
 const SHELL = readFileSync(join(ASSETS, "viewer.html"), "utf-8");
 
-// Everything between <body> and the first injected script: header + layout.
-const BODY = (SHELL.split("<body>")[1] ?? "").split("{{BOOTSTRAP}}")[0]?.replace(/\{\{\w+\}\}/g, "") ?? "";
+// The React header (web/richdocs-ui, root ADR-0011) mounts into #rd-header-root
+// at runtime. This fixture is its contract with viewer-toc.js: the class the
+// sidebar measures and the toggle it unhides and drives. web/richdocs-ui's
+// Header test asserts the component renders these same attributes.
+const HEADER =
+  '<header class="rd-header"><button id="rd-toc-toggle" type="button" aria-controls="rd-toc" aria-expanded="false" hidden>contents</button><h1 id="rd-title">T</h1>' +
+  '<button id="rd-theme-toggle" type="button" aria-label="Toggle theme"></button></header>';
+
+// The header fixture, then the shipped shell up to the first injected script.
+const BODY = HEADER + ((SHELL.split("<body>")[1] ?? "").split("{{BOOTSTRAP}}")[0]?.replace(/\{\{\w+\}\}/g, "") ?? "");
 
 type Fold = { button: HTMLButtonElement; body: HTMLElement };
 

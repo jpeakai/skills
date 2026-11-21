@@ -64,24 +64,39 @@ def test_make_build_id_format() -> None:
     assert len(md2html.make_build_id()) == 16
 
 
-def test_viewer_js_has_no_template_placeholders() -> None:
-    """ADR-008: viewer.js must stay real, lintable JS. A `{{...}}` breaks parsing."""
-    js = md2html.VIEWER_JS.read_text(encoding="utf-8")
+def test_viewer_bundle_has_no_template_placeholders() -> None:
+    """ADR-008: only the shell carries `{{...}}`; the generated bundle reads #rd-config."""
+    js = md2html.VIEWER_BUNDLE_JS.read_text(encoding="utf-8")
+    css = md2html.VIEWER_BUNDLE_CSS.read_text(encoding="utf-8")
     assert "{{" not in js
-    assert 'document.getElementById("rd-config")' in js
+    assert "{{" not in css
+    assert "</style" not in css.lower()
+    assert "rd-config" in js
+
+
+def test_viewer_bundle_is_a_classic_script() -> None:
+    """md2html inlines the bundle into a classic <script>, so it must be an IIFE."""
+    js = md2html.VIEWER_BUNDLE_JS.read_text(encoding="utf-8")
+    assert not re.search(r"^\s*(import|export)\s", js, re.MULTILINE)
+
+
+def test_script_safe_escapes_script_close() -> None:
+    assert md2html._script_safe('x="</SCRIPT>"') == 'x="<\\/SCRIPT>"'
+    assert md2html._script_safe("a</b") == "a</b"
 
 
 def test_viewer_deckgl_js_has_no_template_placeholders() -> None:
-    """ADR-008 applies to every hoisted renderer, not just viewer.js."""
+    """ADR-008 applies to every hoisted renderer, not just the bundle."""
     js = md2html.VIEWER_DECKGL_JS.read_text(encoding="utf-8")
     assert "{{" not in js
     assert "function rdRenderDeckGL(" in js
 
 
 def test_build_config_carries_everything_the_viewer_needs() -> None:
-    cfg = md2html.build_config(build_id="B1", source="doc.md")
+    cfg = md2html.build_config(build_id="B1", source="doc.md", title="Doc")
     assert cfg["buildId"] == "B1"
     assert cfg["source"] == "doc.md"
+    assert cfg["title"] == "Doc"  # the React header renders it
     assert set(cfg["cdn"]) == {
         "highlight",
         "cytoscape",
@@ -131,13 +146,15 @@ def test_lint_and_viewer_use_the_same_mermaid_version() -> None:
 def test_the_viewer_draws_mermaid_on_the_surface_token() -> None:
     # lint_canvas_config scores on `surface` because this is where the viewer
     # draws a diagram. If the canvas background moves, the flags must move too.
-    css = (md2html.ASSETS_DIR / "viewer.css").read_text(encoding="utf-8")
-    canvas = re.search(r"\.rd-canvas \{([^}]*)\}", css)
-    assert canvas, "viewer.css has no .rd-canvas rule"
-    assert "background: var(--rd-card)" in canvas.group(1)
-    js = md2html.VIEWER_JS.read_text(encoding="utf-8")
-    assert '"rd-canvas rd-" + lang' in js
-    assert '"--rd-card:" + t.card' in js
+    css = md2html.VIEWER_BUNDLE_CSS.read_text(encoding="utf-8")
+    canvas = re.search(r"\.rd-canvas\{([^}]*)\}", css)
+    assert canvas, "the viewer bundle CSS has no .rd-canvas rule"
+    assert "background:var(--card)" in canvas.group(1)
+    js = md2html.VIEWER_BUNDLE_JS.read_text(encoding="utf-8")
+    assert "rd-canvas rd-" in js
+    assert re.search(r"\[`--card`,\w+\.card\]", js), (
+        "the card token no longer sets --card"
+    )
 
 
 @pytest.mark.parametrize("name", md2html.available_themes())
@@ -185,13 +202,17 @@ def test_skill_gate_runs_the_default_brand_canvas() -> None:
     assert "--lint-config" in change
 
 
-def test_deckgl_renderer_is_inlined_and_hoisted_before_viewer_js() -> None:
-    """rdRenderDeckGL is called by viewer.js, so it must be DEFINED earlier in the page."""
+def _bundle_start(html: str) -> int:
+    return html.index(
+        md2html._script_safe(md2html.VIEWER_BUNDLE_JS.read_text(encoding="utf-8"))
+    )
+
+
+def test_deckgl_renderer_is_inlined_and_hoisted_before_the_bundle() -> None:
+    """The bundle calls rdRenderDeckGL, so it must be DEFINED earlier in the page."""
     html = md2html.build_multi_html(build_id="B", title="T", source="doc.md")
     assert "function rdRenderDeckGL(" in html
-    assert html.index("function rdRenderDeckGL(") < html.index(
-        'JSON.parse(document.getElementById("rd-config")'
-    )
+    assert html.index("function rdRenderDeckGL(") < _bundle_start(html)
 
 
 def test_viewer_toc_js_has_no_template_placeholders() -> None:
@@ -201,13 +222,13 @@ def test_viewer_toc_js_has_no_template_placeholders() -> None:
     assert "function rdInitToc(" in js
 
 
-def test_toc_is_inlined_and_hoisted_before_viewer_js() -> None:
-    """viewer.js calls rdInitToc after parsing, so it must be DEFINED earlier in the page."""
+def test_toc_is_inlined_and_hoisted_before_the_bundle() -> None:
+    """The bundle calls rdInitToc after parsing, so it must be DEFINED earlier in the page."""
     html = md2html.build_multi_html(build_id="B", title="T", source="doc.md")
-    assert html.index("function rdInitToc(") < html.index(
-        'JSON.parse(document.getElementById("rd-config")'
-    )
-    assert "rdInitToc(article);" in html
+    start = _bundle_start(html)
+    assert html.index("function rdInitToc(") < start
+    assert html.index('id="rd-config"') < start
+    assert "rdInitToc(" in html[start:]
 
 
 @pytest.mark.parametrize("inline", [False, True])
@@ -224,8 +245,10 @@ def test_every_output_mode_ships_the_sidebar_shell(inline: bool) -> None:
     else:
         html = md2html.build_multi_html(build_id="B", title="T", source="d.md")
     assert '<nav id="rd-toc" aria-label="Contents">' in html
-    assert 'id="rd-toc-toggle"' in html
-    assert 'aria-controls="rd-toc"' in html
+    # The React header renders the toggle into this mount; web/richdocs-ui's
+    # Header test pins its id and aria-controls.
+    assert '<div id="rd-header-root"></div>' in html
+    assert html.index('id="rd-header-root"') < html.index('id="rd-toc"')
     assert html.index('id="rd-toc"') < html.index('id="rd-article"')
     # The sidebar and fold styles are inlined, not left as a placeholder (ADR-022).
     assert ".rd-fold-body[hidden]" in html
@@ -284,7 +307,13 @@ def test_build_inline_html_embeds_doc_and_tokens() -> None:
     assert "window.__DOC_TOKENS__ = " in html
     assert "hello <\\/script> world" in html
     # No raw </script> from embedded payloads may appear before the real closer.
-    assert html.count("</script>") == html.count("<script")
+    # The bundle is set aside first: React's DOM code holds an unclosed
+    # "<script" string literal, which opens no tag.
+    page = html.replace(
+        md2html._script_safe(md2html.VIEWER_BUNDLE_JS.read_text(encoding="utf-8")), ""
+    )
+    assert page.count("</script>") == page.count("<script")
+    assert "</script" not in html[_bundle_start(html) :].split("</script>", 1)[0]
 
 
 def test_fallback_tokens_are_the_default_brandpack() -> None:
@@ -298,14 +327,17 @@ def test_fallback_tokens_are_the_default_brandpack() -> None:
 
 def test_assembled_html_inlines_every_asset() -> None:
     html = md2html.build_multi_html(build_id="B", title="T", source="doc.md")
-    assert md2html.VIEWER_CSS.read_text(encoding="utf-8") in html
-    assert md2html.VIEWER_JS.read_text(encoding="utf-8") in html
+    assert md2html.VIEWER_BUNDLE_CSS.read_text(encoding="utf-8") in html
+    assert (
+        md2html._script_safe(md2html.VIEWER_BUNDLE_JS.read_text(encoding="utf-8"))
+        in html
+    )
     assert md2html.VIEWER_CYTOSCAPE_JS.read_text(encoding="utf-8") in html
     assert '<script type="application/json" id="rd-config">' in html
 
 
 def test_viewer_cytoscape_js_has_no_template_placeholders() -> None:
-    """ADR-008 applies to every asset, not just viewer.js."""
+    """ADR-008 applies to every asset, not just the bundle."""
     js = md2html.VIEWER_CYTOSCAPE_JS.read_text(encoding="utf-8")
     assert "{{" not in js
     assert "function rdRenderCytoscape(" in js
@@ -382,15 +414,15 @@ def test_load_theme_unknown_name_crashes_loudly() -> None:
     assert "osakanights" in str(excinfo.value)  # lists what IS available
 
 
-def test_theme_css_is_injected_after_viewer_css() -> None:
+def test_theme_css_is_injected_after_the_bundle_css() -> None:
     theme = md2html.load_theme("osakanights")
     html = md2html.build_multi_html(
         build_id="B", title="T", source="d.md", theme_css=theme.css
     )
     assert theme.css in html
-    assert html.index(md2html.VIEWER_CSS.read_text(encoding="utf-8")) < html.index(
-        theme.css
-    )
+    assert html.index(
+        md2html.VIEWER_BUNDLE_CSS.read_text(encoding="utf-8")
+    ) < html.index(theme.css)
 
 
 def test_main_theme_supersedes_tokens(
@@ -499,7 +531,7 @@ def test_write_multi_outputs(doc: Path, tmp_path: Path) -> None:
     copied = json.loads((out_dir / "mydoc.tokens.json").read_text(encoding="utf-8"))
     assert {"fonts", "themes", "canvas"} <= set(copied)
     html = html_path.read_text(encoding="utf-8")
-    assert "build B123" in html
+    assert '"buildId": "B123"' in html  # the React header renders it from #rd-config
     assert "<title>My Doc</title>" in html
 
 

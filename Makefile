@@ -65,10 +65,17 @@ skills-ci:
 	done
 
 # The richdocs UI build: a dev-time Vite + shadcn project outside the skill
-# (ADR-0011). Only its built output ships in skills/richdocs/assets/; from M1
-# this target also fails when that committed output is stale.
+# (ADR-0011). Only its built output ships in skills/richdocs/assets/, so the
+# gate rebuilds it and fails when the committed copy differs from the source.
+UI_OUTPUT := skills/richdocs/assets/viewer.html skills/richdocs/assets/viewer.bundle.js \
+             skills/richdocs/assets/viewer.bundle.css
+
 ui-ci:
 	$(MAKE) -C web/richdocs-ui ci
+	@test -z "$$(git status --porcelain -- $(UI_OUTPUT))" || { \
+		git status --short -- $(UI_OUTPUT); \
+		echo "ERROR: the UI Build output is stale or uncommitted - commit skills/richdocs/assets"; \
+		exit 1; }
 
 # Gate root documentation and canonical skill README diagrams once.
 # Plugin mirrors and vendored references remain outside the authored corpus.

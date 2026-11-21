@@ -2,7 +2,7 @@
  *
  * The brandpack CHOOSES the faces (fonts.heading = Fraunces, fonts.sans = Fira
  * Sans). This file does the two things a JSON file cannot: @import the webfiles,
- * and express layout — sizes, weights, tracking, rhythm. Loaded after viewer.css,
+ * and express layout — sizes, weights, tracking, rhythm. Loaded after the viewer bundle CSS,
  * so it may override anything.
  *
  * Origin: synthwave, walking Osaka at 3am after karaoke with friends and with

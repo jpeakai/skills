@@ -8,6 +8,8 @@ accepted_on: 2026-11-19
 provenance: Maintainer requirement for a mini Vite project using shadcn to rebuild the richdocs showcase and base template, kept external to the skill, with bespoke components curated in the jpeakai/ui registry.
 enforced_in:
   - web/richdocs-ui/
+  - skills/richdocs/assets/viewer.html
+  - skills/richdocs/scripts/md2html.py
   - Makefile
 generated: { by: human:maintainer, at: 2026-11-19T00:00:00Z }
 ---

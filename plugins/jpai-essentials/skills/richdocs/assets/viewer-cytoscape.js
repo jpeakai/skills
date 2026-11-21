@@ -1,8 +1,8 @@
 "use strict";
 // Cytoscape graph rendering for the richdocs viewer.
 //
-// Inlined into its own script element BEFORE viewer.js, so these functions are
-// hoisted into global scope by the time viewer.js boots. Placeholder-free by
+// Inlined into its own script element BEFORE the viewer bundle, so these functions are
+// hoisted into global scope by the time the viewer bundle boots. Placeholder-free by
 // contract (ADR-008) — every colour comes from TOKENS.canvas.cytoscape.
 //
 // (Deliberately no literal script tags in this comment: a test balances the

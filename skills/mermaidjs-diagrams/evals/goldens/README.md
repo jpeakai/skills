@@ -36,7 +36,7 @@ theming applied. It passes the lint the skill mandates, which is what makes it a
 golden rather than a plausible file. From the repository root:
 
 ```sh
-bunx @jpeakai/mermaidjs-lint skills/mermaidjs-diagrams/evals/goldens/unstyled_diagram/ARCHITECTURE.md   # 0 findings, exit 0
+bunx @jpeakai/remark-lint-slopstopper skills/mermaidjs-diagrams/evals/goldens/unstyled_diagram/ARCHITECTURE.md   # 0 findings, exit 0
 ```
 
 Its palette is deliberately *not* copied from the examples in
@@ -52,7 +52,7 @@ so the golden declares no `color:`. It uses translucent fills and carries each h
 an opaque stroke. It passes the lint, rows and themes included:
 
 ```sh
-bunx @jpeakai/mermaidjs-lint skills/mermaidjs-diagrams/evals/goldens/unstyled_erd/DATA_MODEL.md   # 0 findings, exit 0
+bunx @jpeakai/remark-lint-slopstopper skills/mermaidjs-diagrams/evals/goldens/unstyled_erd/DATA_MODEL.md   # 0 findings, exit 0
 ```
 
 `eval_erd_theming.py` compares only its structure facet by facet: entities,

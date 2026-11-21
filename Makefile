@@ -1,9 +1,19 @@
-.PHONY: fix ci tools-ci skills-ci docs-ci harness-ci adrs adr-ci codex-setup kiro-setup
+.PHONY: fix ci tools-ci skills-ci docs-ci harness-ci adrs adr-ci ui-ci profile-themes codex-setup kiro-setup
 
 # Regenerate everything that is generated. Safe to run at any time.
-fix:
+fix: profile-themes
 	uv run --project tools/plugin-ci plugin-ci sync
 	$(MAKE) adrs
+
+# Compile the shared fallback through the design-profiles CLI, then ship local copies.
+profile-themes:
+	node skills/design-profiles/scripts/profiles.mjs init osakanights --example osakanights --force --store tmp/design-profiles-prebuilt
+	node skills/design-profiles/scripts/profiles.mjs all osakanights --store tmp/design-profiles-prebuilt
+	mkdir -p skills/mermaidjs-diagrams/resources/themes/osakanights skills/richdocs/resources/themes/osakanights/profile
+	cp tmp/design-profiles-prebuilt/osakanights/theme.css skills/mermaidjs-diagrams/resources/themes/osakanights/themes.css
+	cp tmp/design-profiles-prebuilt/osakanights/design-tokens.json skills/mermaidjs-diagrams/resources/themes/osakanights/design-tokens.json
+	cp tmp/design-profiles-prebuilt/osakanights/theme.css skills/richdocs/resources/themes/osakanights/themes.css
+	cp tmp/design-profiles-prebuilt/osakanights/design-tokens.json skills/richdocs/resources/themes/osakanights/profile/design-tokens.json
 
 adrs:
 	uv run --no-project adrs/okf_render.py adrs
@@ -21,6 +31,7 @@ ci: fix
 	$(MAKE) adr-ci
 	$(MAKE) docs-ci
 	$(MAKE) skills-ci
+	$(MAKE) ui-ci
 	uv run --project tools/plugin-ci plugin-ci check-worktree
 
 TOOL_GATES := $(patsubst %/Makefile,%,$(wildcard tools/*/Makefile))
@@ -53,27 +64,34 @@ skills-ci:
 		$(MAKE) -C "$$d" ci || exit 1; \
 	done
 
+# The richdocs UI build: a dev-time Vite + shadcn project outside the skill
+# (ADR-0011). Only its built output ships in skills/richdocs/assets/, so the
+# gate rebuilds it and fails when the committed copy differs from the source.
+UI_OUTPUT := skills/richdocs/assets/viewer.html skills/richdocs/assets/viewer.bundle.js \
+             skills/richdocs/assets/viewer.bundle.css
+
+ui-ci:
+	$(MAKE) -C web/richdocs-ui ci
+	@test -z "$$(git status --porcelain -- $(UI_OUTPUT))" || { \
+		git status --short -- $(UI_OUTPUT); \
+		echo "ERROR: the UI Build output is stale or uncommitted - commit skills/richdocs/assets"; \
+		exit 1; }
+
 # Gate root documentation and canonical skill README diagrams once.
 # Plugin mirrors and vendored references remain outside the authored corpus.
 DOCS := README.md CONTRIBUTING.md CODING_STANDARDS.md GLOSSARY.md AGENTS.md \
-        docs/CONVENTIONS.md plugins/README.md hooks/README.md kiro-conf/README.md $(wildcard rules/*.md) \
+        docs/CONVENTIONS.md plugins/README.md hooks/README.md kiro-conf/README.md web/richdocs-ui/README.md $(wildcard rules/*.md) \
         tools/README.md tools/AGENTS.md $(wildcard tools/*/README.md) $(wildcard tools/*/AGENTS.md)
 SKILL_READMES := $(wildcard skills/*/README.md)
 PLUGIN_READMES := $(wildcard plugins/*/README.md)
 
-# The prose gate and the diagram gate are both published packages,
-# @jpeakai/prose-gates and @jpeakai/mermaidjs-lint, deliberately unpinned: the
-# maintainer of this repo also authors both, so taking their latest release on
-# every run is a managed risk rather than an unknown one. The diagram gate
-# parses every mermaid fence, scores its complexity and audits its contrast;
-# it replaced the mermaidjs-diagrams skill's own gate scripts, so docs-ci no
-# longer installs that skill's dependencies.
-PROSE_GATES := @jpeakai/prose-gates@latest
-MERMAID_GATES := @jpeakai/mermaidjs-lint@latest
+# One published CLI checks Markdown structure, prose and Mermaid. Preserve the
+# existing prose scope; skill READMEs receive the Markdown and Mermaid checks.
+SLOPSTOPPER := @jpeakai/remark-lint-slopstopper@latest
 
 docs-ci:
-	bunx $(PROSE_GATES) $(DOCS) $(PLUGIN_READMES)
-	bunx $(MERMAID_GATES) $(DOCS) $(SKILL_READMES) $(PLUGIN_READMES)
+	bunx $(SLOPSTOPPER) $(DOCS) $(PLUGIN_READMES)
+	bunx $(SLOPSTOPPER) --mermaid-only $(SKILL_READMES)
 
 # The real install test: clones HEAD and installs both packs into throwaway
 # Claude and Codex sandboxes. Kept out of `ci` because it drives two external

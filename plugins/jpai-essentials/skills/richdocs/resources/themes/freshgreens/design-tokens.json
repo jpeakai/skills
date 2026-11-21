@@ -1,31 +1,31 @@
 {
   "defaultTheme": "light",
   "fonts": {
-    "display": "'Poppins', system-ui, sans-serif",
-    "body": "'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    "heading": "'Poppins', system-ui, sans-serif",
+    "sans": "'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     "mono": "'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace"
   },
   "themes": {
     "light": {
-      "bg": "#ffffff",
-      "fg": "#3a474e",
-      "muted": "#616c71",
-      "accent": "#a5c84d",
-      "surface": "#f7f7f8",
+      "background": "#ffffff",
+      "foreground": "#3a474e",
+      "mutedForeground": "#616c71",
+      "primary": "#a5c84d",
+      "card": "#f7f7f8",
       "border": "#e4e7ec",
-      "onAccent": "#3a474e",
+      "primaryForeground": "#3a474e",
       "link": "#5d7702",
       "radius": "8px",
       "pill": "999px"
     },
     "dark": {
-      "bg": "#242c30",
-      "fg": "#e3e6e7",
-      "muted": "#9aa4a8",
-      "accent": "#9bb856",
-      "surface": "#2d373d",
+      "background": "#242c30",
+      "foreground": "#e3e6e7",
+      "mutedForeground": "#9aa4a8",
+      "primary": "#9bb856",
+      "card": "#2d373d",
       "border": "#4b5c65",
-      "onAccent": "#242c30",
+      "primaryForeground": "#242c30",
       "link": "#9bb856",
       "radius": "8px",
       "pill": "999px"

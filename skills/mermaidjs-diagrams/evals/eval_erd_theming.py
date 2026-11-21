@@ -18,7 +18,7 @@ exception -- or being stopped by the contrast gate that now models it -- gets it
 and attributes are the fixture's, and a styling task must not change them. It deliberately
 does not fix the colours. Whether a palette reads on both row surfaces in both themes is a
 contrast question with many right answers, and the skill ships the verifier for exactly
-that question, so the colour verdict comes from ``@jpeakai/mermaidjs-lint`` rather than a
+that question, so the colour verdict comes from ``@jpeakai/remark-lint-slopstopper`` rather than a
 hex-level facet.
 """
 
@@ -173,7 +173,7 @@ def check_contrast_gate_passes(output: CaseOutput) -> None:
     This is the assertion the case exists for. An opaque ``fill:`` + ``color:`` pairing
     fails it on one theme's odd rows, however well it reads on the fill itself.
     """
-    result = lint(str(output.path(TARGET)), "--profile", "github")
+    result = lint(str(output.path(TARGET)))
     assert result.returncode == 0, (
         "the erDiagram fails the contrast gate -- text is unreadable on an attribute row in one theme "
         f"(see color_theming.md §3, the erDiagram exception):\n{result.stdout}{result.stderr}"

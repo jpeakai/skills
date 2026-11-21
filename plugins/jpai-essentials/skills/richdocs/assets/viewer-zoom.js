@@ -1,8 +1,8 @@
 "use strict";
 // Full-screen diagram viewer with deep zoom (ADR-024).
 //
-// Inlined into its own script element BEFORE viewer.js, so these functions are
-// hoisted into global scope by the time viewer.js boots. Placeholder-free by
+// Inlined into its own script element BEFORE the viewer bundle, so these functions are
+// hoisted into global scope by the time the viewer bundle boots. Placeholder-free by
 // contract (ADR-008). The theme showcase inlines the same file, so a diagram
 // behaves the same on both pages.
 //

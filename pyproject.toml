@@ -14,9 +14,9 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-# `hooks` holds the hook suite, which
+# `tests` holds cross-skill contract tests and `hooks` holds the hook suite, which
 # imports tool_coach as a sibling module, hence the pythonpath entry.
-testpaths = ["hooks"]
+testpaths = ["tests", "hooks"]
 pythonpath = ["hooks"]
 
 # Structural, not advisory. The shipped `test_*.py` files carry their own PEP-723

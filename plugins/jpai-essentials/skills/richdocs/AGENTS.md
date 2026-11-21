@@ -31,18 +31,21 @@ Resolve `{SKILLS_ROOT}` from the installed skill location as described in `SKILL
 | `scripts/showcase.py` | **theme showcase** generator — gallery of every brand, or one brand alone (`--theme`). Composes architecture diagrams from the stencil pack as drawio-editable SVG (ADR-011) |
 | `assets/showcase.{html,css,js}` | the showcase page. Placeholder-free JS/CSS; only `showcase.html` carries `{{...}}` |
 | `scripts/md2html.py` | markdown → HTML companion **generator** (stdlib). Contains no HTML/CSS/JS source — it assembles the `assets/viewer.*` files (ADR-008) |
-| `assets/viewer.html` | the page shell — the **only** file carrying `{{...}}` placeholders |
-| `assets/viewer.css` | viewer chrome; all colour/font via `--rd-*` custom properties |
-| `assets/viewer.js` | runtime renderer (marked → fenced-block upgrades → theme flip). **Placeholder-free by contract** — reads generation-time values from the `#rd-config` JSON block |
-| `assets/viewer-cytoscape.js` | graph styling + render (`rdRenderCytoscape`), and the categorical palette helpers (`rdCategorical`, `rdCategorySlots`, `rdCategoryColour`) every diagram uses (ADR-023). Inlined *before* `viewer.js` so its functions are hoisted. Placeholder-free (ADR-008) |
-| `assets/viewer-toc.js` | heading sidebar (`rdInitToc`): anchors, foldable contents tree, rail/drawer state, section folds. Inlined *before* `viewer.js`, same hoisting contract. The showcase inlines it too, via options (ADR-021, ADR-022) |
-| `assets/viewer-zoom.js` | full-screen diagrams with deep zoom (`rdInitZoom`): SVG and image modal, graph copy, in-page Ctrl/Cmd + wheel zoom. Inlined *before* `viewer.js`; the showcase inlines it too (ADR-024) |
+| `scripts/profile_resolver.py` | Python compatibility reader for the design-profiles `.mjs` resolver: five-tier cascade, `.default-profile`, and DTCG reading. Cross-language tests check agreement. `md2html.py` maps a profile onto the brandpack schema (ADR-028) |
+| `scripts/testdata/osakanights/design-tokens.json` | a design profile built by design-profiles from its `osakanights` example, for the profile tests |
+| `tmp/richdocs/profile/<name>/` | the brandpack a design profile maps to, written on each render (ADR-028) |
+| `assets/viewer.html` | **generated** page shell, the **only** file carrying `{{...}}` placeholders. Source: `web/richdocs-ui/src/viewer/shell.html` at the repo root (ADR-034) |
+| `assets/viewer.bundle.js` | **generated** IIFE: the React header (shadcn) and the runtime renderer (marked → fenced-block upgrades → theme flip). Reads generation-time values from `#rd-config`. Never hand-edit; run `make -C web/richdocs-ui build` from the repo root (ADR-034) |
+| `assets/viewer.bundle.css` | **generated** Tailwind, shadcn and document styles; colours and fonts come from shadcn variables, with `--rd-*` aliases for one release (ADR-034) |
+| `assets/viewer-cytoscape.js` | graph styling + render (`rdRenderCytoscape`), and the categorical palette helpers (`rdCategorical`, `rdCategorySlots`, `rdCategoryColour`) every diagram uses (ADR-023). Inlined *before* the viewer bundle so its functions are global. Placeholder-free (ADR-008) |
+| `assets/viewer-toc.js` | heading sidebar (`rdInitToc`): anchors, foldable contents tree, rail/drawer state, section folds. Inlined *before* the viewer bundle, same contract. The showcase inlines it too, via options (ADR-021, ADR-022) |
+| `assets/viewer-zoom.js` | full-screen diagrams with deep zoom (`rdInitZoom`): SVG and image modal, graph copy, in-page Ctrl/Cmd + wheel zoom. Inlined *before* the viewer bundle; the showcase inlines it too (ADR-024) |
 | `assets/viewer-zoom.css` | the modal, its toolbar and the graph's "Full screen" button, inlined by both pages (ADR-024) |
 | `scripts/viewer_zoom.test.ts` | zoom maths and modal behaviour in happy-dom (`bun test`) (ADR-024) |
 | `assets/viewer-toc.css` | sidebar, rail, drawer and fold styles, inlined verbatim by both `viewer.html` and `showcase.html` (ADR-022) |
 | `scripts/viewer_palette.test.ts` | tests for the categorical palette helpers (`bun test`, no DOM) (ADR-023) |
 | `scripts/viewer_toc.test.ts` | DOM tests for the sidebar and folds in happy-dom (`bun test`), part of `make ci`. Test-time only: bun and happy-dom never ship in a script (ADR-021) |
-| `assets/viewer-deckgl.js` | 3D / geographic render (`rdRenderDeckGL`) + the OKLab/OKLCH maths and colour-space projections. Inlined *before* `viewer.js`, same hoisting contract (ADR-014) |
+| `assets/viewer-deckgl.js` | 3D / geographic render (`rdRenderDeckGL`) + the OKLab/OKLCH maths and colour-space projections. Inlined *before* the viewer bundle, same contract (ADR-014) |
 | `resources/themes/<name>/` | a built-in brand theme: `design-tokens.json` (required) + `theme.css` (optional). Selected with `--theme`; default brand is `osakanights` (ADR-009, ADR-018) |
 | `tmp/richdocs/theme/<name>/` | **optional** project-local theme override (cwd-relative, gitignored). Shadows the built-in of the same name and adds project-only themes; absent ⇒ built-in set only (ADR-018) |
 | `scripts/Makefile` | fix/ci contract for this skill |
@@ -51,7 +54,7 @@ Resolve `{SKILLS_ROOT}` from the installed skill location as described in `SKILL
 | `resources/adr-log.md` | the **ADR log**, ADR-014 onwards, newest first — decision lenses; split out of this file for the 500-line invariant |
 | `resources/adr-log-foundations.md` | the founding records, ADR-001…013, moved unedited when `adr-log.md` reached 500 lines |
 | `resources/learned/` | self-curated adjudications/facts (statefulness Pathway 2) — read before re-litigating a past failure |
-| `vendor/mermaidjs-diagrams/` | wholesale vendored mermaid references (theming, lint usage, render script); the gates themselves run from the published `@jpeakai/mermaidjs-lint` (ADR-025). Refresh per ADR-007, never cherry-pick; its entrypoint is `mermaidjs-diagrams.md`, never a second `SKILL.md` |
+| `vendor/mermaidjs-diagrams/` | wholesale vendored mermaid references (theming, lint usage, render script); the gates themselves run from the published `@jpeakai/remark-lint-slopstopper` (ADR-025). Refresh per ADR-007, never cherry-pick; its entrypoint is `mermaidjs-diagrams.md`, never a second `SKILL.md` |
 
 ## Invariants
 
@@ -61,9 +64,9 @@ Resolve `{SKILLS_ROOT}` from the installed skill location as described in `SKILL
   Python. Missing inputs crash loudly (escalators-not-stairs).
   Exception: `vendor/mermaidjs-diagrams/` is Tier A (bun + frozen lockfile)
   — it is vendored wholesale, not authored here (ADR-007). The mermaid gate is
-  Tier A too: `bunx @jpeakai/mermaidjs-lint` needs registry access (ADR-025). The gate's own
-  DOM tests also run on bun (`scripts/package.json`), but only at test time;
-  no shipped script depends on it (ADR-021).
+  Tier A too: `bunx @jpeakai/remark-lint-slopstopper` needs registry access (ADR-025). The gate's own
+  DOM tests also run on Bun (`scripts/package.json`). Native lint configuration
+  references the locked local Slopstopper plugin; install those dependencies before linting.
 - Self-contained: no file under this skill instructs the agent to run or
   read another skill's files (ADR-007).
 - Outputs go to project-local `tmp/richdocs/`, never system `/tmp`.
@@ -79,7 +82,7 @@ Resolve `{SKILLS_ROOT}` from the installed skill location as described in `SKILL
 
 ## ADR log
 
-The full decision log (ADR-001 … ADR-025), each entry carrying its **Lens**, lives in
+The full decision log, each entry carrying its **Lens**, lives in
 [`resources/adr-log.md`](resources/adr-log.md) (ADR-014 onwards) and
 [`resources/adr-log-foundations.md`](resources/adr-log-foundations.md) (ADR-001 … 013).
 Read both before changing anything and apply each ADR's Lens to the next related
@@ -115,7 +118,7 @@ invariant; it is one log, just split out.
 - **Symptom: a theme passes every check but looks nothing like the brand** — the
   brandpack substituted a colour the brand does not own, because one token was
   asked to be both a fill and a text colour. Run `themecheck.py`; split
-  `accent` / `onAccent` / `link` (ADR-012).
+  `primary` / `primaryForeground` / `link` (ADR-012, names from ADR-033).
 - **Symptom: a brandpack names a webfont but the page renders in system fonts** —
   the pack *chooses* faces, it cannot *load* them. Use `--theme`, whose `theme.css`
   does the `@import`. (A doc can also `@import` in its own `<style>` block.)
@@ -188,7 +191,7 @@ invariant; it is one log, just split out.
   `<foreignObject>` from its own measurement, which runs a few percent short against
   a brand face, and a `foreignObject` **clips by default**. The node shape has ample
   spare room, so the cure is to stop the clip, not to fix the measurement:
-  `viewer.css` `.rd-mermaid foreignObject { overflow: visible; }`. Do **not** reach
+  the viewer bundle CSS `.rd-mermaid foreignObject { overflow: visible; }`. Do **not** reach
   for `flowchart.wrappingWidth` (moves `max-width`, clip unaffected, wraps every
   other diagram) or a `document.fonts.ready` barrier (shortfall is identical) —
   both were tried and measured. Full autopsy, including the probe that settled it:
@@ -199,7 +202,7 @@ invariant; it is one log, just split out.
 
 ## Extension checklist
 
-- [ ] New fenced block type: add lazy loader + renderer in **`assets/viewer.js`**,
+- [ ] New fenced block type: add lazy loader + renderer in **`web/richdocs-ui/src/viewer/renderer.ts`** and rebuild,
       token sub-palette if themable, contract section in `rich-blocks.md`,
       degradation behaviour on GitHub noted in `upgrade-recipes.md`.
 - [ ] New stencil pack: re-vendor zip per `stencil-library.md`, smoke-test
@@ -212,8 +215,8 @@ invariant; it is one log, just split out.
       the diagram must keep its size (ADR-022). Open each diagram kind full
       screen and zoom about the cursor; Ctrl + wheel in the page (ADR-024).
 - [ ] New generation-time value: add it to `build_config()` → the `#rd-config`
-      block. **Never** add a `{{...}}` placeholder to `viewer.js` (ADR-008) — a
-      test will fail, and the file stops being valid JS.
+      block. **Never** add a `{{...}}` placeholder to the bundle (ADR-008) — a
+      test will fail.
 - [ ] Any authored prose (showcase copy, UI/error strings, this skill's docs, an
       upgraded discovery doc) follows `resources/prose-style.md` (ADR-015): no
       em-dash, Australian English, inclusive language. User markdown is rendered

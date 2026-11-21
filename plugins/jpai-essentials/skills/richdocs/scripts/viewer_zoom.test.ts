@@ -13,7 +13,10 @@ import { join } from "node:path";
 const ASSETS = join(import.meta.dir, "..", "assets");
 const ZOOM_SRC = readFileSync(join(ASSETS, "viewer-zoom.js"), "utf-8");
 const SHELL = readFileSync(join(ASSETS, "viewer.html"), "utf-8");
-const BODY = (SHELL.split("<body>")[1] ?? "").split("{{BOOTSTRAP}}")[0]?.replace(/\{\{\w+\}\}/g, "") ?? "";
+// The React header's contract markup (see viewer_toc.test.ts), then the shell.
+const HEADER =
+  '<header class="rd-header"><button id="rd-toc-toggle" type="button" aria-controls="rd-toc" aria-expanded="false" hidden>contents</button></header>';
+const BODY = HEADER + ((SHELL.split("<body>")[1] ?? "").split("{{BOOTSTRAP}}")[0]?.replace(/\{\{\w+\}\}/g, "") ?? "");
 
 type Box = { x: number; y: number; w: number; h: number };
 type Api = {

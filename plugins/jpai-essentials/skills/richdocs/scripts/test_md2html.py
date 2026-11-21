@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 import re
-import shlex
 import subprocess
 import sys
 from argparse import Namespace
@@ -19,9 +18,20 @@ from pathlib import Path
 import pytest
 
 import md2html
+import profile_resolver
 from md2html import git_context, output_report, serve_commands
 
+PROFILE_FIXTURE = (
+    Path(__file__).parent / "testdata" / "osakanights" / "design-tokens.json"
+)
+
 DOC_MD = "# Title\n\nSome `</script>` text.\n\n```mermaid\ngraph LR; a-->b\n```\n"
+
+
+@pytest.fixture(autouse=True)
+def _no_user_profiles(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """A real ~/.design-profiles/.default-profile must never leak into a test."""
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
 
 
 @pytest.fixture
@@ -40,7 +50,8 @@ def _args(doc: Path, out: Path, **overrides: object) -> Namespace:
         "title": None,
         "serve_hint": False,
         "theme": None,
-        "lint_flags": False,
+        "profile": None,
+        "lint_config": False,
     }
     base.update(overrides)
     return Namespace(**base)
@@ -53,24 +64,39 @@ def test_make_build_id_format() -> None:
     assert len(md2html.make_build_id()) == 16
 
 
-def test_viewer_js_has_no_template_placeholders() -> None:
-    """ADR-008: viewer.js must stay real, lintable JS. A `{{...}}` breaks parsing."""
-    js = md2html.VIEWER_JS.read_text(encoding="utf-8")
+def test_viewer_bundle_has_no_template_placeholders() -> None:
+    """ADR-008: only the shell carries `{{...}}`; the generated bundle reads #rd-config."""
+    js = md2html.VIEWER_BUNDLE_JS.read_text(encoding="utf-8")
+    css = md2html.VIEWER_BUNDLE_CSS.read_text(encoding="utf-8")
     assert "{{" not in js
-    assert 'document.getElementById("rd-config")' in js
+    assert "{{" not in css
+    assert "</style" not in css.lower()
+    assert "rd-config" in js
+
+
+def test_viewer_bundle_is_a_classic_script() -> None:
+    """md2html inlines the bundle into a classic <script>, so it must be an IIFE."""
+    js = md2html.VIEWER_BUNDLE_JS.read_text(encoding="utf-8")
+    assert not re.search(r"^\s*(import|export)\s", js, re.MULTILINE)
+
+
+def test_script_safe_escapes_script_close() -> None:
+    assert md2html._script_safe('x="</SCRIPT>"') == 'x="<\\/SCRIPT>"'
+    assert md2html._script_safe("a</b") == "a</b"
 
 
 def test_viewer_deckgl_js_has_no_template_placeholders() -> None:
-    """ADR-008 applies to every hoisted renderer, not just viewer.js."""
+    """ADR-008 applies to every hoisted renderer, not just the bundle."""
     js = md2html.VIEWER_DECKGL_JS.read_text(encoding="utf-8")
     assert "{{" not in js
     assert "function rdRenderDeckGL(" in js
 
 
 def test_build_config_carries_everything_the_viewer_needs() -> None:
-    cfg = md2html.build_config(build_id="B1", source="doc.md")
+    cfg = md2html.build_config(build_id="B1", source="doc.md", title="Doc")
     assert cfg["buildId"] == "B1"
     assert cfg["source"] == "doc.md"
+    assert cfg["title"] == "Doc"  # the React header renders it
     assert set(cfg["cdn"]) == {
         "highlight",
         "cytoscape",
@@ -93,14 +119,16 @@ def test_lint_and_viewer_use_the_same_mermaid_version() -> None:
     # lockfile records the Mermaid that version depends on.
     scripts = Path(__file__).parent
     lint = json.loads((scripts / "package.json").read_text())["devDependencies"][
-        "@jpeakai/mermaidjs-lint"
+        "@jpeakai/remark-lint-slopstopper"
     ]
     locked = re.search(
-        r'^\s*"@jpeakai/mermaidjs-lint": \["@jpeakai/mermaidjs-lint@([^"]+)".*$',
+        r'^\s*"@jpeakai/remark-lint-slopstopper": \["@jpeakai/remark-lint-slopstopper@([^"]+)".*$',
         (scripts / "bun.lock").read_text(),
         re.MULTILINE,
     )
-    assert locked, "bun.lock has no @jpeakai/mermaidjs-lint entry: run bun install"
+    assert locked, (
+        "bun.lock has no @jpeakai/remark-lint-slopstopper entry: run bun install"
+    )
     assert locked.group(1) == lint
     mermaid = re.search(r'"mermaid": "([^"]+)"', locked.group(0))
     assert mermaid, "the locked lint entry names no mermaid dependency"
@@ -110,51 +138,53 @@ def test_lint_and_viewer_use_the_same_mermaid_version() -> None:
     # The mandated gate runs that same lint version, so the check above is
     # about the lint an agent actually runs.
     skill = (scripts.parent / "SKILL.md").read_text()
-    assert f"bunx @jpeakai/mermaidjs-lint@{lint} SOURCE.md" in skill
-    assert not re.search(r"(bunx|npx -y) @jpeakai/mermaidjs-lint(?!@)", skill)
+    assert f"bunx @jpeakai/remark-lint-slopstopper@{lint} SOURCE.md" in skill
+    assert not re.search(r"(bunx|npx -y) @jpeakai/remark-lint-slopstopper(?!@)", skill)
 
 
 # ── Lint canvas: page-backed colours are scored on the brand's page (ADR-027) ──
 def test_the_viewer_draws_mermaid_on_the_surface_token() -> None:
-    # lint_canvas_flags scores on `surface` because this is where the viewer
+    # lint_canvas_config scores on `surface` because this is where the viewer
     # draws a diagram. If the canvas background moves, the flags must move too.
-    css = (md2html.ASSETS_DIR / "viewer.css").read_text(encoding="utf-8")
-    canvas = re.search(r"\.rd-canvas \{([^}]*)\}", css)
-    assert canvas, "viewer.css has no .rd-canvas rule"
-    assert "background: var(--rd-surface)" in canvas.group(1)
-    js = md2html.VIEWER_JS.read_text(encoding="utf-8")
-    assert '"rd-canvas rd-" + lang' in js
-    assert '"--rd-surface:" + t.surface' in js
+    css = md2html.VIEWER_BUNDLE_CSS.read_text(encoding="utf-8")
+    canvas = re.search(r"\.rd-canvas\{([^}]*)\}", css)
+    assert canvas, "the viewer bundle CSS has no .rd-canvas rule"
+    assert "background:var(--card)" in canvas.group(1)
+    js = md2html.VIEWER_BUNDLE_JS.read_text(encoding="utf-8")
+    assert "rd-canvas rd-" in js
+    assert re.search(r"\[`--card`,\w+\.card\]", js), (
+        "the card token no longer sets --card"
+    )
 
 
 @pytest.mark.parametrize("name", md2html.available_themes())
-def test_lint_flags_name_each_brand_surface(name: str) -> None:
+def test_lint_config_name_each_brand_surface(name: str) -> None:
     theme = md2html.load_theme(name)
     tokens = json.loads(theme.tokens_path.read_text(encoding="utf-8"))
-    assert md2html.lint_canvas_flags(theme.tokens_path) == [
-        "--profile",
-        "github",
-        "--canvas-light",
-        tokens["themes"]["light"]["surface"],
-        "--canvas-dark",
-        tokens["themes"]["dark"]["surface"],
-    ]
+    config = md2html.lint_canvas_config(theme.tokens_path)
+    plugin, options = config["plugins"][0]
+    assert Path(plugin).is_file()
+    assert options["options"]["canvas"] == {
+        mode: tokens["themes"][mode]["card"] for mode in ("light", "dark")
+    }
 
 
-def test_lint_flags_crash_on_a_brandpack_without_a_surface(tmp_path: Path) -> None:
+def test_lint_config_crash_on_a_brandpack_without_a_card(tmp_path: Path) -> None:
     tokens = tmp_path / "design-tokens.json"
-    tokens.write_text(json.dumps({"themes": {"light": {"bg": "#ffffff"}, "dark": {}}}))
-    with pytest.raises(KeyError, match="surface"):
-        md2html.lint_canvas_flags(tokens)
+    tokens.write_text(
+        json.dumps({"themes": {"light": {"background": "#ffffff"}, "dark": {}}})
+    )
+    with pytest.raises(KeyError, match="card"):
+        md2html.lint_canvas_config(tokens)
 
 
-def test_main_lint_flags_prints_the_flags_and_renders_nothing(
+def test_main_lint_config_prints_the_flags_and_renders_nothing(
     doc: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    md2html.main(_args(doc, tmp_path, theme="osakanights", lint_flags=True))
+    md2html.main(_args(doc, tmp_path, theme="osakanights", lint_config=True))
     out = capsys.readouterr().out.strip()
     theme = md2html.load_theme("osakanights")
-    assert out == " ".join(md2html.lint_canvas_flags(theme.tokens_path))
+    assert json.loads(out) == md2html.lint_canvas_config(theme.tokens_path)
     assert not (tmp_path / "mydoc.html").exists()
 
 
@@ -163,23 +193,26 @@ def test_skill_gate_runs_the_default_brand_canvas() -> None:
     # renders with no --theme scores on the page the reader sees.
     scripts = Path(__file__).parent
     lint = json.loads((scripts / "package.json").read_text())["devDependencies"][
-        "@jpeakai/mermaidjs-lint"
+        "@jpeakai/remark-lint-slopstopper"
     ]
-    default = md2html.load_theme(md2html.DEFAULT_THEME)
-    flags = shlex.join(md2html.lint_canvas_flags(default.tokens_path))
     skill = (scripts.parent / "SKILL.md").read_text()
-    assert f"bunx @jpeakai/mermaidjs-lint@{lint} SOURCE.md {flags}" in skill
+    assert f"bunx @jpeakai/remark-lint-slopstopper@{lint} SOURCE.md --config" in skill
+    assert "--lint-config" in skill
     change = (scripts.parent / "resources" / "change-documents.md").read_text()
-    assert "--lint-flags" in change
+    assert "--lint-config" in change
 
 
-def test_deckgl_renderer_is_inlined_and_hoisted_before_viewer_js() -> None:
-    """rdRenderDeckGL is called by viewer.js, so it must be DEFINED earlier in the page."""
+def _bundle_start(html: str) -> int:
+    return html.index(
+        md2html._script_safe(md2html.VIEWER_BUNDLE_JS.read_text(encoding="utf-8"))
+    )
+
+
+def test_deckgl_renderer_is_inlined_and_hoisted_before_the_bundle() -> None:
+    """The bundle calls rdRenderDeckGL, so it must be DEFINED earlier in the page."""
     html = md2html.build_multi_html(build_id="B", title="T", source="doc.md")
     assert "function rdRenderDeckGL(" in html
-    assert html.index("function rdRenderDeckGL(") < html.index(
-        'JSON.parse(document.getElementById("rd-config")'
-    )
+    assert html.index("function rdRenderDeckGL(") < _bundle_start(html)
 
 
 def test_viewer_toc_js_has_no_template_placeholders() -> None:
@@ -189,13 +222,13 @@ def test_viewer_toc_js_has_no_template_placeholders() -> None:
     assert "function rdInitToc(" in js
 
 
-def test_toc_is_inlined_and_hoisted_before_viewer_js() -> None:
-    """viewer.js calls rdInitToc after parsing, so it must be DEFINED earlier in the page."""
+def test_toc_is_inlined_and_hoisted_before_the_bundle() -> None:
+    """The bundle calls rdInitToc after parsing, so it must be DEFINED earlier in the page."""
     html = md2html.build_multi_html(build_id="B", title="T", source="doc.md")
-    assert html.index("function rdInitToc(") < html.index(
-        'JSON.parse(document.getElementById("rd-config")'
-    )
-    assert "rdInitToc(article);" in html
+    start = _bundle_start(html)
+    assert html.index("function rdInitToc(") < start
+    assert html.index('id="rd-config"') < start
+    assert "rdInitToc(" in html[start:]
 
 
 @pytest.mark.parametrize("inline", [False, True])
@@ -212,8 +245,10 @@ def test_every_output_mode_ships_the_sidebar_shell(inline: bool) -> None:
     else:
         html = md2html.build_multi_html(build_id="B", title="T", source="d.md")
     assert '<nav id="rd-toc" aria-label="Contents">' in html
-    assert 'id="rd-toc-toggle"' in html
-    assert 'aria-controls="rd-toc"' in html
+    # The React header renders the toggle into this mount; web/richdocs-ui's
+    # Header test pins its id and aria-controls.
+    assert '<div id="rd-header-root"></div>' in html
+    assert html.index('id="rd-header-root"') < html.index('id="rd-toc"')
     assert html.index('id="rd-toc"') < html.index('id="rd-article"')
     # The sidebar and fold styles are inlined, not left as a placeholder (ADR-022).
     assert ".rd-fold-body[hidden]" in html
@@ -272,26 +307,37 @@ def test_build_inline_html_embeds_doc_and_tokens() -> None:
     assert "window.__DOC_TOKENS__ = " in html
     assert "hello <\\/script> world" in html
     # No raw </script> from embedded payloads may appear before the real closer.
-    assert html.count("</script>") == html.count("<script")
+    # The bundle is set aside first: React's DOM code holds an unclosed
+    # "<script" string literal, which opens no tag.
+    page = html.replace(
+        md2html._script_safe(md2html.VIEWER_BUNDLE_JS.read_text(encoding="utf-8")), ""
+    )
+    assert page.count("</script>") == page.count("<script")
+    assert "</script" not in html[_bundle_start(html) :].split("</script>", 1)[0]
 
 
 def test_fallback_tokens_are_the_default_brandpack() -> None:
     """ADR-008 retires the ADR-004 hand-sync hazard: one source, not two copies."""
-    asset = json.loads(md2html.DEFAULT_TOKENS.read_text(encoding="utf-8"))
-    assert md2html.FALLBACK_TOKENS == asset
+    compiled = md2html.brandpack_from_profile(
+        json.loads(md2html.PREBUILT_PROFILE.read_text(encoding="utf-8"))
+    )
+    assert md2html.FALLBACK_TOKENS == compiled
     assert {"fonts", "themes", "canvas"} <= set(md2html.FALLBACK_TOKENS)
 
 
 def test_assembled_html_inlines_every_asset() -> None:
     html = md2html.build_multi_html(build_id="B", title="T", source="doc.md")
-    assert md2html.VIEWER_CSS.read_text(encoding="utf-8") in html
-    assert md2html.VIEWER_JS.read_text(encoding="utf-8") in html
+    assert md2html.VIEWER_BUNDLE_CSS.read_text(encoding="utf-8") in html
+    assert (
+        md2html._script_safe(md2html.VIEWER_BUNDLE_JS.read_text(encoding="utf-8"))
+        in html
+    )
     assert md2html.VIEWER_CYTOSCAPE_JS.read_text(encoding="utf-8") in html
     assert '<script type="application/json" id="rd-config">' in html
 
 
 def test_viewer_cytoscape_js_has_no_template_placeholders() -> None:
-    """ADR-008 applies to every asset, not just viewer.js."""
+    """ADR-008 applies to every asset, not just the bundle."""
     js = md2html.VIEWER_CYTOSCAPE_JS.read_text(encoding="utf-8")
     assert "{{" not in js
     assert "function rdRenderCytoscape(" in js
@@ -318,7 +364,7 @@ def test_installed_brandpacks_declare_a_display_face() -> None:
         tokens = json.loads(
             md2html.load_theme(name).tokens_path.read_text(encoding="utf-8")
         )
-        assert "display" in tokens["fonts"], f"{name} has no fonts.display"
+        assert "heading" in tokens["fonts"], f"{name} has no fonts.heading"
 
 
 def test_themes_are_real_files_not_symlinks() -> None:
@@ -348,8 +394,8 @@ def test_two_themed_docs_in_one_dir_keep_their_own_brand(tmp_path: Path) -> None
 
     alpha = json.loads((out / "alpha.tokens.json").read_text(encoding="utf-8"))
     beta = json.loads((out / "beta.tokens.json").read_text(encoding="utf-8"))
-    assert "Fraunces" in alpha["fonts"]["display"]
-    assert "Outfit" in beta["fonts"]["display"]
+    assert "Fraunces" in alpha["fonts"]["heading"]
+    assert "Outfit" in beta["fonts"]["heading"]
 
     # and each page must fetch ITS OWN pack, not a shared filename
     assert '"tokensSource": "alpha.tokens.json"' in (out / "alpha.html").read_text(
@@ -368,15 +414,15 @@ def test_load_theme_unknown_name_crashes_loudly() -> None:
     assert "osakanights" in str(excinfo.value)  # lists what IS available
 
 
-def test_theme_css_is_injected_after_viewer_css() -> None:
+def test_theme_css_is_injected_after_the_bundle_css() -> None:
     theme = md2html.load_theme("osakanights")
     html = md2html.build_multi_html(
         build_id="B", title="T", source="d.md", theme_css=theme.css
     )
     assert theme.css in html
-    assert html.index(md2html.VIEWER_CSS.read_text(encoding="utf-8")) < html.index(
-        theme.css
-    )
+    assert html.index(
+        md2html.VIEWER_BUNDLE_CSS.read_text(encoding="utf-8")
+    ) < html.index(theme.css)
 
 
 def test_main_theme_supersedes_tokens(
@@ -430,7 +476,7 @@ def test_main_with_no_flags_renders_the_default_theme(
     doc: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     md2html.main(_args(doc, tmp_path, theme=None, tokens=None))
-    assert "theme: osakanights" in capsys.readouterr().out
+    assert "profile: osakanights" in capsys.readouterr().out
     assert "Fraunces" in (tmp_path / "mydoc.html").read_text(encoding="utf-8")
 
 
@@ -439,7 +485,7 @@ def _write_override_theme(root: Path, name: str, marker: str) -> None:
     d.mkdir(parents=True)
     (d / "design-tokens.json").write_text(
         json.dumps(
-            {"fonts": {"display": marker}, "themes": {"light": {}}, "canvas": {}}
+            {"fonts": {"heading": marker}, "themes": {"light": {}}, "canvas": {}}
         ),
         encoding="utf-8",
     )
@@ -485,7 +531,7 @@ def test_write_multi_outputs(doc: Path, tmp_path: Path) -> None:
     copied = json.loads((out_dir / "mydoc.tokens.json").read_text(encoding="utf-8"))
     assert {"fonts", "themes", "canvas"} <= set(copied)
     html = html_path.read_text(encoding="utf-8")
-    assert "build B123" in html
+    assert '"buildId": "B123"' in html  # the React header renders it from #rd-config
     assert "<title>My Doc</title>" in html
 
 
@@ -636,7 +682,215 @@ def test_serve_commands_point_at_the_absolute_dir_and_slug(tmp_path: Path) -> No
     assert "http://localhost:9001/mydoc.html" in joined
 
 
+# ── Design profiles (DT-TOOL-1) ─────────────────────────────────────────────
+def _profile_doc() -> dict[str, object]:
+    doc: dict[str, object] = json.loads(PROFILE_FIXTURE.read_text(encoding="utf-8"))
+    return doc
+
+
+def _key_paths(node: object, prefix: str = "") -> set[str]:
+    if isinstance(node, dict):
+        return {p for k, v in node.items() for p in _key_paths(v, f"{prefix}.{k}")}
+    return {prefix}
+
+
+def _store_profile(root: Path, name: str = "brand") -> Path:
+    target = root / ".design-profiles" / name
+    target.mkdir(parents=True)
+    (target / "design-tokens.json").write_text(
+        PROFILE_FIXTURE.read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    return target
+
+
+def test_brandpack_from_profile_is_a_rename_of_the_profile_tokens() -> None:
+    doc = _profile_doc()
+    pack = md2html.brandpack_from_profile(doc)
+    dark = profile_resolver.read_tokens(doc, "dark")
+    themes = pack["themes"]
+    assert isinstance(themes, dict)
+    assert themes["dark"]["background"] == dark["color.surface"]
+    assert themes["dark"]["primary"] == dark["color.background.brand.bold"]
+    assert themes["dark"]["link"] == dark["color.link"]
+    canvas = pack["canvas"]
+    assert isinstance(canvas, dict)
+    plotly = canvas["plotly"]["dark"]
+    assert plotly["series"] == [
+        dark[f"color.chart.categorical.{i:02d}"]
+        for i in range(1, len(plotly["series"]) + 1)
+    ]
+    assert len(plotly["series"]) >= 10
+    assert (
+        canvas["cytoscape"]["dark"]["nodeFill"]
+        == dark["color.background.brand.subtlest"]
+    )
+    assert canvas["deckgl"]["dark"]["warn"] == dark["color.text.warning"]
+    status = pack["status"]
+    assert isinstance(status, dict)
+    assert status["dark"]["colours"]["serious"] == status["dark"]["colours"]["critical"]
+    assert pack["defaultTheme"] == "dark"
+    assert "Fira Sans" in str(pack["fonts"])
+    assert "categoryColours" not in pack  # one categorical palette (ADR-023)
+
+
+@pytest.mark.parametrize(
+    "value,unit,expected", [(0.45, "rem", "0.45rem"), (0, "px", "0px")]
+)
+def test_profile_radius_reaches_chrome_tokens(
+    value: float, unit: str, expected: str
+) -> None:
+    doc = _profile_doc()
+    for context in doc["modifiers"]["mode"]["contexts"].values():
+        context.append(
+            {
+                "dimension": {
+                    "radius": {
+                        "$type": "dimension",
+                        "$value": {"value": value, "unit": unit},
+                    }
+                }
+            }
+        )
+    pack = md2html.brandpack_from_profile(doc)
+    assert pack["themes"]["light"]["radius"] == expected
+    assert pack["themes"]["dark"]["radius"] == expected
+
+
+def test_legacy_profile_keeps_default_radius() -> None:
+    pack = md2html.brandpack_from_profile(_profile_doc())
+    assert pack["themes"]["dark"]["radius"] == "12px"
+
+
+def test_brandpack_from_profile_covers_every_key_a_built_in_theme_has() -> None:
+    pack = md2html.brandpack_from_profile(_profile_doc())
+    builtin = json.loads(
+        (md2html.THEMES_DIR / "osakanights" / "design-tokens.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    del builtin["waivers"]
+    missing = _key_paths(builtin) - _key_paths(pack)
+    # seriesAlt is optional in the viewer; a profile has one categorical walk.
+    assert {p for p in missing if "seriesAlt" not in p} == set()
+
+
+def test_profile_css_imports_the_web_fonts_only() -> None:
+    doc = _profile_doc()
+    assert md2html.profile_css(doc).startswith(
+        "@import url('https://fonts.googleapis.com/"
+    )
+    mode = doc["modifiers"]
+    assert isinstance(mode, dict)
+    mode["mode"]["$extensions"] = {}
+    assert md2html.profile_css(doc) == ""
+
+
+def test_profile_css_loads_body_and_heading_stylesheets() -> None:
+    doc = _profile_doc()
+    meta = doc["modifiers"]["mode"]["$extensions"][profile_resolver.EXT]
+    meta["fontStylesheets"] = [
+        "https://example.org/body.css",
+        "https://example.org/heading.css",
+        "https://example.org/body.css",
+    ]
+    assert md2html.profile_css(doc) == (
+        "@import url('https://example.org/body.css');\n"
+        "@import url('https://example.org/heading.css');\n"
+    )
+
+
+def test_load_profile_writes_a_brandpack_theme(tmp_path: Path) -> None:
+    theme = md2html.load_profile(PROFILE_FIXTURE, tmp_path)
+    assert theme.kind == "profile"
+    assert theme.name == "osakanights"
+    assert theme.tokens_path == tmp_path / "osakanights" / "design-tokens.json"
+    assert json.loads(theme.tokens_path.read_text(encoding="utf-8"))["themes"]["light"]
+    assert "plugins" in md2html.lint_canvas_config(theme.tokens_path)
+
+
+def test_resolve_profile_theme_precedence(tmp_path: Path) -> None:
+    project, home, out = tmp_path / "p", tmp_path / "h", tmp_path / "out"
+    kw = {"project": project, "home": home, "out_root": out}
+    fallback = md2html.resolve_profile_theme(None, None, None, **kw)
+    assert (
+        fallback is not None
+        and fallback.kind == "profile"
+        and fallback.name == "osakanights"
+    )
+    assert "--categorical-01:" in fallback.css
+    assert ":root[data-theme=dark]" in fallback.css
+    _store_profile(project)
+    (project / ".design-profiles" / ".default-profile").write_text(
+        "brand", encoding="utf-8"
+    )
+    default = md2html.resolve_profile_theme(None, None, None, **kw)
+    assert default is not None and default.name == "brand"
+    # An explicit theme or tokens file is a choice the default profile never overrides.
+    assert md2html.resolve_profile_theme(None, "v2ai", None, **kw) is None
+    assert md2html.resolve_profile_theme(None, None, "x.json", **kw) is None
+    # An explicit profile wins over both.
+    assert md2html.resolve_profile_theme("brand", "v2ai", "x.json", **kw) is not None
+    with pytest.raises(profile_resolver.ProfileError, match="resolves nowhere"):
+        md2html.resolve_profile_theme("ghost", None, None, **kw)
+
+
+def test_main_renders_with_a_profile_and_says_so(
+    doc: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    _store_profile(tmp_path)
+    out = tmp_path / "out"
+    md2html.main(_args(doc, out, tokens=None, profile="brand"))
+    report = capsys.readouterr().out
+    assert "profile: brand (design profile" in report
+    html = (out / "mydoc.html").read_text(encoding="utf-8")
+    assert "fonts.googleapis.com" in html
+    pack = json.loads((out / "mydoc.tokens.json").read_text(encoding="utf-8"))
+    assert pack["defaultTheme"] == "dark"
+
+
+def test_main_without_a_profile_uses_the_prebuilt_profile(
+    doc: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    md2html.main(_args(doc, tmp_path, tokens=None))
+    assert "profile: osakanights" in capsys.readouterr().out
+    md2html.main(_args(doc, tmp_path))
+    assert "tokens: " in capsys.readouterr().out
+
+
 if __name__ == "__main__":  # pragma: no cover
     script_dir = str(Path(__file__).parent.resolve())
     base_args = [__file__, "-v", "--rootdir", script_dir, "-o", "addopts="]
     sys.exit(pytest.main(base_args + sys.argv[1:]))
+
+
+def test_read_brandpack_refuses_pre_adr_033_key_names(tmp_path: Path) -> None:
+    """Old names fail loudly: `accent` and `muted` meant something else in shadcn."""
+    pack = tmp_path / "design-tokens.json"
+    pack.write_text(
+        json.dumps(
+            {
+                "fonts": {"display": "x", "mono": "y"},
+                "themes": {"light": {"accent": "#123456", "muted": "#777777"}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(SystemExit) as err:
+        md2html.read_brandpack(pack)
+    message = str(err.value)
+    assert "themes.<mode>.accent -> primary" in message
+    assert "themes.<mode>.muted -> mutedForeground" in message
+    assert "fonts.display -> heading" in message
+
+
+def test_every_built_in_brandpack_uses_shadcn_key_names() -> None:
+    for name in md2html.available_themes():
+        tokens = md2html.read_brandpack(md2html.load_theme(name).tokens_path)
+        for mode in ("light", "dark"):
+            assert {"background", "foreground", "primary", "card"} <= set(
+                tokens["themes"][mode]
+            ), name

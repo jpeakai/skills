@@ -21,13 +21,13 @@ authors**:
 If the user's canonical markdown breaks a rule below, that is the user's prose to
 keep. Render it as written; do not silently correct it.
 
-## Detection is tooling-agnostic
+## Run the unified source audit
 
-This file states **what** to look for, never **which command** finds it. Prose
-tooling is an evolving space, and naming one `grep` here would bake in a single
-assumed path. When a rule says "find X", pick the fittest mechanism for the
-environment and report what you used. The requirement is the finding, not the
-tool.
+Run `bunx @jpeakai/remark-lint-slopstopper@0.1.2 SOURCE.md` before rendering authored documents.
+It enables recommended Markdown rules and custom prose and Mermaid policies.
+Use `--prose-only` to isolate prose while retaining Markdown structure checks.
+`--fix` applies verified prose edits; review them and resolve remaining findings.
+The plugin's root preset alone does not enable the custom policies; the standalone CLI does.
 
 ## The non-negotiable mechanics
 

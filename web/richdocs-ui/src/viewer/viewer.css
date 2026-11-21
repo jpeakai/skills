@@ -1,0 +1,189 @@
+/* Document styles, ported from the hand-written assets/viewer.css.
+ *
+ * Every colour and font is a shadcn variable that the injected tokens set
+ * (richdocs ADR-004); never hardcode a hex here. The one exception is
+ * .rd-error, which must stay visible even when token loading is what failed.
+ *
+ * The rules below the reset block are unlayered on purpose, so they beat
+ * Tailwind's layers the way the old stylesheet beat browser defaults.
+ */
+
+/* Tailwind's preflight zeroes margins, list markers and heading sizes. That
+ * suits the React chrome, not rendered markdown or the subtrees the classic
+ * helpers build, which were authored against browser defaults. Hand those
+ * subtrees back to the browser. Replaced elements and SVG keep preflight:
+ * reverting them would drop their width, height and fill attributes. */
+@layer base {
+  :is(#rd-article, #rd-toc, .rd-zoom) :not(svg, svg *, img, video, canvas, iframe) {
+    all: revert;
+  }
+}
+
+body {
+  line-height: 1.65;
+}
+
+/* The layout row and the sidebar live in viewer-toc.css (ADR-021, ADR-022).
+   Without a sidebar, main keeps its centred 52rem column. */
+main {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 5rem;
+}
+
+/* Headings wear the brand's display face (fonts.heading in the brandpack). */
+main h1,
+main h2,
+main h3,
+main h4 {
+  font-family: var(--font-heading, var(--font-sans));
+  line-height: 1.25;
+}
+main h2 {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.3rem;
+}
+/* Links use the text-safe accent, never the fill (ADR-012). */
+main a {
+  color: var(--link, var(--primary));
+}
+main img {
+  max-width: 100%;
+}
+
+main code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius, 8px) / 2);
+  padding: 0.1em 0.35em;
+}
+main pre {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 8px);
+  padding: 0.9rem 1rem;
+  overflow-x: auto;
+}
+main pre code {
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+main blockquote {
+  margin: 1rem 0;
+  padding: 0.25rem 1rem;
+  border-left: 3px solid var(--primary); /* a rule, not text: the fill is fine here */
+  color: var(--muted-foreground);
+  background: var(--card);
+}
+
+/* Wide tables scroll inside their own container; the page never scrolls sideways. */
+.rd-table-wrap {
+  overflow-x: auto;
+  max-width: 100%;
+}
+main table {
+  border-collapse: collapse;
+  margin: 1rem 0;
+  width: 100%;
+  font-size: 0.875em;
+}
+main th,
+main td {
+  border: 1px solid var(--border);
+  padding: 0.4rem 0.7rem;
+  text-align: left;
+}
+main th {
+  background: var(--card);
+}
+
+/* ── Rich blocks ─────────────────────────────────────────────────────── */
+.rd-canvas {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 8px);
+  margin: 1rem 0;
+}
+.rd-mermaid {
+  display: flex;
+  justify-content: center;
+  padding: 0.75rem;
+}
+
+/* A mermaid label's <foreignObject> clips by default, and its measurement runs
+   a few percent short against a brand webfont, so the last glyphs vanish. The
+   node shape has room to spare, so stop the clip. Do not widen wrappingWidth
+   instead: that moves every wrap and the clip remains. */
+.rd-mermaid foreignObject {
+  overflow: visible;
+}
+
+/* Hardcoded red on purpose: a token failure must still render visibly. */
+.rd-error {
+  border: 1px solid #dc2626;
+  color: #dc2626;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+}
+
+/* Diagrams open full screen on click; the modal lives in viewer-zoom.css (ADR-024). */
+#rd-article img,
+#rd-article svg {
+  cursor: zoom-in;
+}
+#rd-article .rd-plotly svg {
+  cursor: auto;
+}
+
+/* Syntax tokens keep the code surface and adapt when the page theme flips. */
+:root {
+  --rd-code-keyword: #5b21b6;
+  --rd-code-string: #065f46;
+  --rd-code-comment: #475569;
+  --rd-code-number: #9f1239;
+}
+:root[data-theme="dark"] {
+  --rd-code-keyword: #c4b5fd;
+  --rd-code-string: #a7f3d0;
+  --rd-code-comment: #cbd5e1;
+  --rd-code-number: #fda4af;
+}
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-section,
+.hljs-title {
+  color: var(--rd-code-keyword);
+}
+.hljs-string,
+.hljs-regexp,
+.hljs-addition,
+.hljs-quote {
+  color: var(--rd-code-string);
+}
+.hljs-comment,
+.hljs-meta {
+  color: var(--rd-code-comment);
+}
+.hljs-number,
+.hljs-deletion,
+.hljs-symbol,
+.hljs-bullet {
+  color: var(--rd-code-number);
+}
+.hljs-strong {
+  font-weight: bold;
+}
+.hljs-emphasis {
+  font-style: italic;
+}

@@ -6,7 +6,7 @@
 //      and pipes them to this tool to get ratings.
 //   2. Library — extractStyleDirectives() and wcagAssess() are exported for
 //      scoring classDef/style/linkStyle directives in mermaid sources. The
-//      diagram gates themselves run from @jpeakai/mermaidjs-lint (ADR-004,
+//      diagram gates themselves run from @jpeakai/remark-lint-slopstopper (ADR-004,
 //      ADR-006 in CLAUDE.md).
 //
 // Universal parsing is delegated to colorjs.io, which accepts every CSS Color

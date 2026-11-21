@@ -9,8 +9,8 @@ from real projects, not abstract `n1, n2, n3` stand-ins.
 Run with:
 
 ```bash
-bunx @jpeakai/mermaidjs-lint \
-  .claude/skills/mermaidjs-diagrams/resources/examples/test_complexity_recommend.md
+bunx @jpeakai/remark-lint-slopstopper \
+  .claude/skills/richdocs/vendor/mermaidjs-diagrams/resources/examples/test_complexity_recommend.md
 ```
 
 Only the ❌ fences should produce findings. Each ✅ fence should be silent —

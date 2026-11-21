@@ -1,8 +1,8 @@
 "use strict";
 // Cytoscape graph rendering for the richdocs viewer.
 //
-// Inlined into its own script element BEFORE viewer.js, so these functions are
-// hoisted into global scope by the time viewer.js boots. Placeholder-free by
+// Inlined into its own script element BEFORE the viewer bundle, so these functions are
+// hoisted into global scope by the time the viewer bundle boots. Placeholder-free by
 // contract (ADR-008) — every colour comes from TOKENS.canvas.cytoscape.
 //
 // (Deliberately no literal script tags in this comment: a test balances the
@@ -37,7 +37,7 @@ function rdCyPalette(tokens, theme) {
     selected: c.selected || c.nodeBorder || c.nodeFill,
     shape: c.shape || "round-rectangle",
     roundness: typeof c.roundness === "number" ? c.roundness : 6,
-    font: tokens.fonts.body
+    font: tokens.fonts.sans
   };
 }
 
@@ -95,7 +95,7 @@ function rdMix(a, b, t) {
 
 function rdCyStyle(tokens, theme, slots) {
   var p = rdCyPalette(tokens, theme);
-  var bg = (tokens.themes && tokens.themes[theme] && tokens.themes[theme].bg) || (theme === "dark" ? "#111111" : "#ffffff");
+  var bg = (tokens.themes && tokens.themes[theme] && tokens.themes[theme].background) || (theme === "dark" ? "#111111" : "#ffffff");
   function colour(cat) { return rdCategoryColour(tokens, theme, slots || {}, cat); }
   function catTint(cat) { var c = colour(cat); return c ? rdMix(c, bg, 0.84) : p.compoundBg; }
   function catBorder(cat) { return colour(cat) || p.compoundBorder; }

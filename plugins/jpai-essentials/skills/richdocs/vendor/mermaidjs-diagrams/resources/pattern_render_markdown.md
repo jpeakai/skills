@@ -111,7 +111,7 @@ render_variant dark transparent png
 sounds: confirm the artifact exists and decodes before trusting it.
 
 ```bash
-bash .claude/skills/mermaidjs-diagrams/scripts/render_mermaid.sh --verify "${OUTPUT_TARGET}"*.png
+bash .claude/skills/richdocs/vendor/mermaidjs-diagrams/scripts/render_mermaid.sh --verify "${OUTPUT_TARGET}"*.png
 ```
 
 **Non-zero** = error on stderr. Classify it before editing the fence: a

@@ -81,11 +81,16 @@ in-memory set alone does not require a persistent schema diagram.
 
 ## 5. Palette
 
-Use semantic roles (`input`, `process`, `output`, `storage`, `external`) from
-[the color reference](../color_theming.md). Repeat identical role colors across
-both sides and every section. Encode BEFORE/AFTER with labels, not color alone.
-Use type-supported theme variables for ER and sequence diagrams. Include an
-edge-label background where needed.
+Resolve the active design profile, otherwise use prebuilt OsakaNights.
+Delegate palette curation to design-profiles where available; read [the shared theming guide](../color_theming.md) for token selection and renderer constraints.
+Assign categorical hue families to meaningful topics, responsibilities, owners or phases in a fixed order.
+Use the five same-family shades for related subcategories and repeat the mapping across every view.
+Use labels for BEFORE, AFTER, proposed and status meanings rather than relying on hue alone.
+Resolve CSS variables to supported concrete values before writing Mermaid styles.
+Style each category boundary with its matching tint and a readable same-family border, checking immediate parent surfaces for nested groups.
+Use native entity-row and sequence-group mechanisms rather than copying flowchart styles to unsupported families.
+Inspect both rendered modes and publish native Mermaid source.
+Example colors illustrate syntax; they are not another palette authority.
 
 ## 6. Anti-patterns
 

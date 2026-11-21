@@ -1,9 +1,9 @@
 "use strict";
 // Heading sidebar and section folds for richdocs pages (ADR-021, ADR-022).
 //
-// Inlined into its own script element BEFORE viewer.js, so these functions are
-// hoisted into global scope by the time viewer.js boots. Placeholder-free by
-// contract (ADR-008). viewer.js calls rdInitToc() once, right after the markdown
+// Inlined into its own script element BEFORE the viewer bundle, so these functions are
+// hoisted into global scope by the time the viewer bundle boots. Placeholder-free by
+// contract (ADR-008). The viewer bundle calls rdInitToc() once, right after the markdown
 // is parsed and before any fenced block is upgraded, so only authored headings
 // are indexed, never a heading inside a rendered diagram. The theme showcase
 // inlines the same file and calls rdInitToc() with its own options, so the two

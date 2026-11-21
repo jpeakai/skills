@@ -10,6 +10,11 @@ library, and an injectable design-tokens brandpack.
 
 The showcase exercises the full visual surface in one animated tour.
 
+Shared design profiles can supply separate body and heading fonts through their font stylesheet URLs.
+The renderer imports every listed stylesheet when loading a profile.
+Without a selected profile, it uses prebuilt `resources/themes/osakanights/themes.css` and matching baked tokens.
+Slopstopper provides the source Markdown, prose and Mermaid audit through one CLI.
+
 ## Architecture
 
 ```mermaid
@@ -130,6 +135,12 @@ Conversion-only requests preserve the supplied source and report structure failu
 
 ## Reference
 
+Theme curation belongs to design-profiles when available.
+The viewer resolves a selected or project-default profile, otherwise loads
+prebuilt `resources/themes/osakanights/themes.css` and matching tokens.
+Explicit brand-theme and token selections remain available.
+Mermaid, Cytoscape and Plotly receive the selected mode's baked values again on theme changes.
+
 | Piece | What it does |
 |-------|--------------|
 | `scripts/structure.py` | Number headings and reject visuals without a dedicated heading section |
@@ -137,7 +148,9 @@ Conversion-only requests preserve the supplied source and report structure failu
 | `scripts/serve.py` | `127.0.0.1` server with `Cache-Control: no-store`; fixes `file://` fetch blocking |
 | `scripts/stencil.py` | Query/extract tinted SVG icons from the vendored draw.io packs |
 | `assets/stencils.json.zip` | AWS/GCP/Azure/K8s icon library (`assets/NOTICE` for provenance) |
-| `assets/design-tokens.json` | Default neutral brandpack — edit the copy in the output dir to re-skin |
+| `resources/themes/osakanights/themes.css` | Compiled fallback CSS, including fonts, corner radius and expanded chart palettes |
+| `resources/themes/osakanights/profile/design-tokens.json` | Matching compiled fallback profile |
+| `assets/design-tokens.json` | Neutral brandpack example |
 | `resources/*.md` | Deep dives: discovery, existing-document upgrades, serving, stencils, rich blocks |
 
 A document with three or more headings gets a contents sidebar, built from its

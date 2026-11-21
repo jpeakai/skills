@@ -13,6 +13,7 @@ import sys
 import pytest
 
 import md2html
+import profile_resolver
 import serve
 import showcase
 import stencil
@@ -28,6 +29,7 @@ def _reload_for_coverage() -> None:
         importlib.reload(sys.modules["structure"])
     importlib.reload(serve)
     importlib.reload(stencil)
+    importlib.reload(profile_resolver)
     importlib.reload(md2html)
     importlib.reload(showcase)
     importlib.reload(themecheck)

@@ -1,31 +1,31 @@
 {
   "defaultTheme": "light",
   "fonts": {
-    "display": "'Outfit', system-ui, sans-serif",
-    "body": "'Outfit', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+    "heading": "'Outfit', system-ui, sans-serif",
+    "sans": "'Outfit', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
     "mono": "'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace"
   },
   "themes": {
     "light": {
-      "bg": "#ffffff",
-      "fg": "#1a1818",
-      "muted": "#666666",
-      "surface": "#ebebeb",
+      "background": "#ffffff",
+      "foreground": "#1a1818",
+      "mutedForeground": "#666666",
+      "card": "#ebebeb",
       "border": "#c9c9c9",
-      "accent": "#ffc000",
-      "onAccent": "#000000",
+      "primary": "#ffc000",
+      "primaryForeground": "#000000",
       "link": "#1a1818",
       "radius": "0",
       "pill": "0"
     },
     "dark": {
-      "bg": "#000000",
-      "fg": "#ebebeb",
-      "muted": "#bfbfbf",
-      "surface": "#1a1818",
+      "background": "#000000",
+      "foreground": "#ebebeb",
+      "mutedForeground": "#bfbfbf",
+      "card": "#1a1818",
       "border": "#4d4d4d",
-      "accent": "#ffc000",
-      "onAccent": "#000000",
+      "primary": "#ffc000",
+      "primaryForeground": "#000000",
       "link": "#ebebeb",
       "radius": "0",
       "pill": "0"
@@ -69,14 +69,16 @@
         "font": "#1a1818",
         "grid": "#ebebeb",
         "series": [
-          "#c6495d",
-          "#0085b5",
-          "#8c7a00",
-          "#a455b2",
-          "#008e81",
-          "#b56200",
-          "#5471d8",
-          "#249239"
+          "#ffc000",
+          "#70dcff",
+          "#ffb2c9",
+          "#92e56f",
+          "#bbc8ff",
+          "#ffb98f",
+          "#00e9e0",
+          "#ffa7fe",
+          "#ddd01f",
+          "#99d3ff"
         ],
         "muted": [
           "#868686",
@@ -103,7 +105,7 @@
             "#c36570",
             "#a73449"
           ],
-          "label": "cyan \u2194 pink"
+          "label": "cyan ↔ pink"
         }
       },
       "dark": {
@@ -112,14 +114,16 @@
         "font": "#ebebeb",
         "grid": "#333333",
         "series": [
-          "#df576c",
-          "#0098ce",
-          "#a18c00",
-          "#ba64c9",
-          "#00a294",
-          "#ce7000",
-          "#6383f2",
-          "#32a646"
+          "#ffc000",
+          "#70dcff",
+          "#ffb2c9",
+          "#92e56f",
+          "#bbc8ff",
+          "#ffb98f",
+          "#00e9e0",
+          "#ffa7fe",
+          "#ddd01f",
+          "#99d3ff"
         ],
         "muted": [
           "#7a7a7a",
@@ -146,7 +150,7 @@
             "#df7883",
             "#c6495d"
           ],
-          "label": "cyan \u2194 pink"
+          "label": "cyan ↔ pink"
         }
       }
     }
@@ -180,5 +184,8 @@
         "critical": "CRITICAL"
       }
     }
+  },
+  "waivers": {
+    "seriesContrast": "The categorical identity starts with exact brand yellow #FFC000 and ten golden-angle hues at its OKLCH lightness, identical in both modes. These light fills deliberately fall below 3:1 on white. Use explicit labels and contrasting outlines when mark boundaries convey information. Adjacent CVD separation remains mandatory. This exception applies only to the categorical fills, never text, sequential or diverging ramps."
   }
 }

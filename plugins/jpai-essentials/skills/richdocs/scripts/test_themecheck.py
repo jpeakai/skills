@@ -24,9 +24,9 @@ def test_contrast_matches_known_wcag_values() -> None:
 
 
 def test_roles_apply_the_same_fallbacks_as_the_viewer() -> None:
-    r = themecheck.roles({"bg": "#fff", "accent": "#123456"})
-    assert r["onAccent"] == "#fff"  # text on the fill defaults to the canvas
-    assert r["link"] == "#123456"  # text-safe accent defaults to the fill
+    r = themecheck.roles({"background": "#fff", "primary": "#123456"})
+    assert r["primaryForeground"] == "#fff"  # text on the fill defaults to the page
+    assert r["link"] == "#123456"  # text-safe brand colour defaults to the fill
 
 
 def test_every_installed_theme_is_compliant() -> None:
@@ -50,12 +50,12 @@ def test_the_original_bug_would_now_be_caught() -> None:
     naive = json.loads(json.dumps(pack))
     for mode in ("light", "dark"):
         naive["themes"][mode].pop("link", None)  # collapse the three roles
-        naive["themes"][mode].pop("onAccent", None)
-        naive["themes"][mode]["accent"] = "#ffc000"
+        naive["themes"][mode].pop("primaryForeground", None)
+        naive["themes"][mode]["primary"] = "#ffc000"
 
     failures = themecheck.check_theme("naive", naive)
     assert any("heading / link" in f for f in failures)
-    assert any("text on accent fill" in f for f in failures)
+    assert any("text on primary fill" in f for f in failures)
 
 
 def test_invisible_chart_series_is_caught() -> None:
@@ -63,6 +63,9 @@ def test_invisible_chart_series_is_caught() -> None:
     pack = json.loads(
         (themecheck.THEMES_DIR / "v2ai" / "design-tokens.json").read_text("utf-8")
     )
+    pack.pop(
+        "waivers", None
+    )  # Exercise the strict default, not an identity-fill exception.
     pack["canvas"]["plotly"]["light"]["series"][0] = "#fefefe"  # white-on-white
     pack["canvas"]["plotly"]["light"]["plot"] = "#ffffff"
     failures = themecheck.check_theme("x", pack)
@@ -87,6 +90,7 @@ def test_series_contrast_waiver_is_honoured_but_cvd_is_not() -> None:
     pack = json.loads(
         (themecheck.THEMES_DIR / "v2ai" / "design-tokens.json").read_text("utf-8")
     )
+    pack.pop("waivers", None)
     pack["canvas"]["plotly"]["light"]["plot"] = "#ffffff"
     pack["canvas"]["plotly"]["light"]["series"] = [
         "#eeeeee"
@@ -122,7 +126,7 @@ def test_main_reports_and_exits_on_a_failing_theme(
     broken = json.loads(original)
     for mode in ("light", "dark"):
         broken["themes"][mode].pop("link", None)
-        broken["themes"][mode]["accent"] = "#ffc000"
+        broken["themes"][mode]["primary"] = "#ffc000"
     try:
         pack_path.write_text(json.dumps(broken), encoding="utf-8")
         with pytest.raises(SystemExit) as excinfo:

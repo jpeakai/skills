@@ -1,117 +1,35 @@
-# Host-Themed Renderers: Translucent Dual-Theme Fills
+# Host-themed diagram rendering
 
-Part of the **Mermaid color theming** family — see
-[`color_theming.md`](color_theming.md) for the baseline model (the GitHub/`mmdc`
-case: opaque `fill` + explicit `color:`). This file covers the advanced case
-where that model breaks: renderers whose **host page theme controls the Mermaid
-label text** and re-themes it when the reader flips light/dark. **Material for
-MkDocs** is the common one.
+Use the active design profile or the prebuilt `resources/themes/osakanights/themes.css` fallback.
+Follow [profile-driven theming](color_theming.md) for category and shade assignments.
 
-The baseline assumes **you** control the text colour. Some integrations break
-that assumption — the host injects its own CSS variables into Mermaid, so
+## Host styles can override source styles
 
-- the label text is forced to `--md-mermaid-label-fg-color` (dark in light mode,
-  light in dark mode) and **overrides any `color:`** you set on a `classDef`;
-- your `fill:` *is* respected.
+Material for MkDocs can control Mermaid label colors through its own CSS variables.
+A foreground that reads on a fixed fill in plain Mermaid may become unreadable when a host overrides it.
+Inspect the actual host in light and dark modes instead of assuming source `color:` wins.
+The chosen theme supplies the palette; the host determines the surfaces and CSS precedence to verify.
 
-This voids the
-[§3 rule](color_theming.md#3-light-mode--dark-mode-safety) ("always pair `fill:`
-with `color:`"): your text colour is ignored, so a fill chosen for white text
-turns unreadable the instant the host flips the text. A dark fill under dark
-forced-text (light mode), or a light fill under light forced-text (dark mode),
-vanishes.
+## Resolve per-mode styling
 
-## The fix: let the page background bleed through a translucent fill
+Resolve category tints against the visible canvas and check them against their immediate parents.
+Choose foregrounds and same-family border shades against the final composited fills.
+For an HTML companion, feed the selected mode's tokens to the renderer and rerender Mermaid from its source on mode changes.
+A fixed light tint does not reproduce the dark appearance.
 
-Don't fight the host. **Drop `color:`** (anchor to the host's theme text) and make the
-**fill translucent** with 8-digit hex alpha. The page background then composites *through*
-the fill, so a single constant colour auto-tints to the right side of the forced text:
+GitHub fences cannot query a host CSS variable or select a different hard-coded palette when the host switches.
+Keep fixed fills and foregrounds readable together on both canvases.
+For deep nesting, use explicit opaque tints or transparent structural groups so fill opacity does not accumulate unchecked.
 
-- light theme → fill over a light page → a **pale** box → the forced **dark** text reads;
-- dark theme → fill over a dark page → a **dark** box → the forced **light** text reads.
+## Configure the available audit
 
-Carry the category hue in an **opaque stroke** — the fill is only a faint tint, so the
-border does the visual identification.
+Slopstopper 0.1.2 audits modeled Mermaid text contrast in both themes.
+Its native remark plugin accepts `options.canvas: {light, dark}` for custom canvas colors.
+It does not expose the retired `--profile mkdocs-material`, `--canvas-light` or `--canvas-dark` flags.
+Canvas configuration does not model a host stylesheet that forces another foreground.
+Do not claim a plain Mermaid audit certifies such host overrides or border contrast.
 
-```
-%% Host forces the text colour per theme; we deliberately set NO color:.
-%% Translucent fill (alpha ~0x33 ≈ 20%) tints with the page bg in BOTH themes;
-%% the opaque stroke carries the hue. Verified AAA light + dark (see math below).
-classDef entity  fill:#1d4ed836,stroke:#3b82f6,stroke-width:2px
-classDef danger  fill:#dc262636,stroke:#ef4444,stroke-width:2px
-classDef neutral fill:#52525b36,stroke:#71717a,stroke-width:1px
-```
-
-## A second case: `erDiagram` rows
-
-The same recipe fixes a failure with a similar cause and no host involved. In an
-`erDiagram`, the renderer owns half the **backgrounds** rather than the text:
-the `fill:` lands on even attribute rows only, and the odd rows keep the Mermaid
-theme's own surface. A declared `color:` has to read on both, and in both
-themes, which no opaque pairing achieves (see the
-[§3 `erDiagram` exception](color_theming.md#3-light-mode--dark-mode-safety)).
-Drop `color:` so the theme label (`#333` on `default`, `#ccc` on `dark`) tracks
-the odd rows. Then make the fill translucent so the even rows tint toward the
-same side:
-
-```
-classDef output fill:#b4530966,stroke:#d97706,stroke-width:2px
-```
-
-Mermaid's measured row anchors (mermaid-cli 11.x):
-
-| Theme | Odd row | Even row | Label |
-|-------|---------|----------|-------|
-| `default` | `#ffffff` | `#f1f1ff` | `#333333` |
-| `dark` | `#2c2d2d` | `#060606` | `#cccccc` |
-
-`@jpeakai/mermaidjs-lint` applies these automatically to `erDiagram` fences under
-the `github` profile. It gates text on both rows in both themes, and does not
-report a border finding there.
-
-## The compositing math
-
-Browsers composite opacity in gamma-encoded sRGB ("simple alpha over"). For a fill `F` at
-alpha `a` on page background `B`, with host text `T` at alpha `a_t`:
-
-```
-box   = a*F   + (1-a)*B        # the visible box colour (per theme, since B differs)
-text  = a_t*T + (1-a_t)*box    # the text sits ON the box
-ratio = WCAG21(text, box)      # standard relative-luminance contrast
-```
-
-Two constraints (light **and** dark), two knobs per hue (base hue `F`, alpha `a`). Because
-`B` differs by theme, one `(F, a)` gives a lighter box on light and a darker box on dark —
-which is exactly what tracks the host's flipped text. **Lower alpha → higher contrast** (box
-closer to the page bg) but a fainter tint; **higher alpha → more vivid** but risk of failing
-one theme. Solve for the **highest alpha whose worst-of-both-themes contrast still clears the
-target**: AAA (7:1) is typically reachable at `a ≈ 0.18–0.21`; AA (4.5:1) opens up to
-`a ≈ 0.50`.
-
-## Anchor the host text + bg — extract, don't guess
-
-The forced colours depend on the host's theme config, so read them rather than assume. With
-the site open in a browser, read the CSS variables off `document.body` in each theme:
-
-| Value | Material CSS variable |
-|-------|------------------------|
-| Page background | `--md-default-bg-color` |
-| Mermaid label text | `--md-mermaid-label-fg-color` |
-
-Material's stock theme resolves to roughly **light**: text `#36464e` on `#ffffff`; **dark**:
-a ~86%-light grey at `α0.82` over a `~rgb(30,33,41)` slate. Treat these as the anchored `T`
-and `B` per theme, then solve `a` per hue. (`bunx @jpeakai/mermaidjs-lint --profile
-mkdocs-material` bakes these in and runs the both-theme check for you.)
-
-## Verifying — gotchas that cost time
-
-- **Toggle themes via the real palette control**, not by setting the `data-md-color-scheme`
-  attribute in JS — Material re-renders Mermaid on a genuine palette switch; a scripted
-  attribute change tears the diagram down *without* re-rendering, leaving an empty node.
-- **The rendered Mermaid DOM is awkward to query** and renders on a delay / on scroll-into-view.
-  The reliable ground truth is a **screenshot per theme** plus the CSS-variable read above —
-  not `getComputedStyle` on individual nodes.
-- `color_contrast.ts` compares two *opaque* colours; for a translucent fill, composite it over
-  the page bg first (`box = a*F+(1-a)*B`) and pass the resulting opaque `box` (and composited
-  `text`).
-- 8-digit-hex alpha fills need a modern Mermaid (v10+); Material's bundled Mermaid is fine.
+Use [the native CLI configuration](contrast_tooling.md) and inspect the final host rendering in both modes.
+For an entity table, inspect the header, alternating rows, dividers and outer boundary without dropping attributes.
+For sequences, inspect participant families and every surface occupied by messages, notes and frames.
+Use the ad-hoc color converter or pair calculator for explicit foreground/fill and border/fill measurements.

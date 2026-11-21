@@ -195,56 +195,16 @@ round trips, or who waits on whom.
 
 ## 5. Palette
 
-Declare the role set once, in the mental-model beat, then repeat the identical
-`classDef` block in every fence that uses those roles. Mermaid has no
-cross-fence style inheritance — the repetition is the mechanism, and it must be
-byte-identical so a reader never sees a role shift colour.
-
-Derive values from [`../color_theming.md`](../color_theming.md). This role set
-covers most conceptual topics:
-
-| Role | Meaning | fill | stroke | color |
-|---|---|---|---|---|
-| `person` | A human whose authority or attention matters | `#92400e` | `#fef3c7` | `#ffffff` |
-| `agent` | Autonomous or machine actor | `#1d4ed8` | `#dbeafe` | `#ffffff` |
-| `client` | The calling software / requester | `#5b21b6` | `#ede9fe` | `#ffffff` |
-| `auth` | Authority that decides or issues | `#047857` | `#d1fae5` | `#ffffff` |
-| `exchange` | Transformation or negotiation step | `#7c3aed` | `#ede9fe` | `#ffffff` |
-| `token` | Credential, artifact, or payload in flight | `#1e40af` | `#dbeafe` | `#ffffff` |
-| `resource` | The thing being protected or acted on | `#065f46` | `#d1fae5` | `#ffffff` |
-| `policy` | Constraint or configuration input | `#fef3c7` | `#b45309` | `#1e293b` |
-| `warning` | The unsafe or discouraged outcome | `#b91c1c` | `#fecaca` | `#ffffff` |
-
-Rename roles to fit the topic — a CRDT guide wants `replica`, `op`, `merge`,
-`converged` — but keep the *count* between five and eight. Below five, colour
-stops encoding anything; above eight, the reader cannot hold the legend.
-
-Two mandatory mechanics:
-
-- Every fence that uses custom colour needs the `%%{init: …}%%` header setting
-  `primaryTextColor`, `textColor`, `lineColor`, **and `edgeLabelBackground`**:
-
-  ```
-  %%{init: {"theme":"base","flowchart":{"htmlLabels":false},"themeVariables":{"primaryTextColor":"#ffffff","textColor":"#ffffff","lineColor":"#94a3b8","edgeLabelBackground":"#334155"}}}%%
-  ```
-
-  **`edgeLabelBackground` is not optional whenever the diagram has edge labels
-  (`-->|text|`).** `textColor:#ffffff` colours edge label text as well as node
-  text, and an edge label sits on the page background, not on a node — so in the
-  light theme it renders white on near-white and disappears completely.
-  `@jpeakai/mermaidjs-lint` cannot catch this: it audits `classDef` fill×color pairs
-  and never sees edge labels. Verified by render — the gate reported 4 pass / 0
-  fail on a diagram whose every edge label was invisible. **Look at the light
-  render before declaring any diagram with edge labels done.**
-
-- `policy` is the only light-fill role in the set. That asymmetry is deliberate:
-  it makes constraints visually recede from the actors and artifacts. Keep at
-  most one light-fill role, or the hierarchy inverts.
-
-For Material for MkDocs and other host-themed renderers, the host overrides
-label colour — use the translucent-fill pattern in
-[`../color_host_themed_renderers.md`](../color_host_themed_renderers.md) and
-audit with `--profile mkdocs-material` instead of setting `color:`.
+Resolve the active design profile, otherwise use prebuilt OsakaNights.
+Delegate palette curation to design-profiles where available; read [the shared theming guide](../color_theming.md) for token selection and renderer constraints.
+Assign categorical hue families to meaningful topics, responsibilities, owners or phases in a fixed order.
+Use the five same-family shades for related subcategories and repeat the mapping across every view.
+Use labels for BEFORE, AFTER, proposed and status meanings rather than relying on hue alone.
+Resolve CSS variables to supported concrete values before writing Mermaid styles.
+Style each category boundary with its matching tint and a readable same-family border, checking immediate parent surfaces for nested groups.
+Use native entity-row and sequence-group mechanisms rather than copying flowchart styles to unsupported families.
+Inspect both rendered modes and publish native Mermaid source.
+Example colors illustrate syntax; they are not another palette authority.
 
 ## 6. Prose discipline
 
@@ -314,7 +274,7 @@ Structural — verify by reading:
 Mechanical — verify by running, from the skill directory:
 
 ```bash
-bunx @jpeakai/mermaidjs-lint            path/to/document.md   # every fence parses, within budget, WCAG AA
+bunx @jpeakai/remark-lint-slopstopper            path/to/document.md   # every fence parses, within budget, WCAG AA
 bash scripts/render_mermaid.sh         path/to/document.md   # both themes, syntax + layout
 ```
 
@@ -337,7 +297,7 @@ Use verbatim when commissioning one:
 > at most one per three beats. Close with a comparison table (only after stating
 > the invariant), a symptom→stage diagnosis table, a two-or-three-sentence
 > compact rule, and dated authoritative references. Headings state claims, not
-> nouns. ASCII labels, `<br/>` for breaks. `bunx @jpeakai/mermaidjs-lint` must
+> nouns. ASCII labels, `<br/>` for breaks. `bunx @jpeakai/remark-lint-slopstopper` must
 > exit 0.
 
 ## 10. Reference implementation

@@ -1,6 +1,6 @@
 """Grade a case's artifact with the lint the skill mandates, and check the run used it.
 
-The skill's gates are the published ``@jpeakai/mermaidjs-lint`` package, not scripts
+The skill's gates are the published ``@jpeakai/remark-lint-slopstopper`` package, not scripts
 inside the skill, so two things change for a grader:
 
 - the verifier runs the package (``bunx``, the same command ``SKILL.md`` gives), and
@@ -16,7 +16,7 @@ from collections.abc import Iterator
 
 from pytest_xharness_eval import CaseOutput
 
-PACKAGE = "@jpeakai/mermaidjs-lint"
+PACKAGE = "@jpeakai/remark-lint-slopstopper"
 LINT = ("bunx", PACKAGE)
 
 
@@ -35,7 +35,7 @@ def _tool_inputs(output: CaseOutput) -> Iterator[str]:
 
 
 def check_lint_ran(output: CaseOutput) -> None:
-    """The run invoked ``@jpeakai/mermaidjs-lint`` at least once, through any shell tool.
+    """The run invoked ``@jpeakai/remark-lint-slopstopper`` at least once, through any shell tool.
 
     Right by luck is a different outcome from right and checked; the skill mandates the
     check, so a run that never invoked the lint fails here however good its file is.

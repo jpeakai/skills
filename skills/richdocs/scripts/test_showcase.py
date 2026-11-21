@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import re
 import sys
 from argparse import Namespace
 from pathlib import Path
@@ -15,6 +16,10 @@ import pytest
 
 import md2html
 import showcase
+
+PROFILE_FIXTURE = (
+    Path(__file__).parent / "testdata" / "osakanights" / "design-tokens.json"
+)
 
 
 def _args(out: Path, theme: str | None = None) -> Namespace:
@@ -83,6 +88,72 @@ def test_scope_css_anchors_root_to_the_scope_itself() -> None:
     scoped = showcase.scope_css(":root { --x: 1px; }", "acme")
     assert ':root[data-brand="acme"] { --x: 1px; }' in scoped
     assert ':root[data-brand="acme"] :root' not in scoped
+
+
+@pytest.mark.parametrize(
+    ("selector", "expected"),
+    [
+        (":root[data-theme=dark]", ':root[data-brand="acme"][data-theme=dark]'),
+        (":root.dark", ':root[data-brand="acme"].dark'),
+        ("html[data-theme=dark]", ':root[data-brand="acme"][data-theme=dark]'),
+        (
+            ":root[data-theme=dark] main h2",
+            ':root[data-brand="acme"][data-theme=dark] main h2',
+        ),
+    ],
+)
+def test_scope_css_merges_a_compound_root_into_the_scope(
+    selector: str, expected: str
+) -> None:
+    """A mode selector qualifies the root itself, so it must merge into the scope.
+
+    `:root[data-brand="acme"] :root[data-theme=dark]` asks for a root inside the
+    root, which never matches: the brand's dark variables silently never apply.
+    """
+    scoped = showcase.scope_css(f"{selector} {{ --x: 1px; }}", "acme")
+    assert f"{expected} {{ --x: 1px; }}" in scoped
+    assert " :root" not in scoped and " html" not in scoped
+
+
+def test_scoped_profile_dark_block_applies_in_dark_mode(tmp_path: Path) -> None:
+    """A shadcn-shaped profile's `.dark` block reaches the gallery's dark mode."""
+    profile = tmp_path / "acme" / "design-tokens.json"
+    profile.parent.mkdir()
+    profile.write_text(PROFILE_FIXTURE.read_text(encoding="utf-8"), encoding="utf-8")
+    profile.with_name("theme.css").write_text(
+        ":root {\n  --background: white;\n}\n.dark {\n  --background: black;\n}\n",
+        encoding="utf-8",
+    )
+    theme = md2html.load_profile(profile, tmp_path / "out")
+    scoped = showcase.scope_css(theme.css, theme.name)
+    assert ':root[data-brand="acme"] { --background: white; }' in scoped
+    assert (
+        ':root[data-brand="acme"][data-theme=dark] { --background: black; }' in scoped
+    )
+
+
+def test_no_asset_uses_the_primary_fill_as_text_colour() -> None:
+    """`--rd-primary` is a FILL with no text-contrast duty (ADR-012).
+
+    themecheck never scores it as text, so text set in it is unchecked. A brand
+    whose dark fill is deep (a shadcn `primary`) renders that text unreadable.
+    Text takes `--rd-link`; the fill is only for backgrounds, borders and rules.
+    Covers the shared assets and every built-in theme's own CSS.
+    """
+    text_in_fill = re.compile(r"(?<![\w-])color\s*:\s*var\(--rd-primary(?![\w-])")
+    skill = Path(__file__).resolve().parent.parent
+    sources = [
+        p
+        for p in sorted(skill.glob("assets/*.*"))
+        if p.suffix in {".css", ".html", ".js"}
+    ] + sorted(skill.glob("resources/themes/*/theme.css"))
+    offenders = [
+        f"{path.relative_to(skill)}:{n}"
+        for path in sources
+        for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1)
+        if text_in_fill.search(line)
+    ]
+    assert offenders == []
 
 
 def test_scope_css_drops_comments() -> None:

@@ -49,26 +49,20 @@ siblings rather than unrelated templates.
 4. **Both gates run before the document is done.** One lint run carries both.
 
    ```bash
-   bunx @jpeakai/mermaidjs-lint path/to/document.md
+   bunx @jpeakai/remark-lint-slopstopper path/to/document.md
    ```
 
    Non-zero exit means stop and fix. Shrink or split the fence; do not raise
    the budget.
 5. **ASCII-only node labels, `<br/>` for line breaks.** Not `\n`, not Unicode
    box-drawing or emoji inside labels. See `SKILL.md` → *Common Pitfalls*.
-5b. **Set `edgeLabelBackground` whenever a fence has edge labels.** With
-   `textColor:#ffffff`, edge label text is white and sits on the *page*
-   background, so it vanishes in the light theme. The lint's contrast rules audit
-   only `classDef` pairs and reports a clean pass on a diagram whose labels are
-   invisible — verified. Add `"edgeLabelBackground":"#334155"` to
-   `themeVariables`, and **look at the light render** before declaring done.
-   Neither gate substitutes for one glance at the image.
-6. **No live `-beta` fences.** `architecture-beta`, `block-beta`,
-   `packet-beta`, `radar-beta`, `sankey-beta`, `treemap-beta`, and
-   `xychart-beta` frequently fail to render on GFM hosts, which pin an older
-   Mermaid version than your local toolchain. Ship them as a rendered PNG or
-   SVG with the `.mmd` kept as a sibling source file. See
-   [`../gfm_beta_diagrams.md`](../gfm_beta_diagrams.md).
+6. **Resolve edge-label foregrounds and backgrounds together.** Select
+   `textColor` and `edgeLabelBackground` from the chosen design profile.
+   Audit the explicit source values and inspect both rendered modes.
+   The linter models edge-label contrast; host CSS can still override it.
+7. **Publish supported native fences.** Verify the diagram family on the
+   target host before using it. Keep inspection images local and publish
+   the Mermaid source. See [`../gfm_beta_diagrams.md`](../gfm_beta_diagrams.md).
 
 ## Adding a new type
 

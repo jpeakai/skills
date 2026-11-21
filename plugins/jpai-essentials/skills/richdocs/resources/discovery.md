@@ -27,7 +27,7 @@ Output modes are:
 
 If the caller omits the mode, infer it from the requested deliverable; use `md` when none is specified.
 HTML is always derived from the authored Markdown.
-Follow the Mermaid gate in `SKILL.md` before rendering.
+Follow the source lint in `SKILL.md` before rendering.
 Do not hand-edit the generated HTML.
 
 ## Research and evidence

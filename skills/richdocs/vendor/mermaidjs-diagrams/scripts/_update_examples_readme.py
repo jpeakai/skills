@@ -15,7 +15,7 @@ For each {stem}.mmd in the examples directory (sorted alphabetically), emits:
 A static footer section for Mermaid version debugging is appended after all examples.
 
 Run from project root:
-    uv run .claude/skills/mermaidjs-diagrams/scripts/_update_examples_readme.py
+    uv run .claude/skills/richdocs/vendor/mermaidjs-diagrams/scripts/_update_examples_readme.py
 """
 
 from __future__ import annotations

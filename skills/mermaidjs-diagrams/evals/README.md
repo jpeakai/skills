@@ -18,7 +18,7 @@ The plugin is a dev dependency of this repository, so `uv run pytest` picks it u
 ## Prerequisites
 
 - `claude` and `codex` on your `PATH`, each logged in.
-- `bunx` with registry access, so graders can run `@jpeakai/mermaidjs-lint`, the lint the skill mandates.
+- `bunx` with registry access, so graders can run `@jpeakai/remark-lint-slopstopper`, the lint the skill mandates.
 - `npx` and a Chromium for `scripts/render_mermaid.sh`, which every case uses to render the result.
 
 ## Run

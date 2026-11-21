@@ -13,7 +13,7 @@ documentation markdown file** (typically `README.md` or a dedicated
 2. For each lens, author **two** mermaid fences: a **simplified** overview
    (<=12 nodes, VCS <=25) that stays inline, and a **detailed** technical
    reference (<=35 nodes, VCS <=60) wrapped in `<details>` collapsible.
-3. Validate both fences with `bunx @jpeakai/mermaidjs-lint path/to/readme.md`, and
+3. Validate both fences with `bunx @jpeakai/remark-lint-slopstopper path/to/readme.md`, and
    treat any finding above the density budget as a split-the-lens signal.
 4. GitHub and GitLab render mermaid fences natively — no PNG pre-render step
    is needed for the markdown-hosted case. Rendered PNGs are an optional
@@ -105,7 +105,7 @@ flowchart LR
 - **Graceful disclosure.** The simplified fence is the narrative; the detailed
   fence is the reference. Readers self-select depth via the `<details>`
   toggle.
-- **Skill tooling just works.** `@jpeakai/mermaidjs-lint` accepts `.md` files
+- **Skill tooling just works.** `@jpeakai/remark-lint-slopstopper` accepts `.md` files
   and reports per-fence line ranges.
 
 ### Section template
@@ -135,8 +135,8 @@ Copy this as the starting point for each lens section:
 
 | Tier | Target nodes | Target VCS | Preset flag | Role |
 |------|--------------|-----------|-------------|------|
-| Simplified (overview) | <=12 | <=25 | `--preset low` | Always-visible narrative. README-friendly, readable in presentations and onboarding docs. |
-| Detailed (reference) | <=35 | <=60 | `--preset high` *(default)* | Hidden behind `<details>`. Used for architecture reviews, debugging, deep-dive explanations. |
+| Simplified (overview) | <=12 | <=25 | `--preset low-density` | Always-visible narrative. README-friendly, readable in presentations and onboarding docs. |
+| Detailed (reference) | <=35 | <=60 | `--preset high-density` *(default)* | Hidden behind `<details>`. Used for architecture reviews, debugging, deep-dive explanations. |
 
 If either fence exceeds its tier's budget, **split the lens** rather than
 relax the budget. See "When to split" below.
@@ -223,7 +223,7 @@ From project root:
 ```bash
 # One run: every fence parses, stays within its density budget, and
 # every custom classDef/style colour passes WCAG contrast
-bunx @jpeakai/mermaidjs-lint README.md
+bunx @jpeakai/remark-lint-slopstopper README.md
 ```
 
 Either command exiting non-zero means "stop and fix" — either shrink the
@@ -301,5 +301,5 @@ files:
 *High-level components* | [Source](docs/diagrams/architecture--overview.md)
 ```
 
-This pattern still interoperates with `@jpeakai/mermaidjs-lint` (point it at
+This pattern still interoperates with `@jpeakai/remark-lint-slopstopper` (point it at
 `docs/diagrams/`). It's just noisier to maintain than the inline approach.

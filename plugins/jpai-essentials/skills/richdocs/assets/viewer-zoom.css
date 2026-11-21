@@ -7,25 +7,25 @@
 .rd-zoom {
   position: fixed; inset: 0; z-index: 1000;
   display: flex; flex-direction: column;
-  background: var(--rd-bg); color: var(--rd-fg);
-  font-family: var(--rd-font-body);
+  background: var(--rd-background); color: var(--rd-foreground);
+  font-family: var(--rd-font-sans);
 }
 .rd-zoom-bar {
   display: flex; align-items: center; gap: 0.5rem;
   padding: 0.5rem 0.75rem;
-  background: var(--rd-surface); border-bottom: 1px solid var(--rd-border);
+  background: var(--rd-card); border-bottom: 1px solid var(--rd-border);
   font-size: 0.85rem;
 }
 .rd-zoom-bar button, .rd-zoom-expand {
   font: inherit; font-size: 0.8rem; line-height: 1; cursor: pointer;
   min-width: 2rem; padding: 0.4rem 0.7rem;
-  color: var(--rd-fg); background: var(--rd-bg);
+  color: var(--rd-foreground); background: var(--rd-background);
   border: 1px solid var(--rd-border); border-radius: var(--rd-pill, 999px);
 }
 .rd-zoom-bar button:focus-visible, .rd-zoom-expand:focus-visible {
-  outline: 2px solid var(--rd-link, var(--rd-accent)); outline-offset: 2px;
+  outline: 2px solid var(--rd-link, var(--rd-primary)); outline-offset: 2px;
 }
-.rd-zoom-hint { flex: 1; color: var(--rd-muted); text-align: center; }
+.rd-zoom-hint { flex: 1; color: var(--rd-muted-foreground); text-align: center; }
 
 .rd-zoom-stage {
   position: relative; flex: 1; min-height: 0; overflow: hidden;

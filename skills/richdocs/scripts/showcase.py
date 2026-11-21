@@ -42,6 +42,7 @@ from md2html import (
     available_themes,
     load_theme,
     make_build_id,
+    read_brandpack,
 )
 from stencil import DEFAULT_ZIP, load_stencils
 
@@ -312,14 +313,29 @@ def scope_css(css: str, brand: str) -> str:
         if not selectors or not body:
             continue
         scoped = ", ".join(
-            # `*` and `:root`/`html`/`body` anchor to the scope itself, not below it.
-            f"{prefix} {s.strip()}"
-            if s.strip() not in ("*", ":root", "html", "body")
-            else f"{prefix} {s.strip()}".replace(f"{prefix} :root", prefix)
-            for s in selectors.split(",")
+            _scope_selector(s.strip(), prefix) for s in selectors.split(",")
         )
         out.append(f"{scoped} {{ {body} }}")
     return "\n".join(out)
+
+
+# A selector whose first compound is the document root: `:root`, `html`, or either
+# qualified (`:root[data-theme=dark]`, `html.dark`). Group 1 is the qualifier.
+_ROOT_COMPOUND_RE = re.compile(r"^(?::root|html)(?![\w-])(\S*)")
+
+
+def _scope_selector(selector: str, prefix: str) -> str:
+    """Scope one selector. A root compound merges INTO the scope, never below it.
+
+    `:root[data-theme=dark]` becomes `<prefix>[data-theme=dark]`: the same element,
+    further qualified. Prefixed as a descendant it would ask for a root inside the
+    root, which never matches, so a brand's dark-mode variables would silently
+    never apply.
+    """
+    root = _ROOT_COMPOUND_RE.match(selector)
+    if root:
+        return prefix + root.group(1) + selector[root.end() :]
+    return f"{prefix} {selector}"
 
 
 # ── Stencil architecture → editable SVG ────────────────────────────────────
@@ -426,11 +442,11 @@ def compose_architecture_svg(arch: Arch, stencils: dict[str, dict[str, Any]]) ->
         plate_w = len(label) * 5.6 + 10
         parts.append(
             f'<rect x="{lx - plate_w / 2:.1f}" y="{ly - 8:.1f}" width="{plate_w:.1f}" '
-            'height="14" rx="3" fill="var(--rd-surface)" opacity="0.9"/>'
+            'height="14" rx="3" fill="var(--rd-card)" opacity="0.9"/>'
         )
         parts.append(
             f'<text x="{lx:.1f}" y="{ly + 2.5:.1f}" text-anchor="middle" font-size="9.5" '
-            'fill="var(--sc-muted)" font-family="var(--rd-font-mono)">'
+            'fill="var(--sc-muted-foreground)" font-family="var(--rd-font-mono)">'
             f"{html.escape(label)}</text>"
         )
 
@@ -445,7 +461,7 @@ def compose_architecture_svg(arch: Arch, stencils: dict[str, dict[str, Any]]) ->
         ew, eh = float(entry["w"]), float(entry["h"])
         scale = ICON / max(ew, eh)
         parts.append(
-            f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{r + 8:.1f}" fill="var(--rd-surface)"/>'
+            f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{r + 8:.1f}" fill="var(--rd-card)"/>'
         )
         parts.append(
             f'<g transform="translate({cx - ew * scale / 2:.1f},{cy - eh * scale / 2:.1f}) '
@@ -454,7 +470,7 @@ def compose_architecture_svg(arch: Arch, stencils: dict[str, dict[str, Any]]) ->
         )
         parts.append(
             f'<text x="{cx}" y="{cy + ICON / 2 + 16}" text-anchor="middle" font-size="11.5" '
-            'font-weight="600" fill="var(--sc-fg)" font-family="var(--rd-font-body)">'
+            'font-weight="600" fill="var(--sc-foreground)" font-family="var(--rd-font-sans)">'
             f"{html.escape(n.label)}</text>"
         )
 
@@ -519,7 +535,7 @@ def build_payload(themes: list[Theme], *, build_id: str) -> dict[str, object]:
         "brands": [
             {
                 "name": t.name,
-                "tokens": json.loads(t.tokens_path.read_text(encoding="utf-8")),
+                "tokens": read_brandpack(t.tokens_path),
             }
             for t in themes
         ],
